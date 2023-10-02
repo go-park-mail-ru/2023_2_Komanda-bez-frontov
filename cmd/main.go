@@ -6,6 +6,7 @@ import (
 	"go-form-hub/internal/api"
 	repository "go-form-hub/internal/repository/mocks"
 	"go-form-hub/internal/services/form"
+	"go-form-hub/internal/services/user"
 	"net"
 	"net/http"
 	"os"
@@ -46,6 +47,12 @@ func main() {
 	formRouter := api.NewFormAPIController(formService, validate)
 
 	r := api.NewRouter(formRouter)
+
+	userRepository := repository.NewUserMockRepository()
+	userService := user.NewUserService(userRepository, validate)
+	userRouter := api.NewUserAPIController(userService, validate)
+
+	r = api.NewRouter(userRouter)
 
 	server, err := StartServer(r)
 	if err != nil {

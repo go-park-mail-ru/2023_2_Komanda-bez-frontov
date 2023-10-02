@@ -29,7 +29,7 @@ func (c *FormAPIController) Routes() []Route {
 		{
 			Name:         "FormSave",
 			Method:       http.MethodPost,
-			Path:         "/forms",
+			Path:         "/forms/new",
 			Handler:      c.FormSave,
 			AuthRequired: true,
 		},

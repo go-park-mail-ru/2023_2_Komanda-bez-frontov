@@ -1,4 +1,4 @@
-package form
+package user
 
 import (
 	"context"
@@ -11,31 +11,30 @@ import (
 )
 
 type Service interface {
-	FormSave(ctx context.Context, form *model.Form) (*resp.Response, error)
-	FormUpdate(ctx context.Context, title string, form *model.Form) (*resp.Response, error)
-	FormList(ctx context.Context) (*resp.Response, error)
-	FormDelete(ctx context.Context, title string) (*resp.Response, error)
-	FormGet(ctx context.Context, title string) (*resp.Response, error)
+	UserSave(ctx context.Context, form *model.User) (*resp.Response, error)
+	UserList(ctx context.Context) (*resp.Response, error)
+	UserGet(ctx context.Context, name string) (*resp.Response, error)
+	GetUser(ctx context.Context, name string) (*repository.User, error)
 }
 
-type formService struct {
-	formRepository repository.FormRepository
+type userService struct {
+	userRepository repository.UserRepository
 	validate       *validator.Validate
 }
 
-func NewFormService(formRepository repository.FormRepository, validate *validator.Validate) Service {
-	return &formService{
-		formRepository: formRepository,
+func NewUserService(userRepository repository.UserRepository, validate *validator.Validate) Service {
+	return &userService{
+		userRepository: userRepository,
 		validate:       validate,
 	}
 }
 
-func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Response, error) {
-	if err := s.validate.Struct(form); err != nil {
+func (s *userService) UserSave(ctx context.Context, user *model.User) (*resp.Response, error) {
+	if err := s.validate.Struct(user); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 
-	existing, err := s.formRepository.FindByTitle(ctx, form.Title)
+	existing, err := s.userRepository.FindByName(ctx, user.Name)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -44,71 +43,49 @@ func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Res
 		return resp.NewResponse(http.StatusConflict, nil), nil
 	}
 
-	err = s.formRepository.Insert(ctx, s.formRepository.FromModel(form))
+	err = s.userRepository.Insert(ctx, s.userRepository.FromModel(user))
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	return resp.NewResponse(http.StatusOK, form), nil
+	return resp.NewResponse(http.StatusOK, user), nil
 }
 
-func (s *formService) FormUpdate(ctx context.Context, title string, form *model.Form) (*resp.Response, error) {
-	if err := s.validate.Struct(form); err != nil {
-		return resp.NewResponse(http.StatusBadRequest, nil), err
-	}
+func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
+	var response model.UserList
+	response.Users = make([]*model.User, 0)
 
-	existing, err := s.formRepository.FindByTitle(ctx, title)
+	users, err := s.userRepository.FindAll(ctx)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	if existing == nil {
-		return resp.NewResponse(http.StatusNotFound, nil), nil
+	for _, user := range users {
+		response.Users = append(response.Users, s.userRepository.ToModel(user))
 	}
 
-	err = s.formRepository.Update(ctx, s.formRepository.FromModel(form))
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
-	}
-
-	return resp.NewResponse(http.StatusOK, form), nil
-}
-
-func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {
-	var response model.FormList
-	response.Forms = make([]*model.Form, 0)
-
-	forms, err := s.formRepository.FindAll(ctx)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
-	}
-
-	for _, form := range forms {
-		response.Forms = append(response.Forms, s.formRepository.ToModel(form))
-	}
-
-	response.Count = len(forms)
+	response.Count = len(users)
 	return resp.NewResponse(http.StatusOK, response), nil
 }
 
-func (s *formService) FormDelete(ctx context.Context, title string) (*resp.Response, error) {
-	if err := s.formRepository.Delete(ctx, title); err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
-	}
-	// TODO: check if current user is author
-
-	return resp.NewResponse(http.StatusOK, nil), nil
-}
-
-func (s *formService) FormGet(ctx context.Context, title string) (*resp.Response, error) {
-	form, err := s.formRepository.FindByTitle(ctx, title)
+func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response, error) {
+	user, err := s.userRepository.FindByName(ctx, name)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	if form == nil {
+	if user == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
-	return resp.NewResponse(http.StatusOK, s.formRepository.ToModel(form)), nil
+	return resp.NewResponse(http.StatusOK, s.userRepository.ToModel(user)), nil
+}
+
+func (s *userService) GetUser(ctx context.Context, name string) (*repository.User, error) {
+	user, err := s.userRepository.FindByName(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

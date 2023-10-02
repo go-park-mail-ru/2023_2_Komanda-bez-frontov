@@ -1,7 +1,7 @@
 package repository
 
 type User struct {
-	ID int
+	ID uint
 	Name string
 	Password string
 	Email string

@@ -56,7 +56,7 @@ func main() {
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-interrupt
 
-	fmt.Printf("received system signal: %s, application will be shutdown", sig)
+	fmt.Printf("\nreceived system signal: %s, application will be shutdown\n", sig)
 
 	if err := server.Shutdown(context.Background()); err != nil {
 		fmt.Printf("failed to shutdown http server: %e\n", err)

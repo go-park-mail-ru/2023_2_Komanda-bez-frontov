@@ -14,3 +14,13 @@ type FormRepository interface {
 	ToModel(form *Form) *model.Form
 	FromModel(form *model.Form) *Form
 }
+
+type UserRepository interface {
+	FindAll(ctx context.Context) ([]*User, error)
+	FindByName(ctx context.Context, name string) (*User, error)
+	Insert(ctx context.Context, user *User) error
+	Update(ctx context.Context, user *User) error
+	Delete(ctx context.Context, name string) error
+	ToModel(user *User) *model.User
+	FromModel(user *model.User) *User
+}

@@ -47,3 +47,4 @@ go.work
 
 /bin/*
 !/bin/.keep
+/tmp/**.*

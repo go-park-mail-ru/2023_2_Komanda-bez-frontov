@@ -27,7 +27,7 @@ type UserRepository interface {
 
 type SessionRepository interface {
 	FindAll(ctx context.Context) ([]*Session, error)
-	FindByID(ctx context.Context, id string) (*Session, error)
+	FindByID(ctx context.Context, id string) (bool)
 	Insert(ctx context.Context, name string) (string, error)
 	Delete(ctx context.Context, id string) error
 }

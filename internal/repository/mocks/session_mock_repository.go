@@ -38,12 +38,9 @@ func (r *sessionMockRepository) FindAll(ctx context.Context) ([]*repository.Sess
 // ctx - The context.Context object for managing the request lifecycle.
 // title - The title of the form to search for.
 // Returns a pointer to the form object if found, otherwise returns an error.
-func (r *sessionMockRepository) FindByID(ctx context.Context, id string) (*repository.Session, error) {
-	if session, ok := r.mockDB.Load(id); ok {
-		return session.(*repository.Session), nil
-	}
-
-	return nil, nil
+func (r *sessionMockRepository) FindByID(ctx context.Context, id string) (bool) {
+	_, ok := r.mockDB.Load(id)
+	return ok
 }
 
 // Delete deletes user from the userMockRepository.

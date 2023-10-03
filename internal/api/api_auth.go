@@ -1,7 +1,6 @@
 package api
 
 import (
-	"math/rand"
 	"encoding/json"
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
@@ -54,26 +53,15 @@ func (c *UserAPIController) Routes() []Route {
 	}
 }
 
-var (
-	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-)
-func RandStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
-
 func (c *UserAPIController) Login(w http.ResponseWriter, r *http.Request) {
 
-	// session, err := r.Cookie("session_id")
-	// if err == nil {
-	// 	if session, _ := c.sessions.FindByID(r.Context(), session.Value); session != nil {
-	// 		http.Error(w, `Previous session is not terminated`, 403)
-	// 		return
-	// 	}
-	// }
+	session, err := r.Cookie("session_id")
+	if err != http.ErrNoCookie {
+		if c.sessions.FindByID(r.Context(), session.Value) {
+			http.Error(w, `Previous session is not terminated`, 403)
+			return
+		}
+	}
 	
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
@@ -163,7 +151,7 @@ func (c *UserAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessionDB, _ := c.sessions.FindByID(r.Context(), session.Value); sessionDB == nil {
+	if !c.sessions.FindByID(r.Context(), session.Value) {
 		http.Error(w, `No session`, 401)
 		return
 	}

@@ -46,13 +46,11 @@ func main() {
 	formService := form.NewFormService(formRepository, validate)
 	formRouter := api.NewFormAPIController(formService, validate)
 
-	r := api.NewRouter(formRouter)
-
 	userRepository := repository.NewUserMockRepository()
 	userService := user.NewUserService(userRepository, validate)
 	userRouter := api.NewUserAPIController(userService, validate)
 
-	r = api.NewRouter(userRouter)
+	r := api.NewRouter(formRouter, userRouter)
 
 	server, err := StartServer(r)
 	if err != nil {

@@ -65,7 +65,7 @@ func (r *userMockRepository) Insert(ctx context.Context, user *repository.User) 
 		return fmt.Errorf("user_repository insert user is nil")
 	}
 
-	r.mockDB.Store(user.Name, user)
+	r.mockDB.Store(user.Username, user)
 	return nil
 }
 
@@ -78,7 +78,7 @@ func (r *userMockRepository) Update(ctx context.Context, user *repository.User) 
 		return fmt.Errorf("user_repository update user is nil")
 	}
 
-	r.mockDB.Store(user.Name, user)
+	r.mockDB.Store(user.Username, user)
 	return nil
 }
 
@@ -87,8 +87,7 @@ func (r *userMockRepository) Update(ctx context.Context, user *repository.User) 
 // It takes a pointer to a repository.User object as a parameter and returns a pointer to a model.User object.
 func (r *userMockRepository) ToModel(user *repository.User) *model.User {
 	return &model.User{
-		ID: user.ID,
-		Name: user.Name,
+		Username: user.Username,
 		Password: user.Password,
 		Email: user.Email,
 	}
@@ -99,8 +98,7 @@ func (r *userMockRepository) ToModel(user *repository.User) *model.User {
 // It takes a pointer to a model.User object as a parameter and returns a pointer to a repository.User object.
 func (r *userMockRepository) FromModel(user *model.User) *repository.User {
 	return &repository.User{
-		ID: user.ID,
-		Name: user.Name,
+		Username: user.Username,
 		Password: user.Password,
 		Email: user.Email,
 	}

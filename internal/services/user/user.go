@@ -11,10 +11,10 @@ import (
 )
 
 type Service interface {
-	UserSave(ctx context.Context, form *model.User) (*resp.Response, error)
+	UserSave(ctx context.Context, user *model.User) (*resp.Response, error)
 	UserList(ctx context.Context) (*resp.Response, error)
 	UserGet(ctx context.Context, name string) (*resp.Response, error)
-	GetUser(ctx context.Context, name string) (*repository.User, error)
+	UserVerification(ctx context.Context, user *model.User) (*resp.Response, error)
 }
 
 type userService struct {
@@ -34,7 +34,7 @@ func (s *userService) UserSave(ctx context.Context, user *model.User) (*resp.Res
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 
-	existing, err := s.userRepository.FindByName(ctx, user.Name)
+	existing, err := s.userRepository.FindByName(ctx, user.Username)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -81,11 +81,19 @@ func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response,
 	return resp.NewResponse(http.StatusOK, s.userRepository.ToModel(user)), nil
 }
 
-func (s *userService) GetUser(ctx context.Context, name string) (*repository.User, error) {
-	user, err := s.userRepository.FindByName(ctx, name)
+func (s *userService) UserVerification(ctx context.Context, user *model.User) (*resp.Response, error) {
+	userDB, err := s.userRepository.FindByName(ctx, user.Username)
 	if err != nil {
-		return nil, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	return user, nil
+	if userDB == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	if userDB.Password != user.Password {
+		return resp.NewResponse(http.StatusForbidden, nil), nil
+	}
+
+	return resp.NewResponse(http.StatusOK, nil), nil
 }

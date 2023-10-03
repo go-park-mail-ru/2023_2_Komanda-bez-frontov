@@ -24,3 +24,11 @@ type UserRepository interface {
 	ToModel(user *User) *model.User
 	FromModel(user *model.User) *User
 }
+
+type SessionRepository interface {
+	FindAll(ctx context.Context) ([]*Session, error)
+	FindByID(ctx context.Context, id string) (*Session, error)
+	Insert(ctx context.Context, name string) (string, error)
+	Delete(ctx context.Context, id string) error
+}
+

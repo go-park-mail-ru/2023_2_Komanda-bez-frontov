@@ -4,10 +4,10 @@ import (
 	"math/rand"
 	"encoding/json"
 	"go-form-hub/internal/model"
+	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/user"
 	"io"
 	"time"
-	"sync"
 	"net/http"
 	
 	"github.com/go-playground/validator/v10"
@@ -15,13 +15,14 @@ import (
 )
 
 type UserAPIController struct {
-	sessions sync.Map
+	sessions  repository.SessionRepository
 	service   user.Service
 	validator *validator.Validate
 }
 
-func NewUserAPIController(service user.Service, v *validator.Validate) Router {
+func NewUserAPIController(sessions repository.SessionRepository, service user.Service, v *validator.Validate) Router {
 	return &UserAPIController{
+		sessions: sessions,
 		service: service,
 		validator: v,
 	}
@@ -66,13 +67,13 @@ func RandStringRunes(n int) string {
 
 func (c *UserAPIController) Login(w http.ResponseWriter, r *http.Request) {
 
-	session, err := r.Cookie("session_id")
-	if err == nil {
-		if _, ok := c.sessions.Load(session.Value); ok {
-			http.Error(w, `Previous session is not terminated`, 403)
-			return
-		}
-	}
+	// session, err := r.Cookie("session_id")
+	// if err == nil {
+	// 	if session, _ := c.sessions.FindByID(r.Context(), session.Value); session != nil {
+	// 		http.Error(w, `Previous session is not terminated`, 403)
+	// 		return
+	// 	}
+	// }
 	
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
@@ -106,9 +107,11 @@ func (c *UserAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SID := RandStringRunes(32)
-
-	c.sessions.Store(SID, user.Username)
+	SID, err := c.sessions.Insert(r.Context(), user.Username)
+	if err != nil {
+		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		return
+	}
 
 	cookie := &http.Cookie{
 		Name:    "session_id",
@@ -143,6 +146,7 @@ func (c *UserAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 		EncodeJSONResponse(err, result.StatusCode, w)
 		return
 	}
+
 	if result.StatusCode == 409 {
 		EncodeJSONResponse(`User exists`, result.StatusCode, w)
 		return
@@ -159,12 +163,16 @@ func (c *UserAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := c.sessions.Load(session.Value); !ok {
+	if sessionDB, _ := c.sessions.FindByID(r.Context(), session.Value); sessionDB == nil {
 		http.Error(w, `No session`, 401)
 		return
 	}
 
-	c.sessions.Delete(session.Value)
+	err = c.sessions.Delete(r.Context(), session.Value)
+	if err != nil {
+		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		return
+	}
 
 	session.Expires = time.Now().AddDate(0, 0, -1)
 	http.SetCookie(w, session)

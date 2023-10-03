@@ -46,9 +46,11 @@ func main() {
 	formService := form.NewFormService(formRepository, validate)
 	formRouter := api.NewFormAPIController(formService, validate)
 
+	sessionRepository := repository.NewSessionMockRepository()
+
 	userRepository := repository.NewUserMockRepository()
 	userService := user.NewUserService(userRepository, validate)
-	userRouter := api.NewUserAPIController(userService, validate)
+	userRouter := api.NewUserAPIController(sessionRepository, userService, validate)
 
 	r := api.NewRouter(formRouter, userRouter)
 

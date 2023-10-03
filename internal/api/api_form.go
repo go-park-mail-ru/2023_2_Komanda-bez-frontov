@@ -13,14 +13,16 @@ import (
 )
 
 type FormAPIController struct {
-	service   form.Service
-	validator *validator.Validate
+	service      form.Service
+	errorHandler ErrorHandler
+	validator    *validator.Validate
 }
 
 func NewFormAPIController(service form.Service, v *validator.Validate) Router {
 	return &FormAPIController{
-		service:   service,
-		validator: v,
+		service:      service,
+		errorHandler: DefaultErrorHandler,
+		validator:    v,
 	}
 }
 
@@ -71,19 +73,19 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	var form model.Form
 	if err = json.Unmarshal(requestJSON, &form); err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	result, err := c.service.FormSave(r.Context(), &form)
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 
@@ -93,7 +95,7 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 	result, err := c.service.FormList(r.Context())
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 
@@ -103,13 +105,13 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 	title, err := url.PathUnescape(chi.URLParam(r, "title"))
 	if err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	result, err := c.service.FormDelete(r.Context(), title)
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 
@@ -119,13 +121,13 @@ func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 	title, err := url.PathUnescape(chi.URLParam(r, "title"))
 	if err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	result, err := c.service.FormGet(r.Context(), title)
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 
@@ -135,7 +137,7 @@ func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 	title, err := url.PathUnescape(chi.URLParam(r, "title"))
 	if err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
@@ -145,19 +147,19 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	var form model.Form
 	if err = json.Unmarshal(requestJSON, &form); err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	result, err := c.service.FormUpdate(r.Context(), title, &form)
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 

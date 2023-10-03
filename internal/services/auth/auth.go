@@ -115,7 +115,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 }
 
 func (s *authService) AuthLogout(ctx context.Context) (*resp.Response, string, error) {
-	currentUser := ctx.Value("current_user").(*model.UserGet)
+	currentUser := ctx.Value(model.CurrentUser("current_user")).(*model.UserGet)
 	session, err := s.sessionRepository.FindByUsername(ctx, currentUser.Username)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err

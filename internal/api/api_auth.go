@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/services/auth"
 	"io"
@@ -13,14 +12,16 @@ import (
 )
 
 type AuthAPIController struct {
-	authService auth.Service
-	validator   *validator.Validate
+	authService  auth.Service
+	errorHandler ErrorHandler
+	validator    *validator.Validate
 }
 
 func NewAuthAPIController(authService auth.Service, v *validator.Validate) Router {
 	return &AuthAPIController{
-		authService: authService,
-		validator:   v,
+		authService:  authService,
+		errorHandler: DefaultErrorHandler,
+		validator:    v,
 	}
 }
 
@@ -59,19 +60,19 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	var user model.UserLogin
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	result, sessionID, err := c.authService.AuthLogin(r.Context(), &user)
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 
@@ -93,24 +94,19 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	var user model.UserSignUp
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
-		EncodeJSONResponse(err, http.StatusInternalServerError, w)
+		c.errorHandler(w, err, nil)
 		return
 	}
 
 	result, sessionID, err := c.authService.AuthSignUp(r.Context(), &user)
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
-		return
-	}
-
-	if result.StatusCode == 409 {
-		EncodeJSONResponse(fmt.Errorf("user already exists"), result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 
@@ -126,7 +122,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 	result, sessionID, err := c.authService.AuthLogout(r.Context())
 	if err != nil {
-		EncodeJSONResponse(err, result.StatusCode, w)
+		c.errorHandler(w, err, result)
 		return
 	}
 

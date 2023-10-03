@@ -1,5 +1,7 @@
 package model
 
+type CurrentUser string
+
 type UserLogin struct {
 	Username string `json:"username" validate:"required,alphanum"`
 	Password string `json:"password" validate:"required,sha512"`

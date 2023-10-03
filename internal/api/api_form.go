@@ -29,7 +29,7 @@ func (c *FormAPIController) Routes() []Route {
 		{
 			Name:         "FormSave",
 			Method:       http.MethodPost,
-			Path:         "/forms/new",
+			Path:         "/forms/save",
 			Handler:      c.FormSave,
 			AuthRequired: true,
 		},
@@ -41,13 +41,6 @@ func (c *FormAPIController) Routes() []Route {
 			AuthRequired: false,
 		},
 		{
-			Name:         "FormDelete",
-			Method:       http.MethodDelete,
-			Path:         "/forms/{title}",
-			Handler:      c.FormDelete,
-			AuthRequired: true,
-		},
-		{
 			Name:         "FormGet",
 			Method:       http.MethodGet,
 			Path:         "/forms/{title}",
@@ -55,9 +48,16 @@ func (c *FormAPIController) Routes() []Route {
 			AuthRequired: false,
 		},
 		{
+			Name:         "FormDelete",
+			Method:       http.MethodDelete,
+			Path:         "/forms/{title}/delete",
+			Handler:      c.FormDelete,
+			AuthRequired: true,
+		},
+		{
 			Name:         "FormUpdate",
 			Method:       http.MethodPut,
-			Path:         "/forms/{title}",
+			Path:         "/forms/{title}/update",
 			Handler:      c.FormSave,
 			AuthRequired: true,
 		},

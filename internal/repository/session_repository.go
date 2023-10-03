@@ -1,8 +1,9 @@
 package repository
 
 type Session struct {
-	SID string
-	Username string
+	SessionID string
+	Username  string
+	CreatedAt int64
 }
 
 // TODO: Implement repository using database

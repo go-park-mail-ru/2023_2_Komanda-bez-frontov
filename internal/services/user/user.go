@@ -11,15 +11,14 @@ import (
 )
 
 type Service interface {
-	UserSave(ctx context.Context, user *model.User) (*resp.Response, error)
 	UserList(ctx context.Context) (*resp.Response, error)
-	UserGet(ctx context.Context, name string) (*resp.Response, error)
-	UserVerification(ctx context.Context, user *model.User) (*resp.Response, error)
+	UserGet(ctx context.Context, username string) (*resp.Response, error)
 }
 
 type userService struct {
-	userRepository repository.UserRepository
-	validate       *validator.Validate
+	userRepository     repository.UserRepository
+	sessionsRepository repository.SessionRepository
+	validate           *validator.Validate
 }
 
 func NewUserService(userRepository repository.UserRepository, validate *validator.Validate) Service {
@@ -29,12 +28,12 @@ func NewUserService(userRepository repository.UserRepository, validate *validato
 	}
 }
 
-func (s *userService) UserSave(ctx context.Context, user *model.User) (*resp.Response, error) {
+func (s *userService) UserSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, error) {
 	if err := s.validate.Struct(user); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 
-	existing, err := s.userRepository.FindByName(ctx, user.Username)
+	existing, err := s.userRepository.FindByUsername(ctx, user.Username)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -43,7 +42,11 @@ func (s *userService) UserSave(ctx context.Context, user *model.User) (*resp.Res
 		return resp.NewResponse(http.StatusConflict, nil), nil
 	}
 
-	err = s.userRepository.Insert(ctx, s.userRepository.FromModel(user))
+	err = s.userRepository.Insert(ctx, &repository.User{
+		Username: user.Username,
+		Password: user.Password,
+		Email:    user.Email,
+	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -53,7 +56,7 @@ func (s *userService) UserSave(ctx context.Context, user *model.User) (*resp.Res
 
 func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
 	var response model.UserList
-	response.Users = make([]*model.User, 0)
+	response.Users = make([]*model.UserGet, 0)
 
 	users, err := s.userRepository.FindAll(ctx)
 	if err != nil {
@@ -61,7 +64,10 @@ func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
 	}
 
 	for _, user := range users {
-		response.Users = append(response.Users, s.userRepository.ToModel(user))
+		response.Users = append(response.Users, &model.UserGet{
+			Username: user.Username,
+			Email:    user.Email,
+		})
 	}
 
 	response.Count = len(users)
@@ -69,7 +75,7 @@ func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
 }
 
 func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response, error) {
-	user, err := s.userRepository.FindByName(ctx, name)
+	user, err := s.userRepository.FindByUsername(ctx, name)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -78,22 +84,12 @@ func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response,
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
-	return resp.NewResponse(http.StatusOK, s.userRepository.ToModel(user)), nil
+	return resp.NewResponse(http.StatusOK, &model.UserGet{
+		Username: user.Username,
+		Email:    user.Email,
+	}), nil
 }
 
-func (s *userService) UserVerification(ctx context.Context, user *model.User) (*resp.Response, error) {
-	userDB, err := s.userRepository.FindByName(ctx, user.Username)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
-	}
-
-	if userDB == nil {
-		return resp.NewResponse(http.StatusNotFound, nil), nil
-	}
-
-	if userDB.Password != user.Password {
-		return resp.NewResponse(http.StatusForbidden, nil), nil
-	}
-
-	return resp.NewResponse(http.StatusOK, nil), nil
+func (s *userService) UserLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, error) {
+	return nil, nil
 }

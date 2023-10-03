@@ -6,3 +6,6 @@ lint:
 fmt:
 	go fmt ./...
 
+.PHONY: run
+run:
+	go run ./cmd/main.go

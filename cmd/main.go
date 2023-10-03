@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"go-form-hub/internal/api"
 	repository "go-form-hub/internal/repository/mocks"
+	"go-form-hub/internal/services/auth"
 	"go-form-hub/internal/services/form"
-	"go-form-hub/internal/services/user"
 	"net"
 	"net/http"
 	"os"
@@ -43,16 +43,17 @@ func main() {
 	validate := validator.New()
 
 	formRepository := repository.NewFormMockRepository()
-	formService := form.NewFormService(formRepository, validate)
-	formRouter := api.NewFormAPIController(formService, validate)
-
 	sessionRepository := repository.NewSessionMockRepository()
-
 	userRepository := repository.NewUserMockRepository()
-	userService := user.NewUserService(userRepository, validate)
-	userRouter := api.NewUserAPIController(sessionRepository, userService, validate)
 
-	r := api.NewRouter(formRouter, userRouter)
+	formService := form.NewFormService(formRepository, validate)
+	authService := auth.NewAuthService(userRepository, sessionRepository, validate)
+
+	formRouter := api.NewFormAPIController(formService, validate)
+	authRouter := api.NewAuthAPIController(authService, validate)
+
+	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository)
+	r := api.NewRouter(authMiddleware, formRouter, authRouter)
 
 	server, err := StartServer(r)
 	if err != nil {

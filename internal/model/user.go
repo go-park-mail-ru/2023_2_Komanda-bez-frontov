@@ -1,12 +1,23 @@
 package model
 
-type User struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
-	Email string `json:"email" validate:"required"`
+type UserLogin struct {
+	Username string `json:"username" validate:"required,alphanum"`
+	Password string `json:"password" validate:"required,sha512"`
+}
+
+type UserSignUp struct {
+	Username       string `json:"username" validate:"required,alphanum"`
+	Password       string `json:"password" validate:"required,sha512"`
+	PasswordRepeat string `json:"password_repeat" validate:"required,eqfield=Password"`
+	Email          string `json:"email,omitempty" validate:"omitempty,email"`
+}
+
+type UserGet struct {
+	Username string `json:"username" validate:"required,alphanum"`
+	Email    string `json:"email,omitempty" validate:"omitempty,email"`
 }
 
 type UserList struct {
 	CollectionResponse
-	Users []*User `json:"users"`
+	Users []*UserGet `json:"users" validate:"required"`
 }

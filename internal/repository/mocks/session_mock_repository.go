@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"math/rand"
 	"go-form-hub/internal/repository"
 	"sync"
 )
@@ -11,18 +10,12 @@ type sessionMockRepository struct {
 	mockDB *sync.Map
 }
 
-// NewUserMockRepository creates a new instance of the UserMockRepository struct.
-//
-// It returns a UserRepository interface.
 func NewSessionMockRepository() repository.SessionRepository {
 	return &sessionMockRepository{
 		mockDB: &sync.Map{},
 	}
 }
 
-// FindAll retrieves all users from the form mock repository.
-//
-// It takes a context.Context as its parameter and returns a slice of users and an error.
 func (r *sessionMockRepository) FindAll(ctx context.Context) ([]*repository.Session, error) {
 	sessions := []*repository.Session{}
 	r.mockDB.Range(func(key, value interface{}) bool {
@@ -33,38 +26,33 @@ func (r *sessionMockRepository) FindAll(ctx context.Context) ([]*repository.Sess
 	return sessions, nil
 }
 
-// FindByID retrieves a form from the formMockRepository based on its title.
-//
-// ctx - The context.Context object for managing the request lifecycle.
-// title - The title of the form to search for.
-// Returns a pointer to the form object if found, otherwise returns an error.
-func (r *sessionMockRepository) FindByID(ctx context.Context, id string) (bool) {
-	_, ok := r.mockDB.Load(id)
-	return ok
+func (r *sessionMockRepository) FindByID(ctx context.Context, sessionID string) (*repository.Session, error) {
+	if session, ok := r.mockDB.Load(sessionID); ok {
+		return session.(*repository.Session), nil
+	}
+	return nil, nil
 }
 
-// Delete deletes user from the userMockRepository.
-//
-// It takes a context.Context and a form as parameters.
-// It returns an error.
-func (r *sessionMockRepository) Delete(ctx context.Context, id string) error {
-	r.mockDB.Delete(id)
+func (r *sessionMockRepository) FindByUsername(ctx context.Context, username string) (*repository.Session, error) {
+	var session *repository.Session
+	r.mockDB.Range(func(key, value interface{}) bool {
+		currSession := value.(*repository.Session)
+		if currSession.Username == username {
+			session = currSession
+			return false
+		}
+		return true
+	})
+
+	return session, nil
+}
+
+func (r *sessionMockRepository) Delete(ctx context.Context, sessionID string) error {
+	r.mockDB.Delete(sessionID)
 	return nil
 }
 
-// Insert inserts a form into the formMockRepository.
-//
-// It takes a context.Context and a form as parameters.
-// It returns an error.
-func (r *sessionMockRepository) Insert(ctx context.Context, username string) (string, error) {
-	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	
-	SID := make([]rune, 32)
-	for i := range SID {
-		SID[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}	
-
-	r.mockDB.Store(string(SID), username)
-	return string(SID), nil
+func (r *sessionMockRepository) Insert(ctx context.Context, session *repository.Session) error {
+	r.mockDB.Store(session.SessionID, session)
+	return nil
 }
-

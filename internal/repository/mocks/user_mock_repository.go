@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
 	"sync"
 )
@@ -39,7 +38,7 @@ func (r *userMockRepository) FindAll(ctx context.Context) ([]*repository.User, e
 // ctx - The context.Context object for managing the request lifecycle.
 // title - The title of the form to search for.
 // Returns a pointer to the form object if found, otherwise returns an error.
-func (r *userMockRepository) FindByName(ctx context.Context, name string) (*repository.User, error) {
+func (r *userMockRepository) FindByUsername(ctx context.Context, name string) (*repository.User, error) {
 	if user, ok := r.mockDB.Load(name); ok {
 		return user.(*repository.User), nil
 	}
@@ -80,26 +79,4 @@ func (r *userMockRepository) Update(ctx context.Context, user *repository.User) 
 
 	r.mockDB.Store(user.Username, user)
 	return nil
-}
-
-// ToModel converts a repository.User object to a model.User object.
-//
-// It takes a pointer to a repository.User object as a parameter and returns a pointer to a model.User object.
-func (r *userMockRepository) ToModel(user *repository.User) *model.User {
-	return &model.User{
-		Username: user.Username,
-		Password: user.Password,
-		Email: user.Email,
-	}
-}
-
-// FromModel converts a user model to a user repository object.
-//
-// It takes a pointer to a model.User object as a parameter and returns a pointer to a repository.User object.
-func (r *userMockRepository) FromModel(user *model.User) *repository.User {
-	return &repository.User{
-		Username: user.Username,
-		Password: user.Password,
-		Email: user.Email,
-	}
 }

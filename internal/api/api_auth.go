@@ -80,7 +80,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	cookie := &http.Cookie{
 		Name:    "session_id",
 		Value:   sessionID,
-		Expires: time.Now().Add(24 * time.Hour),
+		Expires: time.Now().Add(model.CookieExpiresIn),
 	}
 	http.SetCookie(w, cookie)
 	EncodeJSONResponse(result.Body, result.StatusCode, w)
@@ -115,7 +115,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 	cookie := &http.Cookie{
 		Name:    "session_id",
 		Value:   sessionID,
-		Expires: time.Now().Add(24 * time.Hour),
+		Expires: time.Now().Add(model.CookieExpiresIn),
 	}
 	http.SetCookie(w, cookie)
 	EncodeJSONResponse(result.Body, result.StatusCode, w)

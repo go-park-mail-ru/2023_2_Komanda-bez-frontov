@@ -30,7 +30,7 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 				return
 			}
 
-			if sessionInDB.CreatedAt+int64(1000*60*60*24) < time.Now().UnixMilli() {
+			if sessionInDB.CreatedAt+model.CookieExpiresIn.Milliseconds() < time.Now().UnixMilli() {
 				HandleError(w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}

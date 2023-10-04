@@ -21,7 +21,7 @@ type FormAPIController struct {
 func NewFormAPIController(service form.Service, v *validator.Validate) Router {
 	return &FormAPIController{
 		service:      service,
-		errorHandler: DefaultErrorHandler,
+		errorHandler: HandleError,
 		validator:    v,
 	}
 }

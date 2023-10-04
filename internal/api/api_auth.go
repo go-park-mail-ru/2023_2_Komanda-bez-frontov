@@ -20,7 +20,7 @@ type AuthAPIController struct {
 func NewAuthAPIController(authService auth.Service, v *validator.Validate) Router {
 	return &AuthAPIController{
 		authService:  authService,
-		errorHandler: DefaultErrorHandler,
+		errorHandler: HandleError,
 		validator:    v,
 	}
 }
@@ -131,7 +131,7 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie := &http.Cookie{
 		Name:    "session_id",
 		Value:   sessionID,
-		Expires: time.Now().Add(-time.Hour),
+		Expires: time.Unix(0, 0),
 	}
 	http.SetCookie(w, cookie)
 	EncodeJSONResponse(result.Body, result.StatusCode, w)

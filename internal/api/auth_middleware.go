@@ -15,33 +15,33 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := r.Cookie("session_id")
 			if err != nil {
-				w.WriteHeader(http.StatusUnauthorized)
+				HandleError(w, fmt.Errorf("session not found"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
-			sessionDatabase, err := sessionRepository.FindByID(r.Context(), session.Value)
+			sessionInDB, err := sessionRepository.FindByID(r.Context(), session.Value)
 			if err != nil {
-				DefaultErrorHandler(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
+				HandleError(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
 				return
 			}
 
-			if sessionDatabase == nil {
-				DefaultErrorHandler(w, fmt.Errorf("session not found"), &resp.Response{StatusCode: http.StatusUnauthorized})
+			if sessionInDB == nil {
+				HandleError(w, fmt.Errorf("session not found"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
-			if sessionDatabase.CreatedAt+int64(1000*60*60*24) < time.Now().UnixMilli() {
-				DefaultErrorHandler(w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusUnauthorized})
+			if sessionInDB.CreatedAt+int64(1000*60*60*24) < time.Now().UnixMilli() {
+				HandleError(w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
-			currentUser, err := userRepository.FindByUsername(r.Context(), sessionDatabase.Username)
+			currentUser, err := userRepository.FindByUsername(r.Context(), sessionInDB.Username)
 			if err != nil {
-				DefaultErrorHandler(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
+				HandleError(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), model.CurrentUser("current_user"), currentUser))
+			r = r.WithContext(context.WithValue(r.Context(), model.CurrentUserInContext, currentUser))
 			next.ServeHTTP(w, r)
 		})
 	}

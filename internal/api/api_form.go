@@ -75,13 +75,13 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var form model.Form
-	if err = json.Unmarshal(requestJSON, &form); err != nil {
+	var formSave model.Form
+	if err = json.Unmarshal(requestJSON, &formSave); err != nil {
 		EncodeJSONResponse(err, http.StatusInternalServerError, w)
 		return
 	}
 
-	result, err := c.service.FormSave(r.Context(), &form)
+	result, err := c.service.FormSave(r.Context(), &formSave)
 	if err != nil {
 		EncodeJSONResponse(err, result.StatusCode, w)
 		return
@@ -149,13 +149,13 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var form model.Form
-	if err = json.Unmarshal(requestJSON, &form); err != nil {
+	var updatedForm model.Form
+	if err = json.Unmarshal(requestJSON, &updatedForm); err != nil {
 		EncodeJSONResponse(err, http.StatusInternalServerError, w)
 		return
 	}
 
-	result, err := c.service.FormUpdate(r.Context(), title, &form)
+	result, err := c.service.FormUpdate(r.Context(), title, &updatedForm)
 	if err != nil {
 		EncodeJSONResponse(err, result.StatusCode, w)
 		return

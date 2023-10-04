@@ -24,7 +24,7 @@ func NewFormMockRepository() repository.FormRepository {
 // FindAll retrieves all forms from the form mock repository.
 //
 // It takes a context.Context as its parameter and returns a slice of forms and an error.
-func (r *formMockRepository) FindAll(ctx context.Context) ([]*repository.Form, error) {
+func (r *formMockRepository) FindAll(_ context.Context) ([]*repository.Form, error) {
 	forms := []*repository.Form{}
 	r.mockDB.Range(func(key, value interface{}) bool {
 		forms = append(forms, value.(*repository.Form))
@@ -36,10 +36,10 @@ func (r *formMockRepository) FindAll(ctx context.Context) ([]*repository.Form, e
 
 // FindByTitle retrieves a form from the formMockRepository based on its title.
 //
-// ctx - The context.Context object for managing the request lifecycle.
+// _ - The context.Context object for managing the request lifecycle.
 // title - The title of the form to search for.
 // Returns a pointer to the form object if found, otherwise returns an error.
-func (r *formMockRepository) FindByTitle(ctx context.Context, title string) (*repository.Form, error) {
+func (r *formMockRepository) FindByTitle(_ context.Context, title string) (*repository.Form, error) {
 	if form, ok := r.mockDB.Load(title); ok {
 		return form.(*repository.Form), nil
 	}
@@ -47,7 +47,7 @@ func (r *formMockRepository) FindByTitle(ctx context.Context, title string) (*re
 	return nil, nil
 }
 
-func (r *formMockRepository) Delete(ctx context.Context, title string) error {
+func (r *formMockRepository) Delete(_ context.Context, title string) error {
 	r.mockDB.Delete(title)
 	return nil
 }
@@ -56,7 +56,7 @@ func (r *formMockRepository) Delete(ctx context.Context, title string) error {
 //
 // It takes a context.Context and a form as parameters.
 // It returns an error.
-func (r *formMockRepository) Insert(ctx context.Context, form *repository.Form) error {
+func (r *formMockRepository) Insert(_ context.Context, form *repository.Form) error {
 	if form == nil {
 		return fmt.Errorf("form_repository insert form is nil")
 	}
@@ -69,7 +69,7 @@ func (r *formMockRepository) Insert(ctx context.Context, form *repository.Form) 
 //
 // It takes a context and a form as parameters.
 // It returns an error.
-func (r *formMockRepository) Update(ctx context.Context, form *repository.Form) error {
+func (r *formMockRepository) Update(_ context.Context, form *repository.Form) error {
 	if form == nil {
 		return fmt.Errorf("form_repository update form is nil")
 	}

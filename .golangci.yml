@@ -10,6 +10,12 @@ linters-settings:
   goconst:
     min-len: 2
     min-occurrences: 5
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/sirupsen/logrus"
+            desc: "logging is allowed only by logutils.Log"
   misspell:
     locale: US
   goimports:

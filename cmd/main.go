@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-form-hub/internal/api"
 	repository "go-form-hub/internal/repository/mocks"
+	"go-form-hub/internal/services/auth"
 	"go-form-hub/internal/services/form"
 	"net"
 	"net/http"
@@ -43,10 +44,17 @@ func main() {
 	validate := validator.New()
 
 	formRepository := repository.NewFormMockRepository()
-	formService := form.NewFormService(formRepository, validate)
-	formRouter := api.NewFormAPIController(formService, validate)
+	sessionRepository := repository.NewSessionMockRepository()
+	userRepository := repository.NewUserMockRepository()
 
-	r := api.NewRouter(formRouter)
+	formService := form.NewFormService(formRepository, validate)
+	authService := auth.NewAuthService(userRepository, sessionRepository, validate)
+
+	formRouter := api.NewFormAPIController(formService, validate)
+	authRouter := api.NewAuthAPIController(authService, validate)
+
+	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository)
+	r := api.NewRouter(authMiddleware, formRouter, authRouter)
 
 	server, err := StartServer(r)
 	if err != nil {
@@ -57,7 +65,7 @@ func main() {
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-interrupt
 
-	fmt.Printf("received system signal: %s, application will be shutdown", sig)
+	fmt.Printf("\nreceived system signal: %s, application will be shutdown\n", sig)
 
 	if err := server.Shutdown(context.Background()); err != nil {
 		fmt.Printf("failed to shutdown http server: %e\n", err)

@@ -6,5 +6,5 @@ type Form struct {
 
 type FormList struct {
 	CollectionResponse
-	Forms []*Form `json:"forms"`
+	Forms []*Form `json:"forms" validate:"required"`
 }

@@ -6,6 +6,10 @@ lint:
 fmt:
 	go fmt ./...
 
+.PHONY: build
+build:
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/main ./cmd/main.go
+
 .PHONY: run
 run:
 	go run ./cmd/main.go

@@ -17,5 +17,5 @@ func EncodeJSONResponse(i interface{}, status int, w http.ResponseWriter) {
 		status = http.StatusOK
 	}
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(i)
+	_ = json.NewEncoder(w).Encode(i)
 }

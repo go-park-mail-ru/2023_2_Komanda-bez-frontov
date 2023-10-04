@@ -18,7 +18,8 @@ import (
 )
 
 func StartServer(r http.Handler) (*http.Server, error) {
-	ln, err := net.Listen("tcp", ":8080")
+	httpPort := "8080"
+	ln, err := net.Listen("tcp", ":"+httpPort)
 	if err != nil {
 		return nil, fmt.Errorf("tcp listen failed, net listen error %s", err)
 	}

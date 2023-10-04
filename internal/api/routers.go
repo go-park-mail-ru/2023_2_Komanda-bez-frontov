@@ -20,7 +20,6 @@ type Router interface {
 	Routes() []Route
 }
 
-
 // NewRouter creates a new router with the given authentication middleware and routers.
 //
 // The `authMiddleware` parameter is a function that takes a `http.HandlerFunc` and returns

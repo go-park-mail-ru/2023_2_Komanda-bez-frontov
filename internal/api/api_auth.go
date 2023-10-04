@@ -51,6 +51,7 @@ func (c *AuthAPIController) Routes() []Route {
 	}
 }
 
+// nolint:dupl
 func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	// TODO: redirect authenticated user to home
 
@@ -85,6 +86,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	EncodeJSONResponse(result.Body, result.StatusCode, w)
 }
 
+// nolint:dupl
 func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 	// TODO: redirect authenticated user to home
 

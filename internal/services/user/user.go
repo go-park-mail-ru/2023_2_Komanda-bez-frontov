@@ -17,7 +17,6 @@ type Service interface {
 
 type userService struct {
 	userRepository     repository.UserRepository
-	sessionsRepository repository.SessionRepository
 	validate           *validator.Validate
 }
 
@@ -26,32 +25,6 @@ func NewUserService(userRepository repository.UserRepository, validate *validato
 		userRepository: userRepository,
 		validate:       validate,
 	}
-}
-
-func (s *userService) UserSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, error) {
-	if err := s.validate.Struct(user); err != nil {
-		return resp.NewResponse(http.StatusBadRequest, nil), err
-	}
-
-	existing, err := s.userRepository.FindByUsername(ctx, user.Username)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
-	}
-
-	if existing != nil {
-		return resp.NewResponse(http.StatusConflict, nil), nil
-	}
-
-	err = s.userRepository.Insert(ctx, &repository.User{
-		Username: user.Username,
-		Password: user.Password,
-		Email:    user.Email,
-	})
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
-	}
-
-	return resp.NewResponse(http.StatusOK, user), nil
 }
 
 func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
@@ -88,8 +61,4 @@ func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response,
 		Username: user.Username,
 		Email:    user.Email,
 	}), nil
-}
-
-func (s *userService) UserLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, error) {
-	return nil, nil
 }

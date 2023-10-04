@@ -17,7 +17,7 @@ func NewUserMockRepository() repository.UserRepository {
 	}
 }
 
-func (r *userMockRepository) FindAll(ctx context.Context) ([]*repository.User, error) {
+func (r *userMockRepository) FindAll(_ context.Context) ([]*repository.User, error) {
 	users := []*repository.User{}
 	r.mockDB.Range(func(key, value interface{}) bool {
 		users = append(users, value.(*repository.User))
@@ -27,7 +27,7 @@ func (r *userMockRepository) FindAll(ctx context.Context) ([]*repository.User, e
 	return users, nil
 }
 
-func (r *userMockRepository) FindByUsername(ctx context.Context, name string) (*repository.User, error) {
+func (r *userMockRepository) FindByUsername(_ context.Context, name string) (*repository.User, error) {
 	if user, ok := r.mockDB.Load(name); ok {
 		return user.(*repository.User), nil
 	}
@@ -35,12 +35,12 @@ func (r *userMockRepository) FindByUsername(ctx context.Context, name string) (*
 	return nil, nil
 }
 
-func (r *userMockRepository) Delete(ctx context.Context, name string) error {
+func (r *userMockRepository) Delete(_ context.Context, name string) error {
 	r.mockDB.Delete(name)
 	return nil
 }
 
-func (r *userMockRepository) Insert(ctx context.Context, user *repository.User) error {
+func (r *userMockRepository) Insert(_ context.Context, user *repository.User) error {
 	if user == nil {
 		return fmt.Errorf("user_repository insert user is nil")
 	}
@@ -49,7 +49,7 @@ func (r *userMockRepository) Insert(ctx context.Context, user *repository.User) 
 	return nil
 }
 
-func (r *userMockRepository) Update(ctx context.Context, user *repository.User) error {
+func (r *userMockRepository) Update(_ context.Context, user *repository.User) error {
 	if user == nil {
 		return fmt.Errorf("user_repository update user is nil")
 	}

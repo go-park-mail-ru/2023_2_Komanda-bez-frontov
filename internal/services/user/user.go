@@ -16,8 +16,8 @@ type Service interface {
 }
 
 type userService struct {
-	userRepository     repository.UserRepository
-	validate           *validator.Validate
+	userRepository repository.UserRepository
+	validate       *validator.Validate
 }
 
 func NewUserService(userRepository repository.UserRepository, validate *validator.Validate) Service {

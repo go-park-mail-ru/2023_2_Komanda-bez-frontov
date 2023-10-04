@@ -4,7 +4,7 @@ import (
 	"context"
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
-	resp "go-form-hub/internal/services/serviceresponse"
+	resp "go-form-hub/internal/services/service_response"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"

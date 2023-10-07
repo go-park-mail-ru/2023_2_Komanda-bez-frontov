@@ -41,7 +41,10 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), model.CurrentUserInContext, currentUser))
+			r = r.WithContext(context.WithValue(r.Context(), model.CurrentUserInContext, &model.UserGet{
+				Username: currentUser.Username,
+				Email:    currentUser.Email,
+			}))
 			next.ServeHTTP(w, r)
 		})
 	}

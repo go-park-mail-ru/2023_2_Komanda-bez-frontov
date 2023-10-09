@@ -51,13 +51,6 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 
 			currentUser, err := userRepository.FindByUsername(r.Context(), sessionInDB.Username)
 			if err != nil {
-				cookie := &http.Cookie{
-					Name:    "session_id",
-					Value:   "",
-					Expires: time.Unix(0, 0),
-					MaxAge:  -1,
-				}
-				http.SetCookie(w, cookie)
 				HandleError(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
 				return
 			}

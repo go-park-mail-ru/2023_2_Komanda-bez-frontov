@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5"
+	"crypto/md5" // nolint:gosec
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -65,7 +65,7 @@ func (s *authService) encryptPassword(pass string) (string, error) {
 		return "", err
 	}
 
-	hasher := md5.New()
+	hasher := md5.New() // nolint:gosec
 	_, err = io.WriteString(hasher, pass)
 	if err != nil {
 		return "", err

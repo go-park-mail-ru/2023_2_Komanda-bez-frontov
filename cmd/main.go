@@ -65,6 +65,7 @@ func main() {
 	r := api.NewRouter(authMiddleware, formRouter, authRouter)
 
 	server, err := StartServer(cfg, r)
+	log.Info().Msgf("Server started. Listening port %s", cfg.HTTPPort)
 	if err != nil {
 		log.Error().Msgf("Failed to start server: %e", err)
 	}

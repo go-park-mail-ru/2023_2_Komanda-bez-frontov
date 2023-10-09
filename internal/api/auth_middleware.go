@@ -15,7 +15,7 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := r.Cookie("session_id")
 			if err != nil {
-				HandleError(w, fmt.Errorf("session not found"), &resp.Response{StatusCode: http.StatusUnauthorized})
+				HandleError(w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
@@ -26,7 +26,7 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 			}
 
 			if sessionInDB == nil {
-				HandleError(w, fmt.Errorf("session not found"), &resp.Response{StatusCode: http.StatusUnauthorized})
+				HandleError(w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 

@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/services/auth"
+	resp "go-form-hub/internal/services/service_response"
 	"io"
 	"net/http"
 	"time"
@@ -53,7 +55,11 @@ func (c *AuthAPIController) Routes() []Route {
 
 // nolint:dupl
 func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
-	// TODO: redirect authenticated user to home
+	_, err := r.Cookie("session_id")
+	if err == nil {
+		c.errorHandler(w, fmt.Errorf("already logged in"), &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
+		return
+	}
 
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
@@ -88,7 +94,11 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 
 // nolint:dupl
 func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
-	// TODO: redirect authenticated user to home
+	_, err := r.Cookie("session_id")
+	if err == nil {
+		c.errorHandler(w, fmt.Errorf("already logged in"), &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
+		return
+	}
 
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {

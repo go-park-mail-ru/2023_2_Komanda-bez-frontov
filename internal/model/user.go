@@ -1,12 +1,8 @@
 package model
 
-import "time"
-
 type CurrentUserInContextType string
 
 const CurrentUserInContext = CurrentUserInContextType("current_user")
-
-const CookieExpiresIn = 24 * time.Hour
 
 type UserLogin struct {
 	Username string `json:"username" validate:"required,alphanum"`

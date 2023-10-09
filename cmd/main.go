@@ -66,16 +66,16 @@ func main() {
 
 	server, err := StartServer(cfg, r)
 	if err != nil {
-		fmt.Printf("Failed to start server: %e\n", err)
+		log.Error().Msgf("Failed to start server: %e", err)
 	}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-interrupt
 
-	fmt.Printf("\nreceived system signal: %s, application will be shutdown\n", sig)
+	log.Info().Msgf("Received system signal: %s, application will be shutdown", sig)
 
 	if err := server.Shutdown(context.Background()); err != nil {
-		fmt.Printf("failed to shutdown http server: %e\n", err)
+		log.Error().Msgf("failed to gracefully shutdown http server: %e", err)
 	}
 }

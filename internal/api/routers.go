@@ -40,7 +40,8 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers .
 				handler = authMiddleware(handler)
 			}
 
-			router.Method(route.Method, route.Path, handler)
+			apiPath := "/api/v1" + route.Path
+			router.Method(route.Method, apiPath, handler)
 		}
 	}
 

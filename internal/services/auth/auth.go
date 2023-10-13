@@ -17,6 +17,7 @@ import (
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type Service interface {
@@ -101,7 +102,9 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
+	uuid := uuid.New().String()
 	err = s.userRepository.Insert(ctx, &repository.User{
+		ID:       uuid,
 		Username: user.Username,
 		Password: encPassword,
 		Email:    user.Email,
@@ -113,7 +116,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	sessionID := generateSessionID(user.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
-		Username:  user.Username,
+		UserID:    uuid,
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
@@ -121,6 +124,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
+		ID:       uuid,
 		Username: user.Username,
 		Email:    user.Email,
 	}), sessionID, nil
@@ -152,7 +156,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	sessionID := generateSessionID(user.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
-		Username:  existing.Username,
+		UserID:    existing.ID,
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
@@ -160,6 +164,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
+		ID:       existing.ID,
 		Username: existing.Username,
 		Email:    existing.Email,
 	}), sessionID, nil
@@ -167,7 +172,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 
 func (s *authService) AuthLogout(ctx context.Context) (*resp.Response, string, error) {
 	currentUser := ctx.Value(model.CurrentUserInContext).(*model.UserGet)
-	session, err := s.sessionRepository.FindByUsername(ctx, currentUser.Username)
+	session, err := s.sessionRepository.FindByUserID(ctx, currentUser.ID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
@@ -194,7 +199,7 @@ func (s *authService) IsSessionValid(ctx context.Context, sessionID string) (boo
 		return false, nil
 	}
 
-	currentUser, err := s.userRepository.FindByUsername(ctx, sessionInDB.Username)
+	currentUser, err := s.userRepository.FindByID(ctx, sessionInDB.UserID)
 	if err != nil {
 		return false, err
 	}

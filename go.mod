@@ -6,6 +6,7 @@ require (
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-playground/validator/v10 v10.15.5
+	github.com/google/uuid v1.3.1
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/viper v1.17.0
 )

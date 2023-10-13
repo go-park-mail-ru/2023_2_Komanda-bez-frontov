@@ -18,6 +18,7 @@ type FormRepository interface {
 type UserRepository interface {
 	FindAll(ctx context.Context) ([]*User, error)
 	FindByUsername(ctx context.Context, name string) (*User, error)
+	FindByID(ctx context.Context, name string) (*User, error)
 	Insert(ctx context.Context, user *User) error
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, name string) error
@@ -27,6 +28,7 @@ type SessionRepository interface {
 	FindAll(ctx context.Context) ([]*Session, error)
 	FindByID(ctx context.Context, sessionID string) (*Session, error)
 	FindByUsername(ctx context.Context, username string) (*Session, error)
+	FindByUserID(ctx context.Context, name string) (*Session, error)
 	Insert(ctx context.Context, session *Session) error
 	Delete(ctx context.Context, sessionID string) error
 }

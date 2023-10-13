@@ -26,52 +26,47 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 			}
 
 			if sessionInDB == nil {
-				cookie := &http.Cookie{
-					Name:    "session_id",
-					Value:   "",
-					Expires: time.Unix(0, 0),
-					MaxAge:  -1,
-				}
+				cookie := createExpiredCookie("session_id")
 				http.SetCookie(w, cookie)
 				HandleError(w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
 			if sessionInDB.CreatedAt+cookieExpiration.Milliseconds() < time.Now().UnixMilli() {
-				cookie := &http.Cookie{
-					Name:    "session_id",
-					Value:   "",
-					Expires: time.Unix(0, 0),
-					MaxAge:  -1,
-				}
+				cookie := createExpiredCookie("session_id")
 				http.SetCookie(w, cookie)
 				HandleError(w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusForbidden})
 				return
 			}
 
-			currentUser, err := userRepository.FindByUsername(r.Context(), sessionInDB.Username)
+			currentUser, err := userRepository.FindByID(r.Context(), sessionInDB.UserID)
 			if err != nil {
 				HandleError(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
 				return
 			}
 
 			if currentUser == nil {
-				cookie := &http.Cookie{
-					Name:    "session_id",
-					Value:   "",
-					Expires: time.Unix(0, 0),
-					MaxAge:  -1,
-				}
+				cookie := createExpiredCookie("session_id")
 				http.SetCookie(w, cookie)
 				HandleError(w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
 			r = r.WithContext(context.WithValue(r.Context(), model.CurrentUserInContext, &model.UserGet{
+				ID:       currentUser.ID,
 				Username: currentUser.Username,
 				Email:    currentUser.Email,
 			}))
 			next.ServeHTTP(w, r)
 		})
+	}
+}
+
+func createExpiredCookie(name string) *http.Cookie {
+	return &http.Cookie{
+		Name:    name,
+		Value:   "",
+		Expires: time.Unix(0, 0),
+		MaxAge:  -1,
 	}
 }

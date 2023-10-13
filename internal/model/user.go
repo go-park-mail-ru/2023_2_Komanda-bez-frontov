@@ -17,6 +17,7 @@ type UserSignUp struct {
 }
 
 type UserGet struct {
+	ID       string `json:"id" validate:"required,uuid"`
 	Username string `json:"username" validate:"required,alphanum"`
 	Email    string `json:"email,omitempty" validate:"omitempty,email"`
 }

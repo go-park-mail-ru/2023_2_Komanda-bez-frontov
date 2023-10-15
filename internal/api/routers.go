@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 // Route struct defines parameters of API endpoint
@@ -33,6 +35,18 @@ type Router interface {
 // added to it.
 func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+
+	router.Use(cors.Handler(cors.Options{
+		AllowOriginFunc:  AllowOriginFunc,
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
+
 	for _, api := range routers {
 		for _, route := range api.Routes() {
 			handler := route.Handler
@@ -46,4 +60,8 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers .
 	}
 
 	return router
+}
+
+func AllowOriginFunc(r *http.Request, origin string) bool {
+	return true
 }

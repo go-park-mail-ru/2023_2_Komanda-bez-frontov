@@ -102,10 +102,12 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
-	uuid := uuid.New().String()
+	id := uuid.New().String()
 	err = s.userRepository.Insert(ctx, &repository.User{
-		ID:       uuid,
+		ID:       id,
 		Username: user.Username,
+		Name:     user.Name,
+		Surname:  user.Surname,
 		Password: encPassword,
 		Email:    user.Email,
 	})
@@ -116,7 +118,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	sessionID := generateSessionID(user.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
-		UserID:    uuid,
+		UserID:    id,
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
@@ -124,8 +126,10 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
-		ID:       uuid,
+		ID:       id,
 		Username: user.Username,
+		Name:     user.Name,
+		Surname:  user.Surname,
 		Email:    user.Email,
 	}), sessionID, nil
 }
@@ -165,6 +169,8 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
 		ID:       existing.ID,
+		Name:     existing.Name,
+		Surname:  existing.Surname,
 		Username: existing.Username,
 		Email:    existing.Email,
 	}), sessionID, nil

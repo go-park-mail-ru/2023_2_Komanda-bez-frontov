@@ -11,6 +11,7 @@ import (
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
+	"github.com/rs/zerolog/log"
 )
 
 type AuthAPIController struct {
@@ -122,18 +123,21 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
+		log.Error().Msgf("api_auth read_body err: %e", err)
 		c.errorHandler(w, err, nil)
 		return
 	}
 
 	var user model.UserSignUp
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
+		log.Error().Msgf("api_auth unmarshal err: %e", err)
 		c.errorHandler(w, err, nil)
 		return
 	}
 
 	result, sessionID, err := c.authService.AuthSignUp(r.Context(), &user)
 	if err != nil {
+		log.Error().Msgf("api_auth sugnip err: %e", err)
 		c.errorHandler(w, err, result)
 		return
 	}

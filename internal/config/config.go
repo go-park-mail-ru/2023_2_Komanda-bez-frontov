@@ -22,14 +22,14 @@ const (
 )
 
 type Config struct {
-	DatabaseURL      string        `env:"DATABASE_URL" conf:"DATABASE_URL"`
-	HTTPPort         string        `env:"HTTP_PORT" conf:"HTTP_PORT"`
-	HTTPReadTimeout  time.Duration `env:"HTTP_READ_TIMEOUT" conf:"HTTP_READ_TIMEOUT"`
-	HTTPWriteTimeout time.Duration `env:"HTTP_WRITE_TIMEOUT" conf:"HTTP_WRITE_TIMEOUT"`
-	LogLevel         string        `env:"LOG_LEVEL" conf:"LOG_LEVEL"`
-	LogRequests      string        `env:"LOG_REQUESTS" conf:"LOG_REQUESTS"`
-	EncryptionKey    string        `env:"ENCRYPTION_KEY" conf:"ENCRYPTION_KEY"`
-	CookieExpiration time.Duration `env:"COOKIE_EXPIRATION" conf:"COOKIE_EXPIRATION"`
+	DatabaseURL      string        `env:"DATABASE_URL" conf:"DATABASE_URL" json:"DATABASE_URL"`
+	HTTPPort         string        `env:"HTTP_PORT" conf:"HTTP_PORT" json:"HTTP_PORT"`
+	HTTPReadTimeout  time.Duration `env:"HTTP_READ_TIMEOUT" conf:"HTTP_READ_TIMEOUT" json:"HTTP_READ_TIMEOUT"`
+	HTTPWriteTimeout time.Duration `env:"HTTP_WRITE_TIMEOUT" conf:"HTTP_WRITE_TIMEOUT" json:"HTTP_WRITE_TIMEOUT"`
+	LogLevel         string        `env:"LOG_LEVEL" conf:"LOG_LEVEL" json:"LOG_LEVEL"`
+	LogRequests      string        `env:"LOG_REQUESTS" conf:"LOG_REQUESTS" json:"LOG_REQUESTS"`
+	EncryptionKey    string        `env:"ENCRYPTION_KEY" conf:"ENCRYPTION_KEY" json:"ENCRYPTION_KEY"`
+	CookieExpiration time.Duration `env:"COOKIE_EXPIRATION" conf:"COOKIE_EXPIRATION" json:"COOKIE_EXPIRATION"`
 }
 
 func NewConfig() (*Config, error) {

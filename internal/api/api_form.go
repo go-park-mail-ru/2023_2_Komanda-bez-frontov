@@ -107,6 +107,7 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 	EncodeJSONResponse(result.Body, result.StatusCode, w)
 }
 
+// nolint:dupl
 func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 	title, err := url.PathUnescape(chi.URLParam(r, "title"))
 	if err != nil {
@@ -125,6 +126,7 @@ func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 	EncodeJSONResponse(result.Body, result.StatusCode, w)
 }
 
+// nolint:dupl
 func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 	title, err := url.PathUnescape(chi.URLParam(r, "title"))
 	if err != nil {

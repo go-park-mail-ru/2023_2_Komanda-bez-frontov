@@ -19,6 +19,7 @@ const (
 	defaultHTTPWriteTimeout = 5 * time.Second
 	defaultLogLevel         = "error"
 	defaultCookieExpiration = 24 * time.Hour
+	defaultLogRequests      = "true"
 )
 
 type Config struct {
@@ -33,89 +34,43 @@ type Config struct {
 }
 
 func NewConfig() (*Config, error) {
-	var cfg Config
+	cfg := Config{
+		HTTPPort:         defaultHTTPPort,
+		HTTPReadTimeout:  defaultHTTPReadTimeout,
+		HTTPWriteTimeout: defaultHTTPWriteTimeout,
+		LogLevel:         defaultLogLevel,
+		LogRequests:      defaultLogRequests,
+		CookieExpiration: 24 * time.Hour,
+	}
+
+	_ = LoadConfigFile(&cfg, "config.conf")
+
 	if err := env.Parse(&cfg); err != nil {
 		return nil, fmt.Errorf("config new_config unable to parse env variables: %e", err)
 	}
 
-	fileConfig, _ := LoadConfigFile("config.conf")
-
-	if cfg.HTTPPort == "" {
-		if fileConfig != nil && fileConfig.HTTPPort != "" {
-			cfg.HTTPPort = fileConfig.HTTPPort
-		} else {
-			cfg.HTTPPort = defaultHTTPPort
-		}
-	}
-
-	if cfg.HTTPReadTimeout == 0 {
-		if fileConfig != nil && fileConfig.HTTPReadTimeout != 0 {
-			cfg.HTTPReadTimeout = fileConfig.HTTPReadTimeout
-		} else {
-			cfg.HTTPReadTimeout = defaultHTTPReadTimeout
-		}
-	}
-
-	if cfg.HTTPWriteTimeout == 0 {
-		if fileConfig != nil && fileConfig.HTTPWriteTimeout != 0 {
-			cfg.HTTPWriteTimeout = fileConfig.HTTPWriteTimeout
-		} else {
-			cfg.HTTPWriteTimeout = defaultHTTPWriteTimeout
-		}
-	}
-
-	if cfg.LogLevel == "" {
-		if fileConfig != nil && fileConfig.LogLevel != "" {
-			cfg.LogLevel = fileConfig.LogLevel
-		} else {
-			cfg.LogLevel = defaultLogLevel
-		}
-	}
-
-	if cfg.LogRequests == "" {
-		if fileConfig != nil && fileConfig.LogRequests != "" {
-			cfg.LogRequests = fileConfig.LogRequests
-		} else {
-			cfg.LogRequests = "false"
-		}
-	}
-
 	if cfg.EncryptionKey == "" {
-		if fileConfig != nil && fileConfig.EncryptionKey != "" {
-			cfg.EncryptionKey = fileConfig.EncryptionKey
-		} else {
-			return nil, fmt.Errorf("config is broken, encrypt key is empty")
-		}
-	}
-
-	if cfg.CookieExpiration == 0 {
-		if fileConfig != nil && fileConfig.CookieExpiration != 0 {
-			cfg.CookieExpiration = fileConfig.CookieExpiration
-		} else {
-			cfg.CookieExpiration = defaultCookieExpiration
-		}
+		return nil, fmt.Errorf("config is broken, encrypt key is empty")
 	}
 
 	return &cfg, nil
 }
 
-func LoadConfigFile(filepath string) (*Config, error) {
+func LoadConfigFile(cfg *Config, filepath string) error {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return nil, fmt.Errorf("config file not found %s", err)
+		return fmt.Errorf("config file not found %s", err)
 	}
 
 	configBytes, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config %s", err)
+		return fmt.Errorf("failed to read config %s", err)
 	}
-
-	cfg := Config{}
 
 	configString := string(configBytes)
 	configs := strings.Split(configString, "\n")
-	typeElem := reflect.TypeOf(&cfg).Elem()
-	elem := reflect.ValueOf(&cfg).Elem()
+	typeElem := reflect.TypeOf(cfg).Elem()
+	elem := reflect.ValueOf(cfg).Elem()
 
 	for _, v := range configs {
 		s := strings.SplitN(v, "=", 2)
@@ -156,7 +111,7 @@ func LoadConfigFile(filepath string) (*Config, error) {
 			}
 		}
 	}
-	return &cfg, nil
+	return nil
 }
 
 func ZeroLogLevel(l string) zerolog.Level {

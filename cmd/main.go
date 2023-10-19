@@ -48,6 +48,7 @@ func main() {
 		return
 	}
 	zerolog.SetGlobalLevel(config.ZeroLogLevel(cfg.LogLevel))
+	log.Info().Interface("config", cfg).Msgf("Server config")
 
 	validate := validator.New()
 
@@ -65,10 +66,11 @@ func main() {
 	r := api.NewRouter(authMiddleware, formRouter, authRouter)
 
 	server, err := StartServer(cfg, r)
-	log.Info().Msgf("Server started. Listening port %s", cfg.HTTPPort)
 	if err != nil {
 		log.Error().Msgf("Failed to start server: %e", err)
 	}
+
+	log.Info().Msgf("Server started. Listening port %s", cfg.HTTPPort)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)

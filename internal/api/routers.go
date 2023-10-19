@@ -62,6 +62,6 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers .
 	return router
 }
 
-func AllowOriginFunc(r *http.Request, origin string) bool {
+func AllowOriginFunc(_ *http.Request, _ string) bool {
 	return true
 }

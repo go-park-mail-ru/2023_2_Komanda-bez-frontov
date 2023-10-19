@@ -47,6 +47,20 @@ func (r *sessionMockRepository) FindByUsername(_ context.Context, username strin
 	return session, nil
 }
 
+func (r *sessionMockRepository) FindByUserID(_ context.Context, id string) (*repository.Session, error) {
+	var session *repository.Session
+	r.mockDB.Range(func(key, value interface{}) bool {
+		currSession := value.(*repository.Session)
+		if currSession.UserID == id {
+			session = currSession
+			return false
+		}
+		return true
+	})
+
+	return session, nil
+}
+
 func (r *sessionMockRepository) Delete(_ context.Context, sessionID string) error {
 	r.mockDB.Delete(sessionID)
 	return nil

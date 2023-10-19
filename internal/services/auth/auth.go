@@ -2,33 +2,43 @@ package auth
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/md5" // nolint:gosec
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"go-form-hub/internal/config"
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
 	resp "go-form-hub/internal/services/service_response"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type Service interface {
 	AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error)
 	AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error)
 	AuthLogout(ctx context.Context) (*resp.Response, string, error)
+	IsSessionValid(ctx context.Context, sessionID string) (bool, error)
 }
 
 type authService struct {
 	userRepository    repository.UserRepository
 	sessionRepository repository.SessionRepository
+	cfg               *config.Config
 	validate          *validator.Validate
 }
 
-func NewAuthService(userRepository repository.UserRepository, sessionRepository repository.SessionRepository, validate *validator.Validate) Service {
+func NewAuthService(userRepository repository.UserRepository, sessionRepository repository.SessionRepository, cfg *config.Config, validate *validator.Validate) Service {
 	return &authService{
 		userRepository:    userRepository,
 		sessionRepository: sessionRepository,
+		cfg:               cfg,
 		validate:          validate,
 	}
 }
@@ -39,6 +49,38 @@ func generateSessionID(username string) string {
 	h.Write([]byte(s))
 
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (s *authService) encryptPassword(pass string) (string, error) {
+	keyBytes, err := hex.DecodeString(s.cfg.EncryptionKey)
+	if err != nil {
+		return "", fmt.Errorf("encrypt_password invalid hex-encoded key: %e", err)
+	}
+
+	if len(keyBytes) != 32 {
+		return "", fmt.Errorf("invalid key length: expected 32 bytes, got %d", len(keyBytes))
+	}
+
+	block, err := aes.NewCipher(keyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	hasher := md5.New() // nolint:gosec
+	_, err = io.WriteString(hasher, pass)
+	if err != nil {
+		return "", err
+	}
+	nonce := hasher.Sum(nil)[:12]
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := aesgcm.Seal(nil, nonce, []byte(pass), nil)
+
+	return hex.EncodeToString(nonce) + hex.EncodeToString(ciphertext), nil
 }
 
 func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error) {
@@ -55,9 +97,18 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		return resp.NewResponse(http.StatusConflict, nil), "", nil
 	}
 
+	encPassword, err := s.encryptPassword(user.Password)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
+	}
+
+	id := uuid.New().String()
 	err = s.userRepository.Insert(ctx, &repository.User{
+		ID:       id,
 		Username: user.Username,
-		Password: user.Password,
+		Name:     user.Name,
+		Surname:  user.Surname,
+		Password: encPassword,
 		Email:    user.Email,
 	})
 	if err != nil {
@@ -67,7 +118,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	sessionID := generateSessionID(user.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
-		Username:  user.Username,
+		UserID:    id,
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
@@ -75,7 +126,10 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
+		ID:       id,
 		Username: user.Username,
+		Name:     user.Name,
+		Surname:  user.Surname,
 		Email:    user.Email,
 	}), sessionID, nil
 }
@@ -94,14 +148,19 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 		return resp.NewResponse(http.StatusUnauthorized, nil), "", nil
 	}
 
-	if existing.Password != user.Password {
-		return resp.NewResponse(http.StatusUnauthorized, nil), "", nil
+	encPassword, err := s.encryptPassword(user.Password)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
+	}
+
+	if existing.Password != encPassword {
+		return resp.NewResponse(http.StatusUnauthorized, nil), "", fmt.Errorf("invalid username or password")
 	}
 
 	sessionID := generateSessionID(user.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
-		Username:  existing.Username,
+		UserID:    existing.ID,
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
@@ -109,6 +168,9 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
+		ID:       existing.ID,
+		Name:     existing.Name,
+		Surname:  existing.Surname,
 		Username: existing.Username,
 		Email:    existing.Email,
 	}), sessionID, nil
@@ -116,7 +178,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 
 func (s *authService) AuthLogout(ctx context.Context) (*resp.Response, string, error) {
 	currentUser := ctx.Value(model.CurrentUserInContext).(*model.UserGet)
-	session, err := s.sessionRepository.FindByUsername(ctx, currentUser.Username)
+	session, err := s.sessionRepository.FindByUserID(ctx, currentUser.ID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
@@ -127,4 +189,30 @@ func (s *authService) AuthLogout(ctx context.Context) (*resp.Response, string, e
 	}
 
 	return resp.NewResponse(http.StatusNoContent, nil), session.SessionID, nil
+}
+
+func (s *authService) IsSessionValid(ctx context.Context, sessionID string) (bool, error) {
+	sessionInDB, err := s.sessionRepository.FindByID(ctx, sessionID)
+	if err != nil {
+		return false, err
+	}
+
+	if sessionInDB == nil {
+		return false, nil
+	}
+
+	if sessionInDB.CreatedAt+s.cfg.CookieExpiration.Milliseconds() < time.Now().UnixMilli() {
+		return false, nil
+	}
+
+	currentUser, err := s.userRepository.FindByID(ctx, sessionInDB.UserID)
+	if err != nil {
+		return false, err
+	}
+
+	if currentUser == nil {
+		return false, nil
+	}
+
+	return true, nil
 }

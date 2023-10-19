@@ -7,7 +7,7 @@ import (
 	resp "go-form-hub/internal/services/service_response"
 	"net/http"
 
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 )
 
 type Service interface {
@@ -39,6 +39,8 @@ func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
 	for _, user := range users {
 		response.Users = append(response.Users, &model.UserGet{
 			Username: user.Username,
+			Name:     user.Name,
+			Surname:  user.Surname,
 			Email:    user.Email,
 		})
 	}
@@ -59,6 +61,8 @@ func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response,
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
 		Username: user.Username,
+		Name:     user.Name,
+		Surname:  user.Surname,
 		Email:    user.Email,
 	}), nil
 }

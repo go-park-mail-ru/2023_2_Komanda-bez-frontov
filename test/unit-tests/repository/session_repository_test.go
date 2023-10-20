@@ -115,6 +115,4 @@ func TestSessionRepositoryFindByFunctionsAndDelete(t *testing.T) {
 	if !assert.Nil(t, err) || !assert.Nil(t, session) {
 		t.FailNow()
 	}
-
-	assert.Equal(t, 1, 2)
 }

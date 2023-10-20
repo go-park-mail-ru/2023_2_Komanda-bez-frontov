@@ -165,7 +165,7 @@ func TestAuthSignUp(t *testing.T) {
 		})
 
 		t.Cleanup(func() {
-			userRepository.Delete(ctx, userSignUp.Username)
+			_ = userRepository.Delete(ctx, userSignUp.Username)
 		})
 
 		r, sessionID, err := authService.AuthSignUp(ctx, &userSignUp)
@@ -191,8 +191,8 @@ func TestAuthSignUp(t *testing.T) {
 			t.FailNow()
 		}
 		t.Cleanup(func() {
-			userRepository.Delete(ctx, userSignUp.Username)
-			sessionRepository.Delete(ctx, sessionID)
+			_ = userRepository.Delete(ctx, userSignUp.Username)
+			_ = sessionRepository.Delete(ctx, sessionID)
 		})
 
 		user, err := userRepository.FindByUsername(ctx, userSignUp.Username)

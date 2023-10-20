@@ -156,13 +156,17 @@ func TestAuthSignUp(t *testing.T) {
 			Email:          "test@test.com",
 		}
 
-		userRepository.Insert(ctx, &repository.User{
+		err := userRepository.Insert(ctx, &repository.User{
 			Username: userSignUp.Username,
 			Name:     userSignUp.Name,
 			Email:    userSignUp.Email,
 			Surname:  userSignUp.Surname,
 			Password: userSignUp.Password,
 		})
+		if !assert.Nil(t, err) {
+			t.Logf("failed to insert into user repository: %e", err)
+			t.FailNow()
+		}
 
 		t.Cleanup(func() {
 			_ = userRepository.Delete(ctx, userSignUp.Username)

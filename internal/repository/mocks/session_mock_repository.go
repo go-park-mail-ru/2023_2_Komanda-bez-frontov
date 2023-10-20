@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"go-form-hub/internal/repository"
 	"sync"
 )
@@ -67,6 +68,10 @@ func (r *sessionMockRepository) Delete(_ context.Context, sessionID string) erro
 }
 
 func (r *sessionMockRepository) Insert(_ context.Context, session *repository.Session) error {
+	if session == nil {
+		return fmt.Errorf("session_repository insert session is nil")
+	}
+
 	r.mockDB.Store(session.SessionID, session)
 	return nil
 }

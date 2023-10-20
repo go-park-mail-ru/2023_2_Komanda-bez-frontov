@@ -69,9 +69,13 @@ func (r *formMockRepository) Insert(_ context.Context, form *repository.Form) er
 //
 // It takes a context and a form as parameters.
 // It returns an error.
-func (r *formMockRepository) Update(_ context.Context, form *repository.Form) error {
+func (r *formMockRepository) Update(_ context.Context, title string, form *repository.Form) error {
 	if form == nil {
 		return fmt.Errorf("form_repository update form is nil")
+	}
+
+	if title != form.Title {
+		r.mockDB.Delete(title)
 	}
 
 	r.mockDB.Store(form.Title, form)

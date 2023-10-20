@@ -14,7 +14,10 @@ build:
 run:
 	go run ./cmd/main.go
 
-.PHONY: test-unit
-test-unit:
-	go test ./test/... -coverprofile=./docs/cover.out
+.PHONY: test
+test:
+	go test -cover ./test/unit-tests/repository/... -coverprofile=./coverage/cover.out -coverpkg=./internal/repository/...
 
+.PHONY: coverage
+coverage:
+	go tool cover -html ./coverage/cover.out

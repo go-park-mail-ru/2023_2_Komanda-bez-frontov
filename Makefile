@@ -16,7 +16,7 @@ run:
 
 .PHONY: test
 test:
-	go test -cover ./test/unit-tests/repository/... -coverprofile=./coverage/cover.out -coverpkg=./internal/repository/...
+	go test ./... -coverprofile cover.out.tmp && cat cover.out.tmp > ./coverage/cover.out && rm cover.out.tmp && go tool cover -func ./coverage/cover.out
 
 .PHONY: coverage
 coverage:

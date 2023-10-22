@@ -66,7 +66,7 @@ func (s *formService) FormUpdate(ctx context.Context, title string, form *model.
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
-	err = s.formRepository.Update(ctx, s.formRepository.FromModel(form))
+	err = s.formRepository.Update(ctx, title, s.formRepository.FromModel(form))
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

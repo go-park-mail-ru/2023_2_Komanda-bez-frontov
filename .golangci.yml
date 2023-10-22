@@ -68,5 +68,12 @@ linters:
     - whitespace
     - prealloc
 
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+
 service:
   golangci-lint-version: 1.54.2

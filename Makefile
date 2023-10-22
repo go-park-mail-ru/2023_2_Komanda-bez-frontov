@@ -13,3 +13,11 @@ build:
 .PHONY: run
 run:
 	go run ./cmd/main.go
+
+.PHONY: test
+test:
+	go test ./... -coverprofile cover.out.tmp && cat cover.out.tmp > ./coverage/cover.out && rm cover.out.tmp && go tool cover -func ./coverage/cover.out
+
+.PHONY: coverage
+coverage:
+	go tool cover -html ./coverage/cover.out

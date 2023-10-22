@@ -63,11 +63,12 @@ func (r *userMockRepository) Insert(_ context.Context, user *repository.User) er
 	return nil
 }
 
-func (r *userMockRepository) Update(_ context.Context, user *repository.User) error {
+func (r *userMockRepository) Update(_ context.Context, id string, user *repository.User) error {
 	if user == nil {
 		return fmt.Errorf("user_repository update user is nil")
 	}
 
-	r.mockDB.Store(user.ID, user)
+	user.ID = id
+	r.mockDB.Store(id, user)
 	return nil
 }

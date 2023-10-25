@@ -29,7 +29,7 @@
 
 | Название  | Тип |
 |-----------|-----|
-| id        | integer |
+| *id*        | *integer* |
 | created_at |  time |
 | author_id | integer |
 | title | varchar |
@@ -51,7 +51,7 @@
 
 | Название | Тип |
 |----|----|
-| id | integer |
+| *id* | *integer* |
 | form_id | integer |
 | question_type | varchar |
 | question_title | string |
@@ -75,7 +75,7 @@
 
 | Название | Тип |
 |----|----|
-| id | integer |
+| *id* | *integer* |
 | question_id | integer |
 | answer_text | text |
 
@@ -96,7 +96,7 @@
 
 | Название | Тип |
 |----|----|
-| id | integer |
+| *id* | *integer* |
 | user_id | integer |
 | form_id | integer |
 | started_at | time |
@@ -118,7 +118,7 @@
 
 | Название | Тип |
 |----|----|
-| id | integer |
+| *id* | *integer* |
 |form_passage_id | integer |
 | question_id | integer |
 | answer_text | text |
@@ -144,3 +144,49 @@
 
 ![image](https://github.com/go-park-mail-ru/2023_2_Komanda-bez-frontov/assets/114286666/d50fb24f-bac4-49eb-9bf1-188a7a14a68b)
 
+```
+User {
+	id integer pk increments unique
+	first_name varchar
+	last_name varchar
+	email varchar unique
+	username varchar unique
+	password varchar
+}
+
+Form {
+	id integer pk increments unique
+	created_at time
+	author_id integer *> User.id
+	title varchar
+}
+
+Question {
+	id integer pk increments unique
+	form_id integer *> Form.id
+	question_type varchar
+	question_title string
+	question_text text
+	shuffle boolean
+}
+
+Answer {
+	id integer pk increments
+	question_id integer *> Question.id
+	answer_text text
+}
+
+Form_passage {
+	id integer pk increments
+	user_id integer *> User.id
+	form_id integer *> Form.id
+	started_at time
+}
+
+Form_passage_answer {
+	id integer pk increments unique
+	form_passage_id integer *> Form_passage.id
+	question_id integer > Question.id
+	answer_text text
+}
+```

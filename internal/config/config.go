@@ -14,16 +14,27 @@ import (
 )
 
 const (
-	defaultHTTPPort         = "8080"
-	defaultHTTPReadTimeout  = 5 * time.Second
-	defaultHTTPWriteTimeout = 5 * time.Second
-	defaultLogLevel         = "error"
-	defaultCookieExpiration = 24 * time.Hour
-	defaultLogRequests      = "true"
+	defaultHTTPPort                    = "8080"
+	defaultHTTPReadTimeout             = 5 * time.Second
+	defaultHTTPWriteTimeout            = 5 * time.Second
+	defaultLogLevel                    = "error"
+	defaultCookieExpiration            = 24 * time.Hour
+	defaultLogRequests                 = "true"
+	defaultDatabaseMaxConnections      = 40
+	defaultDatabaseMigrationsDir       = "./db/migrations"
+	defaultDatabaseConnectMaxRetries   = 20
+	defaultDatabaseConnectRetryTimeout = 1 * time.Second
+	defaultAcquireTimeout              = 1 * time.Second
 )
 
 type Config struct {
-	DatabaseURL      string        `env:"DATABASE_URL" conf:"DATABASE_URL" json:"DATABASE_URL"`
+	DatabaseURL                 string        `env:"DATABASE_URL" conf:"DATABASE_URL" json:"DATABASE_URL"`
+	DatabaseMaxConnections      int           `env:"DATABASE_MAX_CONNECTIONS" conf:"DATABASE_MAX_CONNECTIONS" json:"DATABASE_MAX_CONNECTIONS"`
+	DatabaseMigrationsDir       string        `env:"DATABASE_MIGRATIONS_DIR" conf:"DATABASE_MIGRATIONS_DIR" json:"DATABASE_MIGRATIONS_DIR"`
+	DatabaseConnectMaxRetries   int           `env:"DATABASE_CONNECT_MAX_RETRIES" conf:"DATABASE_CONNECT_MAX_RETRIES" json:"DATABASE_CONNECT_MAX_RETRIES"`
+	DatabaseConnectRetryTimeout time.Duration `env:"DATABASE_CONNECT_RETRY_TIMEOUT" conf:"DATABASE_CONNECT_RETRY_TIMEOUT" json:"DATABASE_CONNECT_RETRY_TIMEOUT"`
+	DatabaseAcquireTimeout      time.Duration `env:"DATABASE_ACQUIRE_TIMEOUT" conf:"DATABASE_ACQUIRE_TIMEOUT" json:"DATABASE_ACQUIRE_TIMEOUT"`
+
 	HTTPPort         string        `env:"HTTP_PORT" conf:"HTTP_PORT" json:"HTTP_PORT"`
 	HTTPReadTimeout  time.Duration `env:"HTTP_READ_TIMEOUT" conf:"HTTP_READ_TIMEOUT" json:"HTTP_READ_TIMEOUT"`
 	HTTPWriteTimeout time.Duration `env:"HTTP_WRITE_TIMEOUT" conf:"HTTP_WRITE_TIMEOUT" json:"HTTP_WRITE_TIMEOUT"`
@@ -35,12 +46,17 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	cfg := Config{
-		HTTPPort:         defaultHTTPPort,
-		HTTPReadTimeout:  defaultHTTPReadTimeout,
-		HTTPWriteTimeout: defaultHTTPWriteTimeout,
-		LogLevel:         defaultLogLevel,
-		LogRequests:      defaultLogRequests,
-		CookieExpiration: 24 * time.Hour,
+		HTTPPort:                    defaultHTTPPort,
+		HTTPReadTimeout:             defaultHTTPReadTimeout,
+		HTTPWriteTimeout:            defaultHTTPWriteTimeout,
+		LogLevel:                    defaultLogLevel,
+		LogRequests:                 defaultLogRequests,
+		CookieExpiration:            defaultCookieExpiration,
+		DatabaseMaxConnections:      defaultDatabaseMaxConnections,
+		DatabaseMigrationsDir:       defaultDatabaseMigrationsDir,
+		DatabaseConnectMaxRetries:   defaultDatabaseConnectMaxRetries,
+		DatabaseConnectRetryTimeout: defaultDatabaseConnectRetryTimeout,
+		DatabaseAcquireTimeout:      defaultAcquireTimeout,
 	}
 
 	_ = LoadConfigFile(&cfg, "config.conf")
@@ -50,7 +66,11 @@ func NewConfig() (*Config, error) {
 	}
 
 	if cfg.EncryptionKey == "" {
-		return nil, fmt.Errorf("config is broken, encrypt key is empty")
+		return nil, fmt.Errorf("config is broken, encryption key is empty")
+	}
+
+	if cfg.DatabaseURL == "" {
+		return nil, fmt.Errorf("config is broken, database url is empty")
 	}
 
 	return &cfg, nil

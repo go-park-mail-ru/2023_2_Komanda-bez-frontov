@@ -199,8 +199,8 @@ func Migrate(db *pgx.ConnPool, cfg *config.Config, builder squirrel.StatementBui
 
 	currentVersionInt = currentVersion.Version
 	if currentVersionInt < lastMigrationsVersion {
-		return int(currentVersionInt), fmt.Errorf("failed migration, current version: %d, available version: %d", currentVersionInt, lastMigrationsVersion)
+		return currentVersionInt, fmt.Errorf("failed migration, current version: %d, available version: %d", currentVersionInt, lastMigrationsVersion)
 	}
 
-	return int(currentVersionInt), nil
+	return currentVersionInt, nil
 }

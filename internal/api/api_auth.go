@@ -8,6 +8,7 @@ import (
 	resp "go-form-hub/internal/services/service_response"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
@@ -60,7 +61,14 @@ func (c *AuthAPIController) Routes() []Route {
 func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("session_id")
 	if err == nil {
-		isValid, err := c.authService.IsSessionValid(r.Context(), session.Value)
+
+		sessionID, err := strconv.ParseInt(session.Value, 10, 64)
+		if err != nil {
+			c.errorHandler(w, err, &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
+			return
+		}
+
+		isValid, err := c.authService.IsSessionValid(r.Context(), sessionID)
 		if err != nil {
 			c.errorHandler(w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
 			return
@@ -95,7 +103,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 
 	cookie := &http.Cookie{
 		Name:    "session_id",
-		Value:   sessionID,
+		Value:   fmt.Sprintf("%d", sessionID),
 		Expires: time.Now().Add(c.cookieExpiration),
 	}
 	http.SetCookie(w, cookie)
@@ -106,7 +114,13 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("session_id")
 	if err == nil {
-		isValid, err := c.authService.IsSessionValid(r.Context(), session.Value)
+		sessionID, err := strconv.ParseInt(session.Value, 10, 64)
+		if err != nil {
+			c.errorHandler(w, err, &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
+			return
+		}
+
+		isValid, err := c.authService.IsSessionValid(r.Context(), sessionID)
 		if err != nil {
 			c.errorHandler(w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
 			return
@@ -144,7 +158,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	cookie := &http.Cookie{
 		Name:    "session_id",
-		Value:   sessionID,
+		Value:   fmt.Sprintf("%d", sessionID),
 		Expires: time.Now().Add(c.cookieExpiration),
 	}
 	http.SetCookie(w, cookie)

@@ -27,7 +27,7 @@ func (r *userMockRepository) FindAll(_ context.Context) ([]*repository.User, err
 	return users, nil
 }
 
-func (r *userMockRepository) FindByID(_ context.Context, id string) (*repository.User, error) {
+func (r *userMockRepository) FindByID(_ context.Context, id int64) (*repository.User, error) {
 	if user, ok := r.mockDB.Load(id); ok {
 		return user.(*repository.User), nil
 	}
@@ -49,21 +49,21 @@ func (r *userMockRepository) FindByUsername(_ context.Context, username string) 
 	return user, nil
 }
 
-func (r *userMockRepository) Delete(_ context.Context, id string) error {
+func (r *userMockRepository) Delete(_ context.Context, id int64) error {
 	r.mockDB.Delete(id)
 	return nil
 }
 
-func (r *userMockRepository) Insert(_ context.Context, user *repository.User) error {
+func (r *userMockRepository) Insert(_ context.Context, user *repository.User) (int64, error) {
 	if user == nil {
-		return fmt.Errorf("user_repository insert user is nil")
+		return 0, fmt.Errorf("user_repository insert user is nil")
 	}
 
 	r.mockDB.Store(user.ID, user)
-	return nil
+	return 0, nil
 }
 
-func (r *userMockRepository) Update(_ context.Context, id string, user *repository.User) error {
+func (r *userMockRepository) Update(_ context.Context, id int64, user *repository.User) error {
 	if user == nil {
 		return fmt.Errorf("user_repository update user is nil")
 	}

@@ -1,0 +1,4 @@
+CRAETE TABLE ahcd (
+	id BIGSERIAL PRIMARY KEY,
+	name VARCHAR(255)
+);

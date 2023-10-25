@@ -1,8 +1,8 @@
 package repository
 
 type Session struct {
-	SessionID string
-	UserID    string
+	SessionID int64
+	UserID    int64
 	Username  string
 	CreatedAt int64
 }

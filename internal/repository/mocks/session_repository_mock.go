@@ -27,7 +27,7 @@ func (r *sessionMockRepository) FindAll(_ context.Context) ([]*repository.Sessio
 	return sessions, nil
 }
 
-func (r *sessionMockRepository) FindByID(_ context.Context, sessionID string) (*repository.Session, error) {
+func (r *sessionMockRepository) FindByID(_ context.Context, sessionID int64) (*repository.Session, error) {
 	if session, ok := r.mockDB.Load(sessionID); ok {
 		return session.(*repository.Session), nil
 	}
@@ -48,7 +48,7 @@ func (r *sessionMockRepository) FindByUsername(_ context.Context, username strin
 	return session, nil
 }
 
-func (r *sessionMockRepository) FindByUserID(_ context.Context, id string) (*repository.Session, error) {
+func (r *sessionMockRepository) FindByUserID(_ context.Context, id int64) (*repository.Session, error) {
 	var session *repository.Session
 	r.mockDB.Range(func(key, value interface{}) bool {
 		currSession := value.(*repository.Session)
@@ -62,7 +62,7 @@ func (r *sessionMockRepository) FindByUserID(_ context.Context, id string) (*rep
 	return session, nil
 }
 
-func (r *sessionMockRepository) Delete(_ context.Context, sessionID string) error {
+func (r *sessionMockRepository) Delete(_ context.Context, sessionID int64) error {
 	r.mockDB.Delete(sessionID)
 	return nil
 }

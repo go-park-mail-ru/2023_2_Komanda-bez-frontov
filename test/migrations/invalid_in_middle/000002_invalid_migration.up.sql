@@ -1,0 +1,2 @@
+ALTER TABLE testtable
+ADD COLMN failure VARCHAR;

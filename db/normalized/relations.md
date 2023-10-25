@@ -2,14 +2,14 @@
 
 ## User — Таблица с данными о пользователе
 
-| Название | Тип |
-|----|----|
-| *id* | *integer* |
-| first_name | varchar |
-| last_name | varchar |
-| email | varchar |
-| username | varchar |
-| password | varchar |
+| Название | Тип | Ограничения |
+|----|----|----|
+| *id* | *integer* | PRIMARY KEY, UNIQUE, NOT NULL |
+| first_name | varchar | NOT NULL |
+| last_name | varchar | NOT NULL |
+| email | varchar | SECONDARY KEY, UNIQUE, NOT NULL |
+| username | varchar | UNIQUE, NOT NULL |
+| password | varchar | NOT NULL |
 
 #### Функциональные зависимости
 { id } -> first_name, last_name, email, username, password
@@ -27,12 +27,12 @@
     
 ## Form — Таблица с данными о существующих опросах
 
-| Название  | Тип |
-|-----------|-----|
-| *id*        | *integer* |
-| created_at |  time |
-| author_id | integer |
-| title | varchar |
+| Название | Тип | Ограничения |
+|----|----|----|
+| *id* | *integer* | PRIMARY KEY, UNIQUE, NOT NULL |
+| created_at |  time | NOT NULL |
+| author_id | integer | FOREIGN KEY, NOT NULL |
+| title | varchar | NOT NULL |
 	
 #### Функциональные зависимости
 
@@ -49,14 +49,14 @@
 
 ## Question — Таблица с данными о составленных вопросах
 
-| Название | Тип |
-|----|----|
-| *id* | *integer* |
-| form_id | integer |
-| question_type | varchar |
-| question_title | string |
-| question_text | text |
-| shuffle | boolean |
+| Название | Тип | Ограничения |
+|----|----|----|
+| *id* | *integer* | PRIMARY KEY, UNIQUE, NOT NULL |
+| form_id | integer | FOREIGN KEY, NOT NULL |
+| question_type | varchar | NOT NULL |
+| question_title | string | NOT NULL |
+| question_text | text | NOT NULL |
+| shuffle | boolean | DEFAULT = FALSE |
 
 #### Функциональные зависимости
 
@@ -73,11 +73,11 @@
    
 ## Answer— Таблица с данными об предлагаемых ответах на вопрос
 
-| Название | Тип |
-|----|----|
-| *id* | *integer* |
-| question_id | integer |
-| answer_text | text |
+| Название | Тип | Ограничения |
+|----|----|----|
+| *id* | *integer* | PRIMARY KEY, UNIQUE, NOT NULL |
+| question_id | integer | FOREIGN KEY,  NOT NULL |
+| answer_text | text | 
 
 #### Функциональные зависимости
 
@@ -94,12 +94,12 @@
 
 ## Form_passage — Таблица с данными о прохождении опроса
 
-| Название | Тип |
-|----|----|
-| *id* | *integer* |
-| user_id | integer |
-| form_id | integer |
-| started_at | time |
+| Название | Тип | Ограничения |
+|----|----|----|
+| *id* | *integer* | PRIMARY KEY, UNIQUE, NOT NULL |
+| user_id | integer | FOREIGN KEY, NOT NULL |
+| form_id | integer | FOREIGN KEY, NOT NULL |
+| started_at | time | NOT NULL |
 
 #### Функциональные зависимости
 
@@ -116,11 +116,11 @@
 
 ## Form_passage_answer — Таблица с данными об ответах на пройденный опрос
 
-| Название | Тип |
-|----|----|
-| *id* | *integer* |
-|form_passage_id | integer |
-| question_id | integer |
+| Название | Тип | Ограничения |
+|----|----|----|
+| *id* | *integer* | PRIMARY KEY, UNIQUE, NOT NULL |
+| form_passage_id | integer | FOREIGN KEY, NOT NULL |
+| question_id | integer | FOREIGN KEY,  NOT NULL |
 | answer_text | text |
 
 #### Функциональные зависимости

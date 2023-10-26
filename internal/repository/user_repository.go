@@ -81,13 +81,10 @@ func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username st
 		}
 	}()
 
-	row, err := tx.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("user_repository find_by_username failed to execute query: %e", err)
-	}
+	row := tx.QueryRow(ctx, query, args...)
 
-	users, err := r.fromRows(row)
-	return users[0], err
+	user, err = r.fromRow(row)
+	return user, err
 }
 
 func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) (user *User, err error) {
@@ -119,7 +116,7 @@ func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) 
 func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *User, err error) {
 	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
 		From(fmt.Sprintf("%s.user", r.db.GetSchema())).
-		Where(squirrel.Eq{"id": id}).ToSql()
+		Where(squirrel.Eq{"id": id}).Limit(1).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_id failed to build query: %e", err)
 	}

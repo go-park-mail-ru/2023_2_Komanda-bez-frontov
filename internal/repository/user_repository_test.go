@@ -18,7 +18,7 @@ var (
 )
 
 func TestUserRepositoryFindAll(t *testing.T) {
-	t.Run("FindAllUserNoErrors", func(t *testing.T) {
+	t.Run("NoErrors", func(t *testing.T) {
 		t.Parallel()
 		mock, err := pgxmock.NewPool()
 		if err != nil {
@@ -86,8 +86,78 @@ func TestUserRepositoryFindByUsername(t *testing.T) {
 	})
 }
 
-func TestRepositoryInsert(t *testing.T) {
-	t.Run("InserUserNoErrors", func(t *testing.T) {
+func TestUserRepositoryFindByEmail(t *testing.T) {
+	t.Run("NoErrors", func(t *testing.T) {
+		t.Parallel()
+		mock, err := pgxmock.NewPool()
+		if err != nil {
+			t.Logf("failed to create mock: %e", err)
+			t.FailNow()
+		}
+
+		schema := strings.ToLower(strings.ReplaceAll(t.Name(), "/", "_"))
+		connPool := database.NewConnPool(mock, schema)
+		repo := repository.NewUserDatabaseRepository(connPool, builder)
+
+		mock.ExpectBegin()
+
+		email := "unique-email"
+		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
+			AddRow(int64(1), "username", "first_name1", "last_name1", "password1", email)
+
+		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user WHERE email = \$1 LIMIT 1`, schema)).
+			WithArgs(email).
+			WillReturnRows(rows)
+
+		mock.ExpectCommit()
+
+		user, err := repo.FindByEmail(context.Background(), email)
+		if err != nil {
+			t.Logf("failed to find_by_username: %e", err)
+			t.FailNow()
+		}
+
+		assert.Equal(t, email, user.Email)
+	})
+}
+
+func TestUserRepositoryFindByUD(t *testing.T) {
+	t.Run("NoErrors", func(t *testing.T) {
+		t.Parallel()
+		mock, err := pgxmock.NewPool()
+		if err != nil {
+			t.Logf("failed to create mock: %e", err)
+			t.FailNow()
+		}
+
+		schema := strings.ToLower(strings.ReplaceAll(t.Name(), "/", "_"))
+		connPool := database.NewConnPool(mock, schema)
+		repo := repository.NewUserDatabaseRepository(connPool, builder)
+
+		mock.ExpectBegin()
+
+		id := int64(123)
+		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
+			AddRow(id, "username", "first_name1", "last_name1", "password1", "email")
+
+		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user WHERE id = \$1 LIMIT 1`, schema)).
+			WithArgs(id).
+			WillReturnRows(rows)
+
+		mock.ExpectCommit()
+
+		user, err := repo.FindByID(context.Background(), id)
+		if err != nil {
+			t.Logf("failed to find_by_username: %e", err)
+			t.FailNow()
+		}
+
+		assert.Equal(t, id, user.ID)
+	})
+}
+
+func TestUserRepositoryInsert(t *testing.T) {
+	t.Run("NoErrors", func(t *testing.T) {
 		t.Parallel()
 		mock, err := pgxmock.NewPool()
 		if err != nil {
@@ -125,7 +195,7 @@ func TestRepositoryInsert(t *testing.T) {
 		assert.Equal(t, int64(1), id)
 	})
 
-	t.Run("InserUserErrorBeginTransaction", func(t *testing.T) {
+	t.Run("ErrorBeginTransaction", func(t *testing.T) {
 		t.Parallel()
 		mock, err := pgxmock.NewPool()
 		if err != nil {
@@ -158,7 +228,7 @@ func TestRepositoryInsert(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
-	t.Run("InsertUserNilRowsReturned", func(t *testing.T) {
+	t.Run("ErrorReturnID", func(t *testing.T) {
 		t.Parallel()
 		mock, err := pgxmock.NewPool()
 		if err != nil {
@@ -193,5 +263,75 @@ func TestRepositoryInsert(t *testing.T) {
 
 		expectedErr := fmt.Errorf("user_repository insert failed to return id: %e", queryErr)
 		assert.Equal(t, expectedErr, err)
+	})
+}
+
+func TestUserRepositoryUpdate(t *testing.T) {
+	t.Run("NoErrors", func(t *testing.T) {
+		t.Parallel()
+
+		mock, err := pgxmock.NewPool()
+		if err != nil {
+			t.Logf("failed to create mock: %e", err)
+			t.FailNow()
+		}
+
+		schema := strings.ToLower(strings.ReplaceAll(t.Name(), "/", "_"))
+		connPool := database.NewConnPool(mock, schema)
+		repo := repository.NewUserDatabaseRepository(connPool, builder)
+
+		mock.ExpectBegin()
+
+		query := fmt.Sprintf(`^UPDATE %s.user SET .* WHERE id = \$6$`, schema)
+		mock.ExpectExec(query).
+			WithArgs("username", "first_name", "last_name", "password", "email", int64(1)).
+			WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+		mock.ExpectCommit()
+
+		u := repository.User{
+			ID:        1,
+			Username:  "username",
+			FirstName: "first_name",
+			LastName:  "last_name",
+			Password:  "password",
+			Email:     "email",
+		}
+
+		err = repo.Update(context.Background(), 1, &u)
+		if err != nil {
+			t.Logf("failed to update user: %e", err)
+			t.FailNow()
+		}
+	})
+}
+
+func TestUserRepositoryDelete(t *testing.T) {
+	t.Run("NoErrors", func(t *testing.T) {
+		t.Parallel()
+
+		mock, err := pgxmock.NewPool()
+		if err != nil {
+			t.Logf("failed to create mock: %e", err)
+			t.FailNow()
+		}
+
+		schema := strings.ToLower(strings.ReplaceAll(t.Name(), "/", "_"))
+		connPool := database.NewConnPool(mock, schema)
+		repo := repository.NewUserDatabaseRepository(connPool, builder)
+
+		mock.ExpectBegin()
+
+		mock.ExpectExec(fmt.Sprintf(`^DELETE FROM %s.user WHERE id = \$1$`, schema)).
+			WithArgs(int64(1)).
+			WillReturnResult(pgxmock.NewResult("DELETE", 1))
+
+		mock.ExpectCommit()
+
+		err = repo.Delete(context.Background(), 1)
+		if err != nil {
+			t.Logf("failed to delete user: %e", err)
+			t.FailNow()
+		}
 	})
 }

@@ -28,7 +28,6 @@ go.work
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
-!.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
@@ -47,5 +46,5 @@ go.work
 
 /bin/*
 !/bin/.keep
-/tmp/**.*
 config.conf
+/tmp/**/*.*

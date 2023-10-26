@@ -1,2 +1,0 @@
-ALTER TABLE testtable
-ADD COLUMN test_column VARCHAR NOT NULL;

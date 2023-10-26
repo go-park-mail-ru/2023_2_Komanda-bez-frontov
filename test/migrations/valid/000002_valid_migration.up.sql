@@ -1,2 +1,0 @@
-ALTER TABLE testtable
-ADD COLUMN surname VARCHAR NOT NULL;

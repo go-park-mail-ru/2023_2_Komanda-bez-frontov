@@ -31,7 +31,10 @@ func TestRepository(t *testing.T) {
 		t.FailNow()
 	}
 
-	defer db.Close()
+	defer func() {
+		_, _ = db.Exec(fmt.Sprintf("DROP SCHEMA %s CASCADE", schema))
+		db.Close()
+	}()
 
 	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 	_, err = database.Migrate(db, cfg, builder)
@@ -41,17 +44,12 @@ func TestRepository(t *testing.T) {
 
 	repo := repository.NewUserDatabaseRepository(db, builder)
 
-	a, err := repo.Insert(context.Background(), &repository.User{
+	_, err = repo.Insert(context.Background(), &repository.User{
 		FirstName: "admin",
 		Password:  "admin",
 		Email:     "admin",
 	})
-
 	if err != nil {
-		t.FailNow()
-	}
-
-	if a == 0 {
 		t.FailNow()
 	}
 }

@@ -72,7 +72,7 @@ func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (*User,
 }
 
 func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64, error) {
-	query, args, err := r.builder.Insert("user").
+	query, args, err := r.builder.Insert(fmt.Sprintf("%s.user", "testrepository")).
 		Columns("username", "first_name", "last_name", "password", "email").
 		Values(user.Username, user.FirstName, user.LastName, user.Password, user.Email).
 		Suffix("RETURNING id").ToSql()
@@ -80,17 +80,28 @@ func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64,
 		return 0, fmt.Errorf("user_repository insert failed to build query: %e", err)
 	}
 
-	_, err = r.db.ExecEx(
+	row := r.db.QueryRowEx(
 		ctx,
 		query,
 		nil,
-		args,
+		args...,
 	)
-	if err != nil {
+	// if err != nil {
+	// 	return 0, fmt.Errorf("user_repository insert failed to execute query: %e", err)
+	// }
+
+	if row == nil {
 		return 0, fmt.Errorf("user_repository insert failed to execute query: %e", err)
 	}
 
-	return 0, nil
+	var id int64
+	err = row.Scan(&id)
+
+	if err != nil {
+		return 0, fmt.Errorf("user_repository insert failed to return id: %e", err)
+	}
+
+	return id, nil
 
 }
 

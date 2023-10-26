@@ -8,7 +8,7 @@ import (
 )
 
 type Session struct {
-	SessionID int64
+	SessionID string
 	UserID    int64
 	Username  string
 	CreatedAt int64
@@ -30,7 +30,7 @@ func (r *sessionRepository) FindAll(ctx context.Context) ([]*Session, error) {
 	return nil, nil
 }
 
-func (r *sessionRepository) FindByID(ctx context.Context, sessionID int64) (*Session, error) {
+func (r *sessionRepository) FindByID(ctx context.Context, sessionID string) (*Session, error) {
 	return nil, nil
 }
 
@@ -46,6 +46,6 @@ func (r *sessionRepository) Insert(ctx context.Context, session *Session) error 
 	return nil
 }
 
-func (r *sessionRepository) Delete(ctx context.Context, sessionID int64) error {
+func (r *sessionRepository) Delete(ctx context.Context, sessionID string) error {
 	return nil
 }

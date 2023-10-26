@@ -7,7 +7,6 @@ import (
 	"go-form-hub/internal/repository"
 	resp "go-form-hub/internal/services/service_response"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -20,13 +19,7 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 				return
 			}
 
-			sessionID, err := strconv.ParseInt(session.Value, 10, 64)
-			if err != nil {
-				HandleError(w, err, &resp.Response{StatusCode: http.StatusBadRequest})
-				return
-			}
-
-			sessionInDB, err := sessionRepository.FindByID(r.Context(), sessionID)
+			sessionInDB, err := sessionRepository.FindByID(r.Context(), session.Value)
 			if err != nil {
 				HandleError(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
 				return

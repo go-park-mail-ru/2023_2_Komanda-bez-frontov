@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5" // nolint:gosec
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"go-form-hub/internal/config"
@@ -19,10 +20,10 @@ import (
 )
 
 type Service interface {
-	AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, int64, error)
-	AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, int64, error)
-	AuthLogout(ctx context.Context) (*resp.Response, int64, error)
-	IsSessionValid(ctx context.Context, sessionID int64) (bool, error)
+	AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error)
+	AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error)
+	AuthLogout(ctx context.Context) (*resp.Response, string, error)
+	IsSessionValid(ctx context.Context, sessionID string) (bool, error)
 }
 
 type authService struct {
@@ -39,6 +40,14 @@ func NewAuthService(userRepository repository.UserRepository, sessionRepository 
 		cfg:               cfg,
 		validate:          validate,
 	}
+}
+
+func generateSessionID(username string) string {
+	s := fmt.Sprintf("%s-%d", username, time.Now().UnixMilli())
+	h := sha256.New()
+	h.Write([]byte(s))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func (s *authService) encryptPassword(pass string) (string, error) {
@@ -73,23 +82,23 @@ func (s *authService) encryptPassword(pass string) (string, error) {
 	return hex.EncodeToString(nonce) + hex.EncodeToString(ciphertext), nil
 }
 
-func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, int64, error) {
+func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error) {
 	if err := s.validate.Struct(user); err != nil {
-		return resp.NewResponse(http.StatusBadRequest, nil), 0, err
+		return resp.NewResponse(http.StatusBadRequest, nil), "", err
 	}
 
 	existing, err := s.userRepository.FindByUsername(ctx, user.Username)
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	if existing != nil {
-		return resp.NewResponse(http.StatusConflict, nil), 0, nil
+		return resp.NewResponse(http.StatusConflict, nil), "", nil
 	}
 
 	encPassword, err := s.encryptPassword(user.Password)
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	id, err := s.userRepository.Insert(ctx, &repository.User{
@@ -100,16 +109,17 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		Email:     user.Email,
 	})
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
+	sessionID := generateSessionID(user.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
-		SessionID: 1,
+		SessionID: sessionID,
 		UserID:    id,
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
@@ -118,39 +128,40 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
-	}), 0, nil
+	}), sessionID, nil
 }
 
-func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, int64, error) {
+func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error) {
 	if err := s.validate.Struct(user); err != nil {
-		return resp.NewResponse(http.StatusBadRequest, nil), 0, err
+		return resp.NewResponse(http.StatusBadRequest, nil), "", err
 	}
 
 	existing, err := s.userRepository.FindByUsername(ctx, user.Username)
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	if existing == nil {
-		return resp.NewResponse(http.StatusUnauthorized, nil), 0, nil
+		return resp.NewResponse(http.StatusUnauthorized, nil), "", nil
 	}
 
 	encPassword, err := s.encryptPassword(user.Password)
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	if existing.Password != encPassword {
-		return resp.NewResponse(http.StatusUnauthorized, nil), 0, fmt.Errorf("invalid username or password")
+		return resp.NewResponse(http.StatusUnauthorized, nil), "", fmt.Errorf("invalid username or password")
 	}
 
+	sessionID := generateSessionID(user.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
-		SessionID: 1,
+		SessionID: sessionID,
 		UserID:    existing.ID,
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
@@ -159,25 +170,25 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 		LastName:  existing.LastName,
 		Username:  existing.Username,
 		Email:     existing.Email,
-	}), 1, nil
+	}), sessionID, nil
 }
 
-func (s *authService) AuthLogout(ctx context.Context) (*resp.Response, int64, error) {
+func (s *authService) AuthLogout(ctx context.Context) (*resp.Response, string, error) {
 	currentUser := ctx.Value(model.CurrentUserInContext).(*model.UserGet)
 	session, err := s.sessionRepository.FindByUserID(ctx, currentUser.ID)
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	err = s.sessionRepository.Delete(ctx, session.SessionID)
 	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), 0, err
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	return resp.NewResponse(http.StatusNoContent, nil), session.SessionID, nil
 }
 
-func (s *authService) IsSessionValid(ctx context.Context, sessionID int64) (bool, error) {
+func (s *authService) IsSessionValid(ctx context.Context, sessionID string) (bool, error) {
 	sessionInDB, err := s.sessionRepository.FindByID(ctx, sessionID)
 	if err != nil {
 		return false, err

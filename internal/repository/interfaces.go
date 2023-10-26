@@ -18,6 +18,7 @@ type FormRepository interface {
 type UserRepository interface {
 	FindAll(ctx context.Context) ([]*User, error)
 	FindByUsername(ctx context.Context, username string) (*User, error)
+	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, id int64) (*User, error)
 	Insert(ctx context.Context, user *User) (int64, error)
 	Update(ctx context.Context, id int64, user *User) error

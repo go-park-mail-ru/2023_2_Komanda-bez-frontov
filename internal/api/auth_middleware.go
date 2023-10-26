@@ -32,7 +32,7 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 				return
 			}
 
-			if sessionInDB.CreatedAt+cookieExpiration.Milliseconds() < time.Now().UnixMilli() {
+			if sessionInDB.CreatedAt.UnixMilli()+cookieExpiration.Milliseconds() < time.Now().UTC().UnixMilli() {
 				cookie := createExpiredCookie("session_id")
 				http.SetCookie(w, cookie)
 				HandleError(w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusForbidden})

@@ -30,9 +30,13 @@ func NewUserDatabaseRepository(db database.ConnPool, builder squirrel.StatementB
 	}
 }
 
+func (r *userDatabaseRepository) getTableName() string {
+	return fmt.Sprintf("%s.user", r.db.GetSchema())
+}
+
 func (r *userDatabaseRepository) FindAll(ctx context.Context) (users []*User, err error) {
 	query, _, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
-		From(fmt.Sprintf("%s.user", r.db.GetSchema())).ToSql()
+		From(r.getTableName()).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_username failed to build query: %e", err)
 	}
@@ -62,7 +66,7 @@ func (r *userDatabaseRepository) FindAll(ctx context.Context) (users []*User, er
 
 func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username string) (user *User, err error) {
 	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
-		From(fmt.Sprintf("%s.user", r.db.GetSchema())).
+		From(r.getTableName()).
 		Where(squirrel.Eq{"username": username}).Limit(1).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_username failed to build query: %e", err)
@@ -89,7 +93,7 @@ func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username st
 
 func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) (user *User, err error) {
 	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
-		From(fmt.Sprintf("%s.user", r.db.GetSchema())).
+		From(r.getTableName()).
 		Where(squirrel.Eq{"email": email}).Limit(1).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_email failed to build query: %e", err)
@@ -115,7 +119,7 @@ func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) 
 
 func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *User, err error) {
 	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
-		From(fmt.Sprintf("%s.user", r.db.GetSchema())).
+		From(r.getTableName()).
 		Where(squirrel.Eq{"id": id}).Limit(1).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_id failed to build query: %e", err)
@@ -140,7 +144,7 @@ func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *
 }
 
 func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64, error) {
-	query, args, err := r.builder.Insert(fmt.Sprintf("%s.user", r.db.GetSchema())).
+	query, args, err := r.builder.Insert(r.getTableName()).
 		Columns("username", "first_name", "last_name", "password", "email").
 		Values(user.Username, user.FirstName, user.LastName, user.Password, user.Email).
 		Suffix("RETURNING id").ToSql()
@@ -178,7 +182,7 @@ func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64,
 }
 
 func (r *userDatabaseRepository) Update(ctx context.Context, id int64, user *User) error {
-	query, args, err := r.builder.Update(fmt.Sprintf("%s.user", r.db.GetSchema())).
+	query, args, err := r.builder.Update(r.getTableName()).
 		Set("username", user.Username).
 		Set("first_name", user.FirstName).
 		Set("last_name", user.LastName).
@@ -211,7 +215,7 @@ func (r *userDatabaseRepository) Update(ctx context.Context, id int64, user *Use
 }
 
 func (r *userDatabaseRepository) Delete(ctx context.Context, id int64) error {
-	query, args, err := r.builder.Delete(fmt.Sprintf("%s.user", r.db.GetSchema())).
+	query, args, err := r.builder.Delete(r.getTableName()).
 		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return fmt.Errorf("user_repository delete failed to build query: %e", err)
@@ -260,10 +264,6 @@ func (r *userDatabaseRepository) fromRows(rows pgx.Rows) ([]*User, error) {
 }
 
 func (r *userDatabaseRepository) fromRow(row pgx.Row) (*User, error) {
-	if row == nil {
-		return nil, fmt.Errorf("user_repository row is nil")
-	}
-
 	user := &User{}
 	err := row.Scan(
 		&user.ID,

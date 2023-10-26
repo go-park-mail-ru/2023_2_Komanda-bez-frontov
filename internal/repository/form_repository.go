@@ -30,14 +30,14 @@ func NewFormDatabaseRepository(db database.ConnPool, builder squirrel.StatementB
 	}
 }
 
-func (f *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, err error) {
-	query, _, err := f.builder.Select("id", "title", "author_id", "created_at").
-		From(fmt.Sprintf("%s.form", f.db.GetSchema())).ToSql()
+func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, err error) {
+	query, _, err := r.builder.Select("id", "title", "author_id", "created_at").
+		From(fmt.Sprintf("%s.form", r.db.GetSchema())).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_all failed to build query: %e", err)
 	}
 
-	tx, err := f.db.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_all failed to begin transaction: %e", err)
 	}
@@ -56,21 +56,21 @@ func (f *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, er
 		return nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
 	}
 
-	forms, err = f.fromRows(rows)
+	forms, err = r.fromRows(rows)
 
 	return forms, err
 }
 
-func (f *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *Form, err error) {
-	query, args, err := f.builder.Select("id", "title", "author_id", "created_at").
-		From(fmt.Sprintf("%s.form", f.db.GetSchema())).
+func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *Form, err error) {
+	query, args, err := r.builder.Select("id", "title", "author_id", "created_at").
+		From(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Where(squirrel.Eq{"id": id}).ToSql()
 
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_by_title failed to build query: %e", err)
 	}
 
-	tx, err := f.db.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_by_title failed to begin transaction: %e", err)
 	}
@@ -89,13 +89,13 @@ func (f *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *
 		err = fmt.Errorf("form_repository find_by_title failed to execute query: %e", err)
 	}
 
-	form, err = f.fromRow(row)
+	form, err = r.fromRow(row)
 
 	return form, err
 }
 
-func (f *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64, error) {
-	query, args, err := f.builder.Insert(fmt.Sprintf("%s.form", f.db.GetSchema())).
+func (r *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64, error) {
+	query, args, err := r.builder.Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Columns("title", "author_id", "created_at").
 		Values(form.Title, form.AuthorID, time.Now()).
 		Suffix("RETURNING id").ToSql()
@@ -103,7 +103,7 @@ func (f *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64
 		return nil, fmt.Errorf("form_repository insert failed to build query: %e", err)
 	}
 
-	tx, err := f.db.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository insert failed to begin transaction: %e", err)
 	}
@@ -131,15 +131,15 @@ func (f *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64
 	return &id, nil
 }
 
-func (f *formDatabaseRepository) Update(ctx context.Context, id int64, form *Form) (err error) {
-	query, args, err := f.builder.Update(fmt.Sprintf("%s.form", f.db.GetSchema())).
+func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *Form) (err error) {
+	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("title", form.Title).
 		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return fmt.Errorf("form_repository update failed to build query: %e", err)
 	}
 
-	tx, err := f.db.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("form_repository update failed to begin transaction: %e", err)
 	}
@@ -161,14 +161,14 @@ func (f *formDatabaseRepository) Update(ctx context.Context, id int64, form *For
 	return nil
 }
 
-func (f *formDatabaseRepository) Delete(ctx context.Context, id int64) (err error) {
-	query, args, err := f.builder.Delete(fmt.Sprintf("%s.form", f.db.GetSchema())).
+func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err error) {
+	query, args, err := r.builder.Delete(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return fmt.Errorf("form_repository delete failed to build query: %e", err)
 	}
 
-	tx, err := f.db.Begin(ctx)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("form_repository delete failed to begin transaction: %e", err)
 	}
@@ -190,7 +190,7 @@ func (f *formDatabaseRepository) Delete(ctx context.Context, id int64) (err erro
 	return nil
 }
 
-func (f *formDatabaseRepository) ToModel(form *Form) *model.Form {
+func (r *formDatabaseRepository) ToModel(form *Form) *model.Form {
 	return &model.Form{
 		ID:        form.ID,
 		Title:     form.Title,
@@ -199,7 +199,7 @@ func (f *formDatabaseRepository) ToModel(form *Form) *model.Form {
 	}
 }
 
-func (f *formDatabaseRepository) FromModel(form *model.Form) *Form {
+func (r *formDatabaseRepository) FromModel(form *model.Form) *Form {
 	return &Form{
 		ID:        form.ID,
 		Title:     form.Title,
@@ -230,10 +230,6 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*Form, error) {
 }
 
 func (r *formDatabaseRepository) fromRow(row pgx.Row) (*Form, error) {
-	if row == nil {
-		return nil, fmt.Errorf("user_repository row is nil")
-	}
-
 	form := &Form{}
 	err := row.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt)
 	if err != nil {

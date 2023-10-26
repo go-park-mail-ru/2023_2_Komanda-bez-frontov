@@ -116,7 +116,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
 		UserID:    id,
-		CreatedAt: time.Now().UnixMilli(),
+		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
@@ -158,7 +158,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
 		UserID:    existing.ID,
-		CreatedAt: time.Now().UnixMilli(),
+		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
@@ -198,7 +198,7 @@ func (s *authService) IsSessionValid(ctx context.Context, sessionID string) (boo
 		return false, nil
 	}
 
-	if sessionInDB.CreatedAt+s.cfg.CookieExpiration.Milliseconds() < time.Now().UnixMilli() {
+	if sessionInDB.CreatedAt.UnixMilli()+s.cfg.CookieExpiration.Milliseconds() < time.Now().UTC().UnixMilli() {
 		return false, nil
 	}
 

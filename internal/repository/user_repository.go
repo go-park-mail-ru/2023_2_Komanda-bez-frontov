@@ -3,9 +3,10 @@ package repository
 import (
 	"context"
 	"fmt"
+	"go-form-hub/internal/database"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 )
 
 type User struct {
@@ -18,61 +19,102 @@ type User struct {
 }
 
 type userDatabaseRepository struct {
-	db      *pgx.ConnPool
+	db      database.ConnPool
 	builder squirrel.StatementBuilderType
 }
 
-func NewUserDatabaseRepository(db *pgx.ConnPool, builder squirrel.StatementBuilderType) UserRepository {
+func NewUserDatabaseRepository(db database.ConnPool, builder squirrel.StatementBuilderType) UserRepository {
 	return &userDatabaseRepository{
 		db:      db,
 		builder: builder,
 	}
 }
 
-func (r *userDatabaseRepository) FindAll(ctx context.Context) ([]*User, error) {
-	query, _, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").From("user").ToSql()
+func (r *userDatabaseRepository) FindAll(ctx context.Context) (users []*User, err error) {
+	query, _, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
+		From(fmt.Sprintf("%s.user", r.db.GetSchema())).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_username failed to build query: %e", err)
 	}
 
-	rows, err := r.db.QueryEx(ctx, query, nil)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
+		return nil, fmt.Errorf("user_repository find_by_username failed to begin transaction: %e", err)
+	}
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query)
+	if err != nil {
+		_ = tx.Rollback(ctx)
 		return nil, fmt.Errorf("user_repository find_by_username failed to execute query: %e", err)
 	}
 
-	return r.fromRows(rows)
+	users, err = r.fromRows(rows)
+
+	return users, err
 }
 
-func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username string) (*User, error) {
-	query, _, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").From("user").Where(squirrel.Eq{"username": username}).ToSql()
+func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username string) (user *User, err error) {
+	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
+		From(fmt.Sprintf("%s.user", r.db.GetSchema())).
+		Where(squirrel.Eq{"username": username}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_username failed to build query: %e", err)
 	}
 
-	row := r.db.QueryRowEx(ctx, query, nil, username)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("user_repository find_by_username failed to execute query: %e", err)
+		return nil, fmt.Errorf("user_repository find_by_username failed to begin transaction: %e", err)
 	}
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
 
-	return r.fromRow(row)
+	row := tx.QueryRow(ctx, query, args...)
+	user, err = r.fromRow(row)
+	return user, err
 }
 
-func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (*User, error) {
-	query, _, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").From("user").Where(squirrel.Eq{"id": id}).ToSql()
+func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *User, err error) {
+	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
+		From(fmt.Sprintf("%s.user", r.db.GetSchema())).
+		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_id failed to build query: %e", err)
 	}
 
-	row := r.db.QueryRowEx(ctx, query, nil, id)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("user_repository find_by_id failed to execute query: %e", err)
+		return nil, fmt.Errorf("user_repository find_by_id failed to begin transaction: %e", err)
 	}
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
 
-	return r.fromRow(row)
+	row := tx.QueryRow(ctx, query, args...)
+	user, err = r.fromRow(row)
+	return user, err
 }
 
 func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64, error) {
-	query, args, err := r.builder.Insert(fmt.Sprintf("%s.user", "testrepository")).
+	query, args, err := r.builder.Insert(fmt.Sprintf("%s.user", r.db.GetSchema())).
 		Columns("username", "first_name", "last_name", "password", "email").
 		Values(user.Username, user.FirstName, user.LastName, user.Password, user.Email).
 		Suffix("RETURNING id").ToSql()
@@ -80,16 +122,20 @@ func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64,
 		return 0, fmt.Errorf("user_repository insert failed to build query: %e", err)
 	}
 
-	row := r.db.QueryRowEx(
-		ctx,
-		query,
-		nil,
-		args...,
-	)
-	// if err != nil {
-	// 	return 0, fmt.Errorf("user_repository insert failed to execute query: %e", err)
-	// }
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("user_repository find_by_id failed to begin transaction: %e", err)
+	}
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
 
+	row := tx.QueryRow(ctx, query, args...)
 	if row == nil {
 		return 0, fmt.Errorf("user_repository insert failed to execute query: %e", err)
 	}
@@ -106,14 +152,67 @@ func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64,
 }
 
 func (r *userDatabaseRepository) Update(ctx context.Context, id int64, user *User) error {
+	query, args, err := r.builder.Update(fmt.Sprintf("%s.user", r.db.GetSchema())).
+		Set("username", user.Username).
+		Set("first_name", user.FirstName).
+		Set("last_name", user.LastName).
+		Set("password", user.Password).
+		Set("email", user.Email).
+		Where(squirrel.Eq{"id": id}).ToSql()
+	if err != nil {
+		return fmt.Errorf("user_repository update failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("user_repository find_by_id failed to begin transaction: %e", err)
+	}
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("user_repository update failed to execute query: %e", err)
+	}
+
 	return nil
 }
 
 func (r *userDatabaseRepository) Delete(ctx context.Context, id int64) error {
+	query, args, err := r.builder.Delete(fmt.Sprintf("%s.user", r.db.GetSchema())).
+		Where(squirrel.Eq{"id": id}).ToSql()
+	if err != nil {
+		return fmt.Errorf("user_repository delete failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("user_repository find_by_id failed to begin transaction: %e", err)
+	}
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("user_repository delete failed to execute query: %e", err)
+	}
+
 	return nil
 }
 
-func (r *userDatabaseRepository) fromRows(rows *pgx.Rows) ([]*User, error) {
+func (r *userDatabaseRepository) fromRows(rows pgx.Rows) ([]*User, error) {
 	defer func() {
 		rows.Close()
 	}()
@@ -134,7 +233,7 @@ func (r *userDatabaseRepository) fromRows(rows *pgx.Rows) ([]*User, error) {
 	return users, nil
 }
 
-func (r *userDatabaseRepository) fromRow(row *pgx.Row) (*User, error) {
+func (r *userDatabaseRepository) fromRow(row pgx.Row) (*User, error) {
 	if row == nil {
 		return nil, fmt.Errorf("user_repository row is nil")
 	}

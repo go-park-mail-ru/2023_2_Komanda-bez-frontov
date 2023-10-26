@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"go-form-hub/internal/config"
 	"net/url"
@@ -10,7 +11,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
 
@@ -26,7 +28,7 @@ type version struct {
 
 func ConnectDatabaseWithRetry(
 	cfg *config.Config,
-) (*pgx.ConnPool, error) {
+) (ConnPool, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
@@ -36,26 +38,20 @@ func ConnectDatabaseWithRetry(
 		return nil, fmt.Errorf("parse uri error: %e", err)
 	}
 
-	pgxConnConfig, err := pgx.ParseURI(uri.String())
-	if err != nil {
-		return nil, fmt.Errorf("parse uri error %e", err)
-	}
+	poolConfig, err := pgxpool.ParseConfig(uri.String())
 
-	poolConfig := pgx.ConnPoolConfig{
-		ConnConfig:     pgxConnConfig,
-		MaxConnections: cfg.DatabaseMaxConnections,
-		AcquireTimeout: cfg.DatabaseAcquireTimeout,
-	}
+	schema := uri.Query().Get("search_path")
 
 	for i := 1; i <= cfg.DatabaseConnectMaxRetries; i++ {
-		db, connectErr := pgx.NewConnPool(poolConfig)
+		db, connectErr := pgxpool.NewWithConfig(context.Background(), poolConfig)
 		if connectErr != nil {
 			log.Info().Msgf("trying to connect database with retry, retries %d, error %e", i, connectErr)
 			err = fmt.Errorf("connect to database failed after %d retries: %e", i, connectErr)
 			time.Sleep(cfg.DatabaseConnectRetryTimeout)
 			continue
 		}
-		return db, nil
+
+		return NewConnPool(db, schema), nil
 	}
 
 	return nil, err
@@ -77,11 +73,12 @@ func ParseURI(uri string) (*url.URL, error) {
 	return dbURL, nil
 }
 
-func Migrate(db *pgx.ConnPool, cfg *config.Config, builder squirrel.StatementBuilderType) (int, error) {
+func Migrate(db ConnPool, cfg *config.Config, builder squirrel.StatementBuilderType) (int, error) {
 	if cfg == nil {
 		return 0, fmt.Errorf("config is nil")
 	}
 
+	ctx := context.Background()
 	uri, err := ParseURI(cfg.DatabaseURL)
 	if err != nil {
 		return 0, fmt.Errorf("parse schema error: %e", err)
@@ -90,8 +87,19 @@ func Migrate(db *pgx.ConnPool, cfg *config.Config, builder squirrel.StatementBui
 	schema := uri.Query().Get("search_path")
 
 	if schema != "public" {
-		if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", schema)); err != nil {
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			return 0, fmt.Errorf("create schema begin transaction error: %e", err)
+		}
+
+		if _, err = tx.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s;", schema)); err != nil {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("create schema %s error: %e", schema, err)
+		}
+
+		err = tx.Commit(ctx)
+		if err != nil {
+			return 0, fmt.Errorf("user_repository find_by_username failed to commit transaction: %e", err)
 		}
 	}
 
@@ -99,8 +107,19 @@ func Migrate(db *pgx.ConnPool, cfg *config.Config, builder squirrel.StatementBui
 		version BIGINT NOT NULL PRIMARY KEY,
 		dirty BOOLEAN NOT NULL DEFAULT false
 	)`, schema)
-	if _, err = db.Exec(query); err != nil {
+
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("create schema_migrations table begin transaction error: %e", err)
+	}
+	if _, err = tx.Exec(ctx, query); err != nil {
+		_ = tx.Rollback(ctx)
 		return 0, fmt.Errorf("failed to create schema_migrations table: %e", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("user_repository find_by_username failed to commit transaction: %e", err)
 	}
 
 	currentVersion := version{
@@ -113,17 +132,27 @@ func Migrate(db *pgx.ConnPool, cfg *config.Config, builder squirrel.StatementBui
 		return 0, fmt.Errorf("failed to build query: %e", err)
 	}
 
-	row := db.QueryRow(query)
+	tx, err = db.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to start transaction error: %e", err)
+	}
+	row := tx.QueryRow(ctx, query)
 	if err = row.Scan(&currentVersion.Version, &currentVersion.Dirty); err != nil {
 		if err != pgx.ErrNoRows {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("failed to get current version: %e", err)
 		}
 
 		q, _, err := builder.Insert(fmt.Sprintf("%s.schema_migrations", schema)).Columns("version", "dirty").Values(0, false).ToSql()
-		_, insertErr := db.Exec(q, 0, false)
+		_, insertErr := tx.Exec(ctx, q, 0, false)
 		if insertErr != nil {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("failed to insert current version: %e, sql: %s", err, q)
 		}
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("user_repository find_by_username failed to commit transaction: %e", err)
 	}
 
 	currentVersionInt := currentVersion.Version
@@ -159,28 +188,33 @@ func Migrate(db *pgx.ConnPool, cfg *config.Config, builder squirrel.StatementBui
 	}
 
 	for _, m := range migrations {
-		tx, errTx := db.Begin()
+		tx, errTx := db.Begin(ctx)
 		if errTx != nil {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("failed to start transaction error: %e, version: %d, sql: %s", errTx, m.Version, m.SQL)
 		}
 
-		_, errTx = tx.Exec(m.SQL)
+		_, errTx = tx.Exec(ctx, m.SQL)
 		if errTx != nil {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("failed to run migration error: %e, version: %d, sql: %s", errTx, m.Version, m.SQL)
 		}
 
-		q, _, buildErr := builder.Update(fmt.Sprintf("%s.schema_migrations", schema)).Set("version", m.Version).Set("dirty", false).ToSql()
+		q, args, buildErr := builder.Update(fmt.Sprintf("%s.schema_migrations", schema)).Set("version", m.Version).Set("dirty", false).ToSql()
 		if buildErr != nil {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("failed to build query: %e", buildErr)
 		}
 
-		_, errTx = tx.Exec(q, m.Version, false)
+		_, errTx = tx.Exec(ctx, q, args...)
 		if errTx != nil {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("failed to set current version error: %e, version: %d, sql: %s", err, m.Version, m.SQL)
 		}
 
-		errTx = tx.Commit()
+		errTx = tx.Commit(ctx)
 		if errTx != nil {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("commit migration error: %e", errTx)
 		}
 	}
@@ -190,13 +224,22 @@ func Migrate(db *pgx.ConnPool, cfg *config.Config, builder squirrel.StatementBui
 		return 0, fmt.Errorf("failed to build query: %e", err)
 	}
 
-	row = db.QueryRow(query)
+	tx, err = db.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to start transaction error: %e", err)
+	}
+
+	row = tx.QueryRow(ctx, query)
 	if err = row.Scan(&currentVersion.Version, &currentVersion.Dirty); err != nil {
 		if err != pgx.ErrNoRows {
+			_ = tx.Rollback(ctx)
 			return 0, fmt.Errorf("failed to get current version: %e", err)
 		}
 	}
-
+	err = tx.Commit(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("user_repository find_by_username failed to commit transaction: %e", err)
+	}
 	currentVersionInt = currentVersion.Version
 	if currentVersionInt < lastMigrationsVersion {
 		return currentVersionInt, fmt.Errorf("failed migration, current version: %d, available version: %d", currentVersionInt, lastMigrationsVersion)

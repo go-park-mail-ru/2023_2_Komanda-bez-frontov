@@ -3,53 +3,48 @@ package repository_test
 import (
 	"context"
 	"fmt"
-	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/pashagolub/pgxmock/v3"
 )
 
-func TestRepository(t *testing.T) {
+var (
+	builder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+)
+
+func TestRepositoryInsert(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Logf("failed to create mock: %e", err)
+		t.FailNow()
+	}
+
 	schema := strings.ToLower(strings.ReplaceAll(t.Name(), "/", "_"))
-	dbURL := fmt.Sprintf("postgres://nofronts:nofronts@localhost:5432/nofronts_dev?sslmode=disable&search_path=%s", schema)
+	connPool := database.NewConnPool(mock, schema)
+	repo := repository.NewUserDatabaseRepository(connPool, builder)
 
-	cfg := &config.Config{
-		DatabaseURL:                 dbURL,
-		DatabaseMaxConnections:      40,
-		DatabaseAcquireTimeout:      10,
-		DatabaseMigrationsDir:       "../../db/migrations",
-		DatabaseConnectMaxRetries:   5,
-		DatabaseConnectRetryTimeout: 1 * time.Second,
+	mock.ExpectBegin()
+	mock.ExpectQuery(fmt.Sprintf("^INSERT INTO %s.user (.*) VALUES (.*) RETURNING id", schema)).
+		WithArgs("username", "first_name", "last_name", "password", "email").
+		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(
+			int64(1),
+		))
+
+	mock.ExpectCommit()
+
+	u := repository.User{
+		Username:  "username",
+		FirstName: "first_name",
+		LastName:  "last_name",
+		Password:  "password",
+		Email:     "email",
 	}
-
-	db, err := database.ConnectDatabaseWithRetry(cfg)
-	if err != nil {
-		t.FailNow()
-	}
-
-	defer func() {
-		_, _ = db.Exec(fmt.Sprintf("DROP SCHEMA %s CASCADE", schema))
-		db.Close()
-	}()
-
-	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	_, err = database.Migrate(db, cfg, builder)
-	if err != nil {
-		t.FailNow()
-	}
-
-	repo := repository.NewUserDatabaseRepository(db, builder)
-
-	_, err = repo.Insert(context.Background(), &repository.User{
-		FirstName: "admin",
-		Password:  "admin",
-		Email:     "admin",
-	})
-	if err != nil {
+	if _, err := repo.Insert(context.Background(), &u); err != nil {
+		t.Logf("failed to insert into user repository: %e", err)
 		t.FailNow()
 	}
 }

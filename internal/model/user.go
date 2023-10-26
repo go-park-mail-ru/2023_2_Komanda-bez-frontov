@@ -5,10 +5,8 @@ type CurrentUserInContextType string
 const CurrentUserInContext = CurrentUserInContextType("current_user")
 
 type UserLogin struct {
-	Username  string `json:"username" validate:"required,alphanum"`
-	FirstName string `json:"first_name,omitempty"`
-	LastName  string `json:"last_name,omitempty"`
-	Password  string `json:"password" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 type UserSignUp struct {
@@ -17,7 +15,7 @@ type UserSignUp struct {
 	LastName       string `json:"last_name,omitempty"`
 	Password       string `json:"password" validate:"required,sha512"`
 	PasswordRepeat string `json:"password_repeat" validate:"required,eqfield=Password"`
-	Email          string `json:"email,omitempty" validate:"omitempty,email"`
+	Email          string `json:"email" validate:"required,email"`
 }
 
 type UserGet struct {

@@ -11,9 +11,9 @@ import (
 )
 
 type Session struct {
-	SessionID string
-	UserID    int64
-	CreatedAt time.Time
+	SessionID string    `db:"id"`
+	UserID    int64     `db:"user_id"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 type sessionRepository struct {
@@ -33,9 +33,9 @@ func (r *sessionRepository) getTableName() string {
 }
 
 func (r *sessionRepository) FindByID(ctx context.Context, sessionID string) (session *Session, err error) {
-	query, args, err := r.builder.Select("session_id", "user_id", "created_at").
+	query, args, err := r.builder.Select("id", "user_id", "created_at").
 		From(r.getTableName()).
-		Where(squirrel.Eq{"session_id": sessionID}).ToSql()
+		Where(squirrel.Eq{"id": sessionID}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("session_repository find_by_id failed to build query: %e", err)
 	}
@@ -60,7 +60,7 @@ func (r *sessionRepository) FindByID(ctx context.Context, sessionID string) (ses
 }
 
 func (r *sessionRepository) FindByUserID(ctx context.Context, userID int64) (session *Session, err error) {
-	query, args, err := r.builder.Select("session_id", "user_id", "created_at").
+	query, args, err := r.builder.Select("id", "user_id", "created_at").
 		From(r.getTableName()).Where(squirrel.Eq{"user_id": userID}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("session_repository find_by_user_id failed to build query: %e", err)
@@ -87,7 +87,7 @@ func (r *sessionRepository) FindByUserID(ctx context.Context, userID int64) (ses
 
 func (r *sessionRepository) Insert(ctx context.Context, session *Session) error {
 	query, args, err := r.builder.Insert(r.getTableName()).
-		Columns("session_id", "user_id", "created_at").
+		Columns("id", "user_id", "created_at").
 		Values(session.SessionID, session.UserID, session.CreatedAt).ToSql()
 	if err != nil {
 		return fmt.Errorf("session_repository insert failed to build query: %e", err)
@@ -111,7 +111,7 @@ func (r *sessionRepository) Insert(ctx context.Context, session *Session) error 
 }
 
 func (r *sessionRepository) Delete(ctx context.Context, sessionID string) error {
-	query, args, err := r.builder.Delete(r.getTableName()).Where(squirrel.Eq{"session_id": sessionID}).ToSql()
+	query, args, err := r.builder.Delete(r.getTableName()).Where(squirrel.Eq{"id": sessionID}).ToSql()
 	if err != nil {
 		return fmt.Errorf("session_repository delete failed to build query: %e", err)
 	}

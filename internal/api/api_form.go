@@ -63,7 +63,7 @@ func (c *FormAPIController) Routes() []Route {
 			Name:         "FormUpdate",
 			Method:       http.MethodPut,
 			Path:         "/forms/{id}/update",
-			Handler:      c.FormSave,
+			Handler:      c.FormUpdate,
 			AuthRequired: true,
 		},
 	}

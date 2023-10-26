@@ -4,5 +4,5 @@ CREATE TABLE nofronts.user(
 	email VARCHAR(255) UNIQUE NOT NULL,
 	first_name VARCHAR(255) NOT NULL DEFAULT '',
 	last_name VARCHAR(255) NOT NULL DEFAULT '',
-	password VARCHAR(255) NOT NULL
+	password TEXT NOT NULL
 );

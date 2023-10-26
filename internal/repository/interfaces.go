@@ -6,12 +6,12 @@ import (
 )
 
 type FormRepository interface {
-	FindAll(ctx context.Context) ([]*Form, error)
-	FindByID(ctx context.Context, id int64) (*Form, error)
+	FindAll(ctx context.Context) ([]*Form, map[int64]*User, error)
+	FindByID(ctx context.Context, id int64) (*Form, *User, error)
 	Insert(ctx context.Context, form *Form) (*int64, error)
-	Update(ctx context.Context, id int64, form *Form) error
+	Update(ctx context.Context, id int64, form *Form) (*Form, error)
 	Delete(ctx context.Context, id int64) error
-	ToModel(form *Form) *model.Form
+	ToModel(form *Form, author *User) *model.Form
 	FromModel(form *model.Form) *Form
 }
 

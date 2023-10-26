@@ -9,6 +9,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog/log"
 )
 
 type Form struct {
@@ -30,16 +31,18 @@ func NewFormDatabaseRepository(db database.ConnPool, builder squirrel.StatementB
 	}
 }
 
-func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, err error) {
-	query, _, err := r.builder.Select("id", "title", "author_id", "created_at").
-		From(fmt.Sprintf("%s.form", r.db.GetSchema())).ToSql()
+func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, authors map[int64]*User, err error) {
+	query, _, err := r.builder.Select("f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email").
+		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).ToSql()
+
 	if err != nil {
-		return nil, fmt.Errorf("form_repository find_all failed to build query: %e", err)
+		return nil, nil, fmt.Errorf("form_repository find_all failed to build query: %e", err)
 	}
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("form_repository find_all failed to begin transaction: %e", err)
+		return nil, nil, fmt.Errorf("form_repository find_all failed to begin transaction: %e", err)
 	}
 
 	defer func() {
@@ -53,26 +56,29 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, er
 
 	rows, err := tx.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
+		return nil, nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
 	}
 
-	forms, err = r.fromRows(rows)
+	forms, authors, err = r.fromRows(rows)
 
-	return forms, err
+	return forms, authors, err
 }
 
-func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *Form, err error) {
-	query, args, err := r.builder.Select("id", "title", "author_id", "created_at").
-		From(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Where(squirrel.Eq{"id": id}).ToSql()
+func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *Form, author *User, err error) {
+	query, args, err := r.builder.Select("f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email").
+		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"f.id": id}).ToSql()
 
 	if err != nil {
-		return nil, fmt.Errorf("form_repository find_by_title failed to build query: %e", err)
+		return nil, nil, fmt.Errorf("form_repository find_by_title failed to build query: %e", err)
 	}
+
+	log.Info().Msgf("query: %s", query)
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("form_repository find_by_title failed to begin transaction: %e", err)
+		return nil, nil, fmt.Errorf("form_repository find_by_title failed to begin transaction: %e", err)
 	}
 
 	defer func() {
@@ -89,9 +95,9 @@ func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *
 		err = fmt.Errorf("form_repository find_by_title failed to execute query: %e", err)
 	}
 
-	form, err = r.fromRow(row)
+	form, author, err = r.fromRow(row)
 
-	return form, err
+	return form, author, err
 }
 
 func (r *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64, error) {
@@ -131,17 +137,18 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64
 	return &id, nil
 }
 
-func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *Form) (err error) {
+func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *Form) (result *Form, err error) {
 	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("title", form.Title).
-		Where(squirrel.Eq{"id": id}).ToSql()
+		Where(squirrel.Eq{"id": id}).
+		Suffix("RETURNING id, title, created_at").ToSql()
 	if err != nil {
-		return fmt.Errorf("form_repository update failed to build query: %e", err)
+		return nil, fmt.Errorf("form_repository update failed to build query: %e", err)
 	}
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("form_repository update failed to begin transaction: %e", err)
+		return nil, fmt.Errorf("form_repository update failed to begin transaction: %e", err)
 	}
 
 	defer func() {
@@ -153,12 +160,15 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *For
 		}
 	}()
 
-	_, err = tx.Exec(ctx, query, args...)
+	rows := tx.QueryRow(ctx, query, args...)
+	var rs Form
+	err = rows.Scan(&rs.ID, &rs.Title, &rs.CreatedAt)
 	if err != nil {
-		return fmt.Errorf("form_repository update failed to execute query: %e", err)
+		return nil, fmt.Errorf("form_repository update failed to execute query: %e", err)
 	}
 
-	return nil
+	result = &rs
+	return result, nil
 }
 
 func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err error) {
@@ -190,11 +200,17 @@ func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err erro
 	return nil
 }
 
-func (r *formDatabaseRepository) ToModel(form *Form) *model.Form {
+func (r *formDatabaseRepository) ToModel(form *Form, author *User) *model.Form {
 	return &model.Form{
-		ID:        form.ID,
-		Title:     form.Title,
-		AuthorID:  form.AuthorID,
+		ID:    form.ID,
+		Title: form.Title,
+		Author: &model.UserGet{
+			ID:        author.ID,
+			Username:  author.Username,
+			FirstName: author.FirstName,
+			LastName:  author.LastName,
+			Email:     author.Email,
+		},
 		CreatedAt: form.CreatedAt,
 	}
 }
@@ -203,42 +219,46 @@ func (r *formDatabaseRepository) FromModel(form *model.Form) *Form {
 	return &Form{
 		ID:        form.ID,
 		Title:     form.Title,
-		AuthorID:  form.AuthorID,
+		AuthorID:  form.Author.ID,
 		CreatedAt: form.CreatedAt,
 	}
 }
 
-func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*Form, error) {
+func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*Form, map[int64]*User, error) {
 	defer func() {
 		rows.Close()
 	}()
 
 	forms := []*Form{}
+	authors := map[int64]*User{}
 
 	for rows.Next() {
 		form := &Form{}
+		author := &User{}
 
-		err := rows.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt)
+		err := rows.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt, &author.ID, &author.Username, &author.FirstName, &author.LastName, &author.Email)
 		if err != nil {
-			return nil, fmt.Errorf("user_repository failed to scan row: %e", err)
+			return nil, nil, fmt.Errorf("user_repository failed to scan row: %e", err)
 		}
 
 		forms = append(forms, form)
+		authors[form.AuthorID] = author
 	}
 
-	return forms, nil
+	return forms, authors, nil
 }
 
-func (r *formDatabaseRepository) fromRow(row pgx.Row) (*Form, error) {
+func (r *formDatabaseRepository) fromRow(row pgx.Row) (*Form, *User, error) {
 	form := &Form{}
-	err := row.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt)
+	author := &User{}
+	err := row.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt, &author.ID, &author.Username, &author.FirstName, &author.LastName, &author.Email)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, nil
+			return nil, nil, nil
 		}
 
-		return nil, fmt.Errorf("user_repository failed to scan row: %e", err)
+		return nil, nil, fmt.Errorf("user_repository failed to scan row: %e", err)
 	}
 
-	return form, nil
+	return form, author, nil
 }

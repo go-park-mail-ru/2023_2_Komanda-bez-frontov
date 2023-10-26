@@ -5,7 +5,7 @@ import "time"
 type Form struct {
 	ID        *int64    `json:"id"`
 	Title     string    `json:"title" validate:"required"`
-	AuthorID  int64     `json:"author_id" validate:"required"`
+	Author    *UserGet  `json:"author"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

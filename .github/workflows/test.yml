@@ -12,10 +12,14 @@ permissions:
 
 jobs:
   test:
-    runs-on: golang:1.21-alpine
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    - name: Setup go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
     - name: Run tests
       run: make test

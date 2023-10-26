@@ -8,13 +8,15 @@
 | first_name | varchar | NOT NULL |
 | last_name | varchar | NOT NULL |
 | email | varchar | SECONDARY KEY, UNIQUE, NOT NULL |
-| username | varchar | UNIQUE, NOT NULL |
+| username | varchar | SECONDARY KEY, UNIQUE, NOT NULL |
 | password | varchar | NOT NULL |
 
 #### Функциональные зависимости
 { id } -> first_name, last_name, email, username, password
 
-{ email } -> first_name, last_name, username, password
+{ email } -> id, first_name, last_name, username, password
+
+{ username } -> id, first_name, last_name, email, password
 
 #### Нормальные формы:
   + **1 НФ** - поля id, first_name, last_name, email, username, password являются атомарными

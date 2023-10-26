@@ -6,7 +6,7 @@ import (
 	"go-form-hub/internal/api"
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
-	repository "go-form-hub/internal/repository/mocks"
+	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/auth"
 	"go-form-hub/internal/services/form"
 	"net"
@@ -68,9 +68,9 @@ func main() {
 
 	validate := validator.New()
 
-	formRepository := repository.NewFormMockRepository()
-	sessionRepository := repository.NewSessionMockRepository()
-	userRepository := repository.NewUserMockRepository()
+	userRepository := repository.NewUserDatabaseRepository(db, builder)
+	formRepository := repository.NewFormDatabaseRepository(db, builder)
+	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 
 	formService := form.NewFormService(formRepository, validate)
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)

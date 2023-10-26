@@ -1,7 +1,12 @@
 package model
 
+import "time"
+
 type Form struct {
-	Title string `json:"title" validate:"required"`
+	ID        *int64    `json:"id"`
+	Title     string    `json:"title" validate:"required"`
+	AuthorID  int64     `json:"author_id" validate:"required"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type FormList struct {

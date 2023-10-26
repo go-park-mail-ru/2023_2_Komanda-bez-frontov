@@ -178,7 +178,6 @@ func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64,
 	}
 
 	return id, nil
-
 }
 
 func (r *userDatabaseRepository) Update(ctx context.Context, id int64, user *User) error {

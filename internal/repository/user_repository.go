@@ -81,9 +81,13 @@ func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username st
 		}
 	}()
 
-	row := tx.QueryRow(ctx, query, args...)
-	user, err = r.fromRow(row)
-	return user, err
+	row, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("user_repository find_by_username failed to execute query: %e", err)
+	}
+
+	users, err := r.fromRows(row)
+	return users[0], err
 }
 
 func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) (user *User, err error) {

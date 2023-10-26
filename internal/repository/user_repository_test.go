@@ -67,11 +67,12 @@ func TestUserRepositoryFindByUsername(t *testing.T) {
 		mock.ExpectBegin()
 
 		username := "unique-username"
-		row := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
-			AddRow(int64(1), "username", "first_name1", "last_name1", "password1", "email1")
+		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
+			AddRow(int64(1), username, "first_name1", "last_name1", "password1", "email1")
 
-		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user WHERE username = \$1 LIMIT 1`, schema)).
-			WillReturnRows(row)
+		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user WHERE username = .* LIMIT 1`, schema)).
+			WithArgs(username).
+			WillReturnRows(rows)
 
 		mock.ExpectCommit()
 

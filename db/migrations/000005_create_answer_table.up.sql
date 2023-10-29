@@ -1,4 +1,4 @@
-CREATE TABLE nofronts.answers (
+CREATE TABLE nofronts.answer (
     id BIGSERIAL PRIMARY KEY,
     question_id BIGINT NOT NULL REFERENCES nofronts.question(id),
     answer_text TEXT NOT NULL,

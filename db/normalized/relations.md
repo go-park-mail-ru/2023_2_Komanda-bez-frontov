@@ -27,6 +27,27 @@
 
   + **НФБК** - Отношение находится в 3НФ и мы не имеем составного ключа 
 
+## Session — Таблица с данными о текущих сессиях
+
+| Название | Тип | Ограничения |
+|----|----|----|
+| *id* | *integer* | PRIMARY KEY, UNIQUE, NOT NULL |
+| user_id | integer | FOREIGN KEY, NOT NULL |
+| created_at | timestamp | NOT NULL |
+
+#### Функциональные зависимости
+
+{ id } -> user_id, created_at
+
+#### Нормальные формы:
+  + **1 НФ** - поля id, user_id, created_at являются атомарными
+
+  + **2 НФ** -  user_id, created_at функционально зависят полностью от первичного ключа id, составных ключей нет
+
+  + **3 НФ** - среди неключевых атрибутов user_id, created_at нет функциональных зависимостей
+
+  + **НФБК** - Отношение находится в 3НФ и мы не имеем составного ключа
+
 ## Form — Таблица с данными о существующих опросах
 
 | Название | Тип | Ограничения |
@@ -144,7 +165,7 @@
 
 [А так же ссылка на веб версию](https://erd.dbdesigner.net/designer/schema/1698230688-formhub)
 
-![image](https://github.com/go-park-mail-ru/2023_2_Komanda-bez-frontov/assets/114286666/d50fb24f-bac4-49eb-9bf1-188a7a14a68b)
+![image](https://github.com/go-park-mail-ru/2023_2_Komanda-bez-frontov/assets/114286666/f12f808f-e977-4b95-b511-45f2c1351de9)
 
 ```
 User {
@@ -154,6 +175,11 @@ User {
 	email varchar unique
 	username varchar unique
 	password varchar
+}
+Session {
+	id string pk unique
+	used_id integer *> User.id
+	created_at timestamp
 }
 Form {
 	id integer pk increments unique

@@ -6,29 +6,28 @@ import (
 )
 
 type FormRepository interface {
-	FindAll(ctx context.Context) ([]*Form, error)
-	FindByTitle(ctx context.Context, title string) (*Form, error)
-	Insert(ctx context.Context, form *Form) error
-	Update(ctx context.Context, title string, form *Form) error
-	Delete(ctx context.Context, title string) error
-	ToModel(form *Form) *model.Form
+	FindAll(ctx context.Context) ([]*Form, map[int64]*User, error)
+	FindByID(ctx context.Context, id int64) (*Form, *User, error)
+	Insert(ctx context.Context, form *Form) (*int64, error)
+	Update(ctx context.Context, id int64, form *Form) (*Form, error)
+	Delete(ctx context.Context, id int64) error
+	ToModel(form *Form, author *User) *model.Form
 	FromModel(form *model.Form) *Form
 }
 
 type UserRepository interface {
 	FindAll(ctx context.Context) ([]*User, error)
 	FindByUsername(ctx context.Context, username string) (*User, error)
-	FindByID(ctx context.Context, id string) (*User, error)
-	Insert(ctx context.Context, user *User) error
-	Update(ctx context.Context, id string, user *User) error
-	Delete(ctx context.Context, id string) error
+	FindByEmail(ctx context.Context, email string) (*User, error)
+	FindByID(ctx context.Context, id int64) (*User, error)
+	Insert(ctx context.Context, user *User) (int64, error)
+	Update(ctx context.Context, id int64, user *User) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type SessionRepository interface {
-	FindAll(ctx context.Context) ([]*Session, error)
 	FindByID(ctx context.Context, sessionID string) (*Session, error)
-	FindByUsername(ctx context.Context, username string) (*Session, error)
-	FindByUserID(ctx context.Context, userID string) (*Session, error)
+	FindByUserID(ctx context.Context, userID int64) (*Session, error)
 	Insert(ctx context.Context, session *Session) error
 	Delete(ctx context.Context, sessionID string) error
 }

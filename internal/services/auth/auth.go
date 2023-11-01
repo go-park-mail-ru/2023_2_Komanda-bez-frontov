@@ -17,7 +17,6 @@ import (
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 )
 
 type Service interface {
@@ -102,14 +101,12 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
-	id := uuid.New().String()
-	err = s.userRepository.Insert(ctx, &repository.User{
-		ID:       id,
-		Username: user.Username,
-		Name:     user.Name,
-		Surname:  user.Surname,
-		Password: encPassword,
-		Email:    user.Email,
+	id, err := s.userRepository.Insert(ctx, &repository.User{
+		Username:  user.Username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Password:  encPassword,
+		Email:     user.Email,
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
@@ -119,18 +116,18 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
 		UserID:    id,
-		CreatedAt: time.Now().UnixMilli(),
+		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
-		ID:       id,
-		Username: user.Username,
-		Name:     user.Name,
-		Surname:  user.Surname,
-		Email:    user.Email,
+		ID:        id,
+		Username:  user.Username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
 	}), sessionID, nil
 }
 
@@ -139,7 +136,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 		return resp.NewResponse(http.StatusBadRequest, nil), "", err
 	}
 
-	existing, err := s.userRepository.FindByUsername(ctx, user.Username)
+	existing, err := s.userRepository.FindByEmail(ctx, user.Email)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
@@ -157,22 +154,22 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 		return resp.NewResponse(http.StatusUnauthorized, nil), "", fmt.Errorf("invalid username or password")
 	}
 
-	sessionID := generateSessionID(user.Username)
+	sessionID := generateSessionID(existing.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
 		UserID:    existing.ID,
-		CreatedAt: time.Now().UnixMilli(),
+		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
-		ID:       existing.ID,
-		Name:     existing.Name,
-		Surname:  existing.Surname,
-		Username: existing.Username,
-		Email:    existing.Email,
+		ID:        existing.ID,
+		FirstName: existing.FirstName,
+		LastName:  existing.LastName,
+		Username:  existing.Username,
+		Email:     existing.Email,
 	}), sessionID, nil
 }
 
@@ -201,7 +198,7 @@ func (s *authService) IsSessionValid(ctx context.Context, sessionID string) (boo
 		return false, nil
 	}
 
-	if sessionInDB.CreatedAt+s.cfg.CookieExpiration.Milliseconds() < time.Now().UnixMilli() {
+	if sessionInDB.CreatedAt.UnixMilli()+s.cfg.CookieExpiration.Milliseconds() < time.Now().UTC().UnixMilli() {
 		return false, nil
 	}
 

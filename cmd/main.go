@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"go-form-hub/internal/api"
 	"go-form-hub/internal/config"
-	repository "go-form-hub/internal/repository/mocks"
+	"go-form-hub/internal/database"
+	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/auth"
 	"go-form-hub/internal/services/form"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -50,11 +52,25 @@ func main() {
 	zerolog.SetGlobalLevel(config.ZeroLogLevel(cfg.LogLevel))
 	log.Info().Interface("config", cfg).Msgf("Server config")
 
+	db, err := database.ConnectDatabaseWithRetry(cfg)
+	if err != nil {
+		log.Error().Msgf("failed to connect database: %s", err)
+		return
+	}
+	defer db.Close()
+
+	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+	_, err = database.Migrate(db, cfg, builder)
+	if err != nil {
+		log.Error().Msgf("failed to migrate database: %s", err)
+		return
+	}
+
 	validate := validator.New()
 
-	formRepository := repository.NewFormMockRepository()
-	sessionRepository := repository.NewSessionMockRepository()
-	userRepository := repository.NewUserMockRepository()
+	userRepository := repository.NewUserDatabaseRepository(db, builder)
+	formRepository := repository.NewFormDatabaseRepository(db, builder)
+	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 
 	formService := form.NewFormService(formRepository, validate)
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)

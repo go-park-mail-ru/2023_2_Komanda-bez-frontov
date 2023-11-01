@@ -123,6 +123,7 @@ func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("form_api form_delete parse_id error: %e", err)
 		log.Error().Msg(err.Error())
 		c.errorHandler(w, err, nil)
+		return
 	}
 
 	result, err := c.service.FormDelete(r.Context(), id)
@@ -149,6 +150,7 @@ func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("form_api form_get parse_id error: %e", err)
 		log.Error().Msg(err.Error())
 		c.errorHandler(w, err, nil)
+		return
 	}
 
 	result, err := c.service.FormGet(r.Context(), id)
@@ -174,6 +176,7 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("form_api form_update parse_id error: %e", err)
 		log.Error().Msg(err.Error())
 		c.errorHandler(w, err, nil)
+		return
 	}
 
 	requestJSON, err := io.ReadAll(r.Body)

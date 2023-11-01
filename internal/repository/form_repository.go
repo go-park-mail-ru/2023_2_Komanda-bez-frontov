@@ -232,12 +232,9 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*Form, map[int64]*Us
 	authors := map[int64]*User{}
 
 	for rows.Next() {
-		form := &Form{}
-		author := &User{}
-
-		err := rows.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt, &author.ID, &author.Username, &author.FirstName, &author.LastName, &author.Email)
+		form, author, err := r.fromRow(rows)
 		if err != nil {
-			return nil, nil, fmt.Errorf("user_repository failed to scan row: %e", err)
+			return nil, nil, fmt.Errorf("user_repository from_rows failed: %e", err)
 		}
 
 		forms = append(forms, form)

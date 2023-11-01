@@ -103,7 +103,7 @@ func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *
 func (r *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64, error) {
 	query, args, err := r.builder.Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Columns("title", "author_id", "created_at").
-		Values(form.Title, form.AuthorID, time.Now()).
+		Values(form.Title, form.AuthorID, form.CreatedAt).
 		Suffix("RETURNING id").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("form_repository insert failed to build query: %e", err)
@@ -161,13 +161,12 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *For
 	}()
 
 	rows := tx.QueryRow(ctx, query, args...)
-	var rs Form
-	err = rows.Scan(&rs.ID, &rs.Title, &rs.CreatedAt)
+	err = rows.Scan(&form.ID, &form.Title, &form.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository update failed to execute query: %e", err)
 	}
 
-	result = &rs
+	result = form
 	return result, nil
 }
 

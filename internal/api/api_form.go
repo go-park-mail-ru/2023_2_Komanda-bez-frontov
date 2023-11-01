@@ -120,7 +120,7 @@ func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		err = fmt.Errorf("form_api form_get parse_id error: %e", err)
+		err = fmt.Errorf("form_api form_delete parse_id error: %e", err)
 		log.Error().Msg(err.Error())
 		c.errorHandler(w, err, nil)
 	}
@@ -171,7 +171,7 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		err = fmt.Errorf("form_api form_get parse_id error: %e", err)
+		err = fmt.Errorf("form_api form_update parse_id error: %e", err)
 		log.Error().Msg(err.Error())
 		c.errorHandler(w, err, nil)
 	}

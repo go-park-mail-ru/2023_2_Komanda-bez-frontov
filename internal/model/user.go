@@ -10,12 +10,11 @@ type UserLogin struct {
 }
 
 type UserSignUp struct {
-	Username       string `json:"username" validate:"required,alphanum"`
-	FirstName      string `json:"first_name,omitempty"`
-	LastName       string `json:"last_name,omitempty"`
-	Password       string `json:"password" validate:"required,sha512"`
-	PasswordRepeat string `json:"password_repeat" validate:"required,eqfield=Password"`
-	Email          string `json:"email" validate:"required,email"`
+	Username  string `json:"username" validate:"required,alphanum"` // мб удалить
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Password  string `json:"password" validate:"required"`
+	Email     string `json:"email" validate:"required,email"`
 }
 
 type UserGet struct {

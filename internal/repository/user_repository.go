@@ -10,12 +10,13 @@ import (
 )
 
 type User struct {
-	ID        int64  `db:"id"`
-	Username  string `db:"username"`
-	FirstName string `db:"first_name"`
-	LastName  string `db:"last_name"`
-	Password  string `db:"password"`
-	Email     string `db:"email"`
+	ID        int64   `db:"id"`
+	Username  string  `db:"username"`
+	FirstName string  `db:"first_name"`
+	LastName  string  `db:"last_name"`
+	Password  string  `db:"password"`
+	Email     string  `db:"email"`
+	Avatar    *string `db:"avatar"`
 }
 
 type userDatabaseRepository struct {
@@ -35,11 +36,13 @@ func (r *userDatabaseRepository) getTableName() string {
 }
 
 func (r *userDatabaseRepository) FindAll(ctx context.Context) (users []*User, err error) {
-	query, _, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
+	query, _, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email", "avatar").
 		From(r.getTableName()).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_username failed to build query: %e", err)
 	}
+
+	fmt.Printf("query: %s\n", query)
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -65,7 +68,7 @@ func (r *userDatabaseRepository) FindAll(ctx context.Context) (users []*User, er
 }
 
 func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username string) (user *User, err error) {
-	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
+	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email", "avatar").
 		From(r.getTableName()).
 		Where(squirrel.Eq{"username": username}).Limit(1).ToSql()
 	if err != nil {
@@ -92,7 +95,7 @@ func (r *userDatabaseRepository) FindByUsername(ctx context.Context, username st
 }
 
 func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) (user *User, err error) {
-	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
+	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email", "avatar").
 		From(r.getTableName()).
 		Where(squirrel.Eq{"email": email}).Limit(1).ToSql()
 	if err != nil {
@@ -118,7 +121,7 @@ func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) 
 }
 
 func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *User, err error) {
-	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email").
+	query, args, err := r.builder.Select("id", "username", "first_name", "last_name", "password", "email", "avatar").
 		From(r.getTableName()).
 		Where(squirrel.Eq{"id": id}).Limit(1).ToSql()
 	if err != nil {
@@ -145,8 +148,8 @@ func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *
 
 func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64, error) {
 	query, args, err := r.builder.Insert(r.getTableName()).
-		Columns("username", "first_name", "last_name", "password", "email").
-		Values(user.Username, user.FirstName, user.LastName, user.Password, user.Email).
+		Columns("username", "first_name", "last_name", "password", "email", "avatar").
+		Values(user.Username, user.FirstName, user.LastName, user.Password, user.Email, user.Avatar).
 		Suffix("RETURNING id").ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("user_repository insert failed to build query: %e", err)
@@ -187,6 +190,7 @@ func (r *userDatabaseRepository) Update(ctx context.Context, id int64, user *Use
 		Set("last_name", user.LastName).
 		Set("password", user.Password).
 		Set("email", user.Email).
+		Set("avatar", user.Avatar).
 		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return fmt.Errorf("user_repository update failed to build query: %e", err)
@@ -249,9 +253,7 @@ func (r *userDatabaseRepository) fromRows(rows pgx.Rows) ([]*User, error) {
 	users := []*User{}
 
 	for rows.Next() {
-		user := &User{}
-
-		err := rows.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Password, &user.Email)
+		user, err := r.fromRow(rows)
 		if err != nil {
 			return nil, fmt.Errorf("user_repository failed to scan row: %e", err)
 		}
@@ -271,6 +273,7 @@ func (r *userDatabaseRepository) fromRow(row pgx.Row) (*User, error) {
 		&user.LastName,
 		&user.Password,
 		&user.Email,
+		&user.Avatar,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

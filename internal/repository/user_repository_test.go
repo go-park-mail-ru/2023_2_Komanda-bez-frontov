@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	builder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+	builder     = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+	emptyString = (*string)(nil)
 )
 
 func TestUserRepositoryFindAll(t *testing.T) {
@@ -32,9 +33,9 @@ func TestUserRepositoryFindAll(t *testing.T) {
 
 		mock.ExpectBegin()
 
-		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
-			AddRow(int64(1), "username1", "first_name1", "last_name1", "password1", "email1").
-			AddRow(int64(2), "username2", "first_name2", "last_name2", "password2", "email2")
+		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email", "avatar"}).
+			AddRow(int64(1), "username1", "first_name1", "last_name1", "password1", "email1", emptyString).
+			AddRow(int64(2), "username2", "first_name2", "last_name2", "password2", "email2", emptyString)
 
 		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user`, schema)).
 			WillReturnRows(rows)
@@ -67,8 +68,8 @@ func TestUserRepositoryFindByUsername(t *testing.T) {
 		mock.ExpectBegin()
 
 		username := "unique-username"
-		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
-			AddRow(int64(1), username, "first_name1", "last_name1", "password1", "email1")
+		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email", "avatar"}).
+			AddRow(int64(1), username, "first_name1", "last_name1", "password1", "email1", emptyString)
 
 		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user WHERE username = .* LIMIT 1`, schema)).
 			WithArgs(username).
@@ -102,8 +103,8 @@ func TestUserRepositoryFindByEmail(t *testing.T) {
 		mock.ExpectBegin()
 
 		email := "unique-email"
-		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
-			AddRow(int64(1), "username", "first_name1", "last_name1", "password1", email)
+		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email", "avatar"}).
+			AddRow(int64(1), "username", "first_name1", "last_name1", "password1", email, emptyString)
 
 		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user WHERE email = \$1 LIMIT 1`, schema)).
 			WithArgs(email).
@@ -137,8 +138,8 @@ func TestUserRepositoryFindByUD(t *testing.T) {
 		mock.ExpectBegin()
 
 		id := int64(123)
-		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email"}).
-			AddRow(id, "username", "first_name1", "last_name1", "password1", "email")
+		rows := mock.NewRows([]string{"id", "username", "first_name", "last_name", "password", "email", "avatar"}).
+			AddRow(id, "username", "first_name1", "last_name1", "password1", "email", emptyString)
 
 		mock.ExpectQuery(fmt.Sprintf(`^SELECT (.*) FROM %s.user WHERE id = \$1 LIMIT 1`, schema)).
 			WithArgs(id).
@@ -171,7 +172,7 @@ func TestUserRepositoryInsert(t *testing.T) {
 
 		mock.ExpectBegin()
 		mock.ExpectQuery(fmt.Sprintf("^INSERT INTO %s.user (.*) VALUES (.*) RETURNING id", schema)).
-			WithArgs("username", "first_name", "last_name", "password", "email").
+			WithArgs("username", "first_name", "last_name", "password", "email", emptyString).
 			WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(
 				int64(1),
 			))
@@ -184,6 +185,7 @@ func TestUserRepositoryInsert(t *testing.T) {
 			LastName:  "last_name",
 			Password:  "password",
 			Email:     "email",
+			Avatar:    emptyString,
 		}
 
 		id, err := repo.Insert(context.Background(), &u)
@@ -216,6 +218,7 @@ func TestUserRepositoryInsert(t *testing.T) {
 			LastName:  "last_name",
 			Password:  "password",
 			Email:     "email",
+			Avatar:    emptyString,
 		}
 
 		_, err = repo.Insert(context.Background(), &u)
@@ -243,7 +246,7 @@ func TestUserRepositoryInsert(t *testing.T) {
 		queryErr := fmt.Errorf("query error")
 		mock.ExpectBegin()
 		mock.ExpectQuery(fmt.Sprintf("^INSERT INTO %s.user (.*) VALUES (.*) RETURNING id", schema)).
-			WithArgs("username", "first_name", "last_name", "password", "email").
+			WithArgs("username", "first_name", "last_name", "password", "email", emptyString).
 			WillReturnError(queryErr)
 		mock.ExpectRollback()
 
@@ -253,6 +256,7 @@ func TestUserRepositoryInsert(t *testing.T) {
 			LastName:  "last_name",
 			Password:  "password",
 			Email:     "email",
+			Avatar:    emptyString,
 		}
 
 		_, err = repo.Insert(context.Background(), &u)
@@ -282,9 +286,9 @@ func TestUserRepositoryUpdate(t *testing.T) {
 
 		mock.ExpectBegin()
 
-		query := fmt.Sprintf(`^UPDATE %s.user SET .* WHERE id = \$6$`, schema)
+		query := fmt.Sprintf(`^UPDATE %s.user SET .* WHERE id = \$7$`, schema)
 		mock.ExpectExec(query).
-			WithArgs("username", "first_name", "last_name", "password", "email", int64(1)).
+			WithArgs("username", "first_name", "last_name", "password", "email", emptyString, int64(1)).
 			WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 		mock.ExpectCommit()
@@ -296,6 +300,7 @@ func TestUserRepositoryUpdate(t *testing.T) {
 			LastName:  "last_name",
 			Password:  "password",
 			Email:     "email",
+			Avatar:    nil,
 		}
 
 		err = repo.Update(context.Background(), 1, &u)

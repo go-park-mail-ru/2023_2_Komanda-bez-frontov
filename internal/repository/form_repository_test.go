@@ -30,9 +30,9 @@ func TestFormRepositoryFindAll(t *testing.T) {
 
 		id1 := int64(1)
 		id2 := int64(2)
-		rows := mock.NewRows([]string{"f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email"}).
-			AddRow(&id1, "title1", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1").
-			AddRow(&id2, "title2", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1")
+		rows := mock.NewRows([]string{"f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email", "u.avatar"}).
+			AddRow(&id1, "title1", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1", emptyString).
+			AddRow(&id2, "title2", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1", emptyString)
 		mock.ExpectQuery(fmt.Sprintf("^SELECT .* FROM %s.form as f JOIN %s.user as u ON f.author_id = u.id$", schema, schema)).
 			WillReturnRows(rows)
 
@@ -64,8 +64,8 @@ func TestFormRepositoryFindByID(t *testing.T) {
 		mock.ExpectBegin()
 
 		id1 := int64(1)
-		rows := mock.NewRows([]string{"f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email"}).
-			AddRow(&id1, "title1", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1")
+		rows := mock.NewRows([]string{"f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email", "u.avatar"}).
+			AddRow(&id1, "title1", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1", emptyString)
 		mock.ExpectQuery(fmt.Sprintf(`^SELECT .* FROM %s.form as f JOIN %s.user as u ON f.author_id = u.id WHERE f.id = \$1$`, schema, schema)).
 			WithArgs(id1).
 			WillReturnRows(rows)

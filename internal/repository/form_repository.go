@@ -32,7 +32,7 @@ func NewFormDatabaseRepository(db database.ConnPool, builder squirrel.StatementB
 }
 
 func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, authors map[int64]*User, err error) {
-	query, _, err := r.builder.Select("f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email").
+	query, _, err := r.builder.Select("f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email", "u.avatar").
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).ToSql()
 
@@ -65,7 +65,7 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*Form, au
 }
 
 func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *Form, author *User, err error) {
-	query, args, err := r.builder.Select("f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email").
+	query, args, err := r.builder.Select("f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email", "u.avatar").
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"f.id": id}).ToSql()
@@ -209,6 +209,7 @@ func (r *formDatabaseRepository) ToModel(form *Form, author *User) *model.Form {
 			FirstName: author.FirstName,
 			LastName:  author.LastName,
 			Email:     author.Email,
+			Avatar:    author.Avatar,
 		},
 		CreatedAt: form.CreatedAt,
 	}
@@ -247,7 +248,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*Form, map[int64]*Us
 func (r *formDatabaseRepository) fromRow(row pgx.Row) (*Form, *User, error) {
 	form := &Form{}
 	author := &User{}
-	err := row.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt, &author.ID, &author.Username, &author.FirstName, &author.LastName, &author.Email)
+	err := row.Scan(&form.ID, &form.Title, &form.AuthorID, &form.CreatedAt, &author.ID, &author.Username, &author.FirstName, &author.LastName, &author.Email, &author.Avatar)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil, nil

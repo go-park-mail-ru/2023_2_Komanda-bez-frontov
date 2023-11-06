@@ -31,14 +31,14 @@ type Router interface {
 //
 // The function returns a new `chi.Router` that has all the routes from the provided routers
 // added to it.
-func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
+func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUserFetcher func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
 	router.Use(cors.Handler(cors.Options{
-		AllowOriginFunc:  AllowOriginFunc,
+		AllowedOrigins:   []string{"https://asdsadasd.com"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"*"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -49,6 +49,8 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers .
 			handler := route.Handler
 			if route.AuthRequired {
 				handler = authMiddleware(handler)
+			} else {
+				handler = currentUserFetcher(handler)
 			}
 
 			apiPath := "/api/v1" + route.Path
@@ -59,6 +61,6 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers .
 	return router
 }
 
-func AllowOriginFunc(_ *http.Request, _ string) bool {
-	return true
+func AllowOriginFunc(r *http.Request, _ string) bool {
+	return r.Header.Get("Origin") == "http://cadsdasdas.com"
 }

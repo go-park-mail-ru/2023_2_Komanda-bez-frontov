@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"go-form-hub/internal/model"
 	resp "go-form-hub/internal/services/service_response"
@@ -8,8 +9,8 @@ import (
 )
 
 type ResponseEncoder interface {
-	EncodeJSONResponse(i interface{}, status int, w http.ResponseWriter)
-	HandleError(w http.ResponseWriter, err error, result *resp.Response)
+	EncodeJSONResponse(ctx context.Context, i interface{}, status int, w http.ResponseWriter)
+	HandleError(ctx context.Context, w http.ResponseWriter, err error, result *resp.Response)
 }
 
 type responseEncoder struct{}
@@ -18,7 +19,7 @@ func NewResponseEncoder() ResponseEncoder {
 	return &responseEncoder{}
 }
 
-func (r *responseEncoder) EncodeJSONResponse(i interface{}, status int, w http.ResponseWriter) {
+func (r *responseEncoder) EncodeJSONResponse(ctx context.Context, i interface{}, status int, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -26,10 +27,15 @@ func (r *responseEncoder) EncodeJSONResponse(i interface{}, status int, w http.R
 		status = http.StatusOK
 	}
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(i)
+
+	result := model.BasicResponse{
+		Data:        i,
+		CurrentUser: r.getCurrentUserFromCtx(ctx),
+	}
+	_ = json.NewEncoder(w).Encode(result)
 }
 
-func (r *responseEncoder) HandleError(w http.ResponseWriter, err error, result *resp.Response) {
+func (r *responseEncoder) HandleError(ctx context.Context, w http.ResponseWriter, err error, result *resp.Response) {
 	errors := make([]model.Error, 0, 1)
 	str := err.Error()
 	errorItem := model.Error{
@@ -44,5 +50,13 @@ func (r *responseEncoder) HandleError(w http.ResponseWriter, err error, result *
 		code = result.StatusCode
 	}
 
-	r.EncodeJSONResponse(response, code, w)
+	r.EncodeJSONResponse(ctx, response, code, w)
+}
+
+func (r *responseEncoder) getCurrentUserFromCtx(ctx context.Context) *model.UserGet {
+	if ctx.Value(model.CurrentUserInContext) == nil {
+		return nil
+	}
+
+	return ctx.Value(model.CurrentUserInContext).(*model.UserGet)
 }

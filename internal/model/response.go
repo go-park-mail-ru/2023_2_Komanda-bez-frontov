@@ -12,3 +12,8 @@ type Error struct {
 type ErrorResponse struct {
 	Errors *[]Error `json:"errors,omitempty"`
 }
+
+type BasicResponse struct {
+	Data        interface{} `json:"data,omitempty"`
+	CurrentUser *UserGet    `json:"current_user,omitempty"`
+}

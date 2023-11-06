@@ -31,21 +31,20 @@ type Router interface {
 //
 // The function returns a new `chi.Router` that has all the routes from the provided routers
 // added to it.
-func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUserMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
+func NewRouter(authMiddleware, currentUserMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
 	router.Use(cors.Handler(cors.Options{
-		AllowOriginFunc:  AllowOriginFunc,
-		AllowedOrigins:   []string{"http://localhost"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowOriginFunc: AllowOriginFunc,
+		AllowedOrigins:  []string{"http://localhost"},
+		AllowedMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:  []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		// AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
-
 
 	for _, api := range routers {
 		for _, route := range api.Routes() {
@@ -64,6 +63,6 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUs
 	return router
 }
 
-func AllowOriginFunc(r *http.Request, _ string) bool {
-	return true;
+func AllowOriginFunc(_ *http.Request, _ string) bool {
+	return true
 }

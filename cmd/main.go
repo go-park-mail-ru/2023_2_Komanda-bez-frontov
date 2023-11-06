@@ -9,6 +9,7 @@ import (
 	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/auth"
 	"go-form-hub/internal/services/form"
+	"go-form-hub/internal/services/user"
 	"net"
 	"net/http"
 	"os"
@@ -74,14 +75,17 @@ func main() {
 
 	formService := form.NewFormService(formRepository, validate)
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
+	userService := user.NewUserService(userRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
 	formRouter := api.NewFormAPIController(formService, validate, responseEncoder)
 	authRouter := api.NewAuthAPIController(authService, validate, cfg.CookieExpiration, responseEncoder)
+	userRouter := api.NewUserAPIController(userService, validate, responseEncoder)
+
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
 	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository)
 
-	r := api.NewRouter(authMiddleware, currentUserMiddleware, formRouter, authRouter)
+	r := api.NewRouter(authMiddleware, currentUserMiddleware, formRouter, authRouter, userRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {

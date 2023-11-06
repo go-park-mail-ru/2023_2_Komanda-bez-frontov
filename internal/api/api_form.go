@@ -103,7 +103,7 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	result, err := c.service.FormList(r.Context())
+	result, err := c.service.FormList(ctx)
 	if err != nil {
 		log.Error().Msgf("form_api form_list error: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
@@ -132,7 +132,7 @@ func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := c.service.FormDelete(r.Context(), id)
+	result, err := c.service.FormDelete(ctx, id)
 	if err != nil {
 		log.Error().Msgf("form_api form_delete error: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
@@ -161,7 +161,7 @@ func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := c.service.FormGet(r.Context(), id)
+	result, err := c.service.FormGet(ctx, id)
 	if err != nil {
 		log.Error().Msgf("form_api form_get error: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
@@ -207,7 +207,7 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := c.service.FormUpdate(r.Context(), id, &updatedForm)
+	result, err := c.service.FormUpdate(ctx, id, &updatedForm)
 	if err != nil {
 		log.Error().Msgf("form_api form_update error: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)

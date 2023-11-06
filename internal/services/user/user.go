@@ -12,7 +12,7 @@ import (
 
 type Service interface {
 	UserList(ctx context.Context) (*resp.Response, error)
-	UserGet(ctx context.Context, username string) (*resp.Response, error)
+	UserGet(ctx context.Context, id int64) (*resp.Response, error)
 }
 
 type userService struct {
@@ -38,10 +38,12 @@ func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
 
 	for _, user := range users {
 		response.Users = append(response.Users, &model.UserGet{
+			ID:        user.ID,
 			Username:  user.Username,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
+			Avatar:    user.Avatar,
 		})
 	}
 
@@ -49,8 +51,8 @@ func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
 	return resp.NewResponse(http.StatusOK, response), nil
 }
 
-func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response, error) {
-	user, err := s.userRepository.FindByUsername(ctx, name)
+func (s *userService) UserGet(ctx context.Context, id int64) (*resp.Response, error) {
+	user, err := s.userRepository.FindByID(ctx, id)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -60,9 +62,15 @@ func (s *userService) UserGet(ctx context.Context, name string) (*resp.Response,
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
+		ID:        user.ID,
 		Username:  user.Username,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
+		Avatar:    user.Avatar,
 	}), nil
+}
+
+func (s *userService) UserUpdate(ctx context.Context, id int64, user *model.UserSignUp) (*resp.Response, error) {
+	return &resp.Response{StatusCode: http.StatusNotImplemented}, nil
 }

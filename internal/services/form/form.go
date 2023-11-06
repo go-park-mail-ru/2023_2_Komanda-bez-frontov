@@ -81,6 +81,7 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 		FirstName: currentUser.FirstName,
 		LastName:  currentUser.LastName,
 		Email:     currentUser.Email,
+		Avatar:    currentUser.Avatar,
 	})
 	return resp.NewResponse(http.StatusOK, res), nil
 }

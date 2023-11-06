@@ -33,6 +33,7 @@ type Router interface {
 // added to it.
 func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUserMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
+	router.Use(middleware.Logger)
 
 	router.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  AllowOriginFunc,
@@ -45,7 +46,6 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUs
 		MaxAge:           300,
 	}))
 
-	router.Use(middleware.Logger)
 
 	for _, api := range routers {
 		for _, route := range api.Routes() {

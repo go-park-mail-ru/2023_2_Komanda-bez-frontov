@@ -21,8 +21,6 @@ func NewResponseEncoder() ResponseEncoder {
 
 func (r *responseEncoder) EncodeJSONResponse(ctx context.Context, i interface{}, status int, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	// ТАК ДЕЛАТЬ НЕЛЬЗЯ!!!
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if status == 0 {
 		status = http.StatusOK
@@ -55,9 +53,9 @@ func (r *responseEncoder) HandleError(ctx context.Context, w http.ResponseWriter
 }
 
 func (r *responseEncoder) getCurrentUserFromCtx(ctx context.Context) *model.UserGet {
-	if ctx.Value(model.CurrentUserInContext) == nil {
+	if ctx.Value(model.ContextCurrentUser) == nil {
 		return nil
 	}
 
-	return ctx.Value(model.CurrentUserInContext).(*model.UserGet)
+	return ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 }

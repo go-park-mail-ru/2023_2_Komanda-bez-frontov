@@ -48,3 +48,4 @@ go.work
 !/bin/.keep
 config.conf
 /tmp/**/*.*
+*.tmp

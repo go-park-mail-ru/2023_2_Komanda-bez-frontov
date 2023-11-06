@@ -32,7 +32,7 @@ func NewFormService(formRepository repository.FormRepository, validate *validato
 }
 
 func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Response, error) {
-	currentUser := ctx.Value(model.CurrentUserInContext).(*model.UserGet)
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 	if err := s.validate.Struct(form); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
@@ -54,7 +54,7 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 
-	currentUser := ctx.Value(model.CurrentUserInContext).(*model.UserGet)
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 
 	existing, _, err := s.formRepository.FindByID(ctx, id)
 	if err != nil {

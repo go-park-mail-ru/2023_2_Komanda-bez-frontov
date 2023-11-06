@@ -54,7 +54,7 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), model.CurrentUserInContext, &model.UserGet{
+			r = r.WithContext(context.WithValue(r.Context(), model.ContextCurrentUser, &model.UserGet{
 				ID:        currentUser.ID,
 				Username:  currentUser.Username,
 				FirstName: currentUser.FirstName,

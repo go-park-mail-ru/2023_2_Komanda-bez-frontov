@@ -1,8 +1,8 @@
 package model
 
-type CurrentUserInContextType string
+type ContextCurrentUserType string
 
-const CurrentUserInContext = CurrentUserInContextType("current_user")
+const ContextCurrentUser = ContextCurrentUserType("current_user")
 
 type UserLogin struct {
 	Email    string `json:"email" validate:"required,email"`

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func CurrentUserFetcher(sessionRepository repository.SessionRepository, userRepository repository.UserRepository) func(next http.HandlerFunc) http.HandlerFunc {
+func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := r.Cookie("session_id")
@@ -17,23 +17,13 @@ func CurrentUserFetcher(sessionRepository repository.SessionRepository, userRepo
 			}
 
 			sessionInDB, err := sessionRepository.FindByID(r.Context(), session.Value)
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			if sessionInDB == nil {
+			if err != nil || sessionInDB == nil {
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			currentUser, err := userRepository.FindByID(r.Context(), sessionInDB.UserID)
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			if currentUser == nil {
+			if err != nil || currentUser == nil {
 				next.ServeHTTP(w, r)
 				return
 			}

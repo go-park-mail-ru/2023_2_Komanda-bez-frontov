@@ -31,7 +31,7 @@ type Router interface {
 //
 // The function returns a new `chi.Router` that has all the routes from the provided routers
 // added to it.
-func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUserFetcher func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
+func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUserMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
@@ -50,7 +50,7 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUs
 			if route.AuthRequired {
 				handler = authMiddleware(handler)
 			} else {
-				handler = currentUserFetcher(handler)
+				handler = currentUserMiddleware(handler)
 			}
 
 			apiPath := "/api/v1" + route.Path

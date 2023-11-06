@@ -42,8 +42,6 @@ func (r *userDatabaseRepository) FindAll(ctx context.Context) (users []*User, er
 		return nil, fmt.Errorf("user_repository find_by_username failed to build query: %e", err)
 	}
 
-	fmt.Printf("query: %s\n", query)
-
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_username failed to begin transaction: %e", err)

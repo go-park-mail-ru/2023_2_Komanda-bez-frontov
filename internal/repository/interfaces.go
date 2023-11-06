@@ -3,12 +3,24 @@ package repository
 import (
 	"context"
 	"go-form-hub/internal/model"
+
+	"github.com/jackc/pgx/v5"
 )
+
+type AnswerRepository interface {
+	BatchInsert(ctx context.Context, answers []*Answer, tx pgx.Tx) ([]int64, error)
+	Delete(ctx context.Context, ids []int64, tx pgx.Tx) error
+}
+
+type QuestionRepository interface {
+	BatchInsert(ctx context.Context, questions []*Question, tx pgx.Tx) ([]int64, error)
+	Delete(ctx context.Context, ids []int64, tx pgx.Tx) error
+}
 
 type FormRepository interface {
 	FindAll(ctx context.Context) ([]*Form, map[int64]*User, error)
 	FindByID(ctx context.Context, id int64) (*Form, *User, error)
-	Insert(ctx context.Context, form *Form) (*int64, error)
+	Insert(ctx context.Context, form *Form, tx pgx.Tx) (*int64, error)
 	Update(ctx context.Context, id int64, form *Form) (*Form, error)
 	Delete(ctx context.Context, id int64) error
 	ToModel(form *Form, author *User) *model.Form

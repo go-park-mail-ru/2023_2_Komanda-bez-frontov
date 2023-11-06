@@ -100,7 +100,7 @@ func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *
 	return form, author, err
 }
 
-func (r *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64, error) {
+func (r *formDatabaseRepository) Insert(ctx context.Context, form *Form, tx pgx.Tx) (*int64, error) {
 	query, args, err := r.builder.Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Columns("title", "author_id", "created_at").
 		Values(form.Title, form.AuthorID, form.CreatedAt).
@@ -109,19 +109,19 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *Form) (*int64
 		return nil, fmt.Errorf("form_repository insert failed to build query: %e", err)
 	}
 
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("form_repository insert failed to begin transaction: %e", err)
-	}
+	// tx, err := r.db.Begin(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("form_repository insert failed to begin transaction: %e", err)
+	// }
 
-	defer func() {
-		switch err {
-		case nil:
-			err = tx.Commit(ctx)
-		default:
-			_ = tx.Rollback(ctx)
-		}
-	}()
+	// defer func() {
+	// 	switch err {
+	// 	case nil:
+	// 		err = tx.Commit(ctx)
+	// 	default:
+	// 		_ = tx.Rollback(ctx)
+	// 	}
+	// }()
 
 	row := tx.QueryRow(ctx, query, args...)
 	if row == nil {

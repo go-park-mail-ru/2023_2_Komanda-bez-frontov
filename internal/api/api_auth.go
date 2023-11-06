@@ -101,7 +101,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
-	fmt.Println(result, sessionID, err)
+
 	cookie := &http.Cookie{
 		Name:     "session_id",
 		Value:    sessionID,
@@ -128,7 +128,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
 		_ = r.Body.Close()

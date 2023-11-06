@@ -75,11 +75,13 @@ func main() {
 	formService := form.NewFormService(formRepository, validate)
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
 
-	formRouter := api.NewFormAPIController(formService, validate)
-	authRouter := api.NewAuthAPIController(authService, validate, cfg.CookieExpiration)
+	responseEncoder := api.NewResponseEncoder()
+	formRouter := api.NewFormAPIController(formService, validate, responseEncoder)
+	authRouter := api.NewAuthAPIController(authService, validate, cfg.CookieExpiration, responseEncoder)
+	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
+	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository)
 
-	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
-	r := api.NewRouter(authMiddleware, formRouter, authRouter)
+	r := api.NewRouter(authMiddleware, currentUserMiddleware, formRouter, authRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {

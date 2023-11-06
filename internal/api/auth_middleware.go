@@ -10,45 +10,47 @@ import (
 	"time"
 )
 
-func AuthMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository, cookieExpiration time.Duration) func(next http.HandlerFunc) http.HandlerFunc {
+func AuthMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository, cookieExpiration time.Duration, responseEncoder ResponseEncoder) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+
 			session, err := r.Cookie("session_id")
 			if err != nil {
-				HandleError(w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
+				responseEncoder.HandleError(ctx, w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
 			sessionInDB, err := sessionRepository.FindByID(r.Context(), session.Value)
 			if err != nil {
-				HandleError(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
+				responseEncoder.HandleError(ctx, w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
 				return
 			}
 
 			if sessionInDB == nil {
 				cookie := createExpiredCookie("session_id")
 				http.SetCookie(w, cookie)
-				HandleError(w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
+				responseEncoder.HandleError(ctx, w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
 			if sessionInDB.CreatedAt.UnixMilli()+cookieExpiration.Milliseconds() < time.Now().UTC().UnixMilli() {
 				cookie := createExpiredCookie("session_id")
 				http.SetCookie(w, cookie)
-				HandleError(w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusForbidden})
+				responseEncoder.HandleError(ctx, w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusForbidden})
 				return
 			}
 
 			currentUser, err := userRepository.FindByID(r.Context(), sessionInDB.UserID)
 			if err != nil {
-				HandleError(w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
+				responseEncoder.HandleError(ctx, w, err, &resp.Response{StatusCode: http.StatusInternalServerError})
 				return
 			}
 
 			if currentUser == nil {
 				cookie := createExpiredCookie("session_id")
 				http.SetCookie(w, cookie)
-				HandleError(w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
+				responseEncoder.HandleError(ctx, w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 

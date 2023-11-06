@@ -16,17 +16,17 @@ import (
 
 type AuthAPIController struct {
 	authService      auth.Service
-	errorHandler     ErrorHandler
 	validator        *validator.Validate
 	cookieExpiration time.Duration
+	responseEncoder  ResponseEncoder
 }
 
-func NewAuthAPIController(authService auth.Service, v *validator.Validate, cookieExpiration time.Duration) Router {
+func NewAuthAPIController(authService auth.Service, v *validator.Validate, cookieExpiration time.Duration, responseEncoder ResponseEncoder) Router {
 	return &AuthAPIController{
 		authService:      authService,
-		errorHandler:     HandleError,
 		validator:        v,
 		cookieExpiration: cookieExpiration,
+		responseEncoder:  responseEncoder,
 	}
 }
 
@@ -65,15 +65,17 @@ func (c *AuthAPIController) Routes() []Route {
 
 // nolint:dupl
 func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	session, err := r.Cookie("session_id")
 	if err == nil {
-		isValid, err := c.authService.IsSessionValid(r.Context(), session.Value)
+		isValid, err := c.authService.IsSessionValid(ctx, session.Value)
 		if err != nil {
-			c.errorHandler(w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
+			c.responseEncoder.HandleError(ctx, w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
 			return
 		}
 		if isValid {
-			c.errorHandler(w, fmt.Errorf("already logged in"), &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
+			c.responseEncoder.HandleError(ctx, w, fmt.Errorf("already logged in"), &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
 			return
 		}
 	}
@@ -84,42 +86,45 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		c.errorHandler(w, err, nil)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	var user model.UserLogin
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
-		c.errorHandler(w, err, nil)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	result, sessionID, err := c.authService.AuthLogin(r.Context(), &user)
+	result, sessionID, err := c.authService.AuthLogin(ctx, &user)
 	if err != nil {
-		c.errorHandler(w, err, result)
+		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 	fmt.Println(result, sessionID, err)
 	cookie := &http.Cookie{
-		Name:    "session_id",
-		Value:   sessionID,
-		Expires: time.Now().Add(c.cookieExpiration),
+		Name:     "session_id",
+		Value:    sessionID,
+		Expires:  time.Now().Add(c.cookieExpiration),
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
 // nolint:dupl
 func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	session, err := r.Cookie("session_id")
 	if err == nil {
-		isValid, err := c.authService.IsSessionValid(r.Context(), session.Value)
+		isValid, err := c.authService.IsSessionValid(ctx, session.Value)
 		if err != nil {
-			c.errorHandler(w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
+			c.responseEncoder.HandleError(ctx, w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
 			return
 		}
 		if isValid {
-			c.errorHandler(w, fmt.Errorf("already logged in"), &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
+			c.responseEncoder.HandleError(ctx, w, fmt.Errorf("already logged in"), &resp.Response{Body: nil, StatusCode: http.StatusBadRequest})
 			return
 		}
 	}
@@ -131,37 +136,40 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Error().Msgf("api_auth read_body err: %e", err)
-		c.errorHandler(w, err, nil)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	var user model.UserSignUp
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
 		log.Error().Msgf("api_auth unmarshal err: %e", err)
-		c.errorHandler(w, err, nil)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	result, sessionID, err := c.authService.AuthSignUp(r.Context(), &user)
+	result, sessionID, err := c.authService.AuthSignUp(ctx, &user)
 	if err != nil {
 		log.Error().Msgf("api_auth sugnip err: %e", err)
-		c.errorHandler(w, err, result)
+		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 
 	cookie := &http.Cookie{
-		Name:    "session_id",
-		Value:   sessionID,
-		Expires: time.Now().Add(c.cookieExpiration),
+		Name:     "session_id",
+		Value:    sessionID,
+		Expires:  time.Now().Add(c.cookieExpiration),
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
 func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
-	result, _, err := c.authService.AuthLogout(r.Context())
+	ctx := r.Context()
+
+	result, _, err := c.authService.AuthLogout(ctx)
 	if err != nil {
-		c.errorHandler(w, err, result)
+		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 
@@ -172,9 +180,9 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 		MaxAge:  -1,
 	}
 	http.SetCookie(w, cookie)
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
 func (c *AuthAPIController) IsAuthorized(w http.ResponseWriter, r *http.Request) {
-	EncodeJSONResponse(nil, http.StatusOK, w)
+	c.responseEncoder.EncodeJSONResponse(r.Context(), nil, http.StatusOK, w)
 }

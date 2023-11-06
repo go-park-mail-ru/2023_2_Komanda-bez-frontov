@@ -48,7 +48,7 @@ func (c *AuthAPIController) Routes() []Route {
 		},
 		{
 			Name:         "Logout",
-			Method:       http.MethodDelete,
+			Method:       http.MethodPost,
 			Path:         "/logout",
 			Handler:      c.Logout,
 			AuthRequired: true,
@@ -99,7 +99,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		c.errorHandler(w, err, result)
 		return
 	}
-
+	fmt.Println(result, sessionID, err)
 	cookie := &http.Cookie{
 		Name:    "session_id",
 		Value:   sessionID,
@@ -123,7 +123,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
+	
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
 		_ = r.Body.Close()

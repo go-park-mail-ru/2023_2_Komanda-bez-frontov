@@ -37,11 +37,12 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers .
 
 	router.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  AllowOriginFunc,
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins:   []string{"127.0.0.1"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		// AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 

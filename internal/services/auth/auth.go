@@ -96,6 +96,15 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		return resp.NewResponse(http.StatusConflict, nil), "", nil
 	}
 
+	existing, err = s.userRepository.FindByEmail(ctx, user.Email)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
+	}
+
+	if existing != nil {
+		return resp.NewResponse(http.StatusConflict, nil), "", nil
+	}
+
 	encPassword, err := s.encryptPassword(user.Password)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
@@ -135,25 +144,25 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	if err := s.validate.Struct(user); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), "", err
 	}
-
+	
 	existing, err := s.userRepository.FindByEmail(ctx, user.Email)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
-
+	
 	if existing == nil {
 		return resp.NewResponse(http.StatusUnauthorized, nil), "", nil
 	}
-
+	
 	encPassword, err := s.encryptPassword(user.Password)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
-
+	
 	if existing.Password != encPassword {
 		return resp.NewResponse(http.StatusUnauthorized, nil), "", fmt.Errorf("invalid username or password")
 	}
-
+	
 	sessionID := generateSessionID(existing.Username)
 	err = s.sessionRepository.Insert(ctx, &repository.Session{
 		SessionID: sessionID,
@@ -163,7 +172,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
-
+	fmt.Println(existing)
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
 		ID:        existing.ID,
 		FirstName: existing.FirstName,

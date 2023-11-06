@@ -13,7 +13,7 @@ import (
 // - w: the http.ResponseWriter to write the encoded JSON response to
 func EncodeJSONResponse(i interface{}, status int, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if status == 0 {
 		status = http.StatusOK

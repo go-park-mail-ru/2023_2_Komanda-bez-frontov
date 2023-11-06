@@ -53,6 +53,13 @@ func (c *AuthAPIController) Routes() []Route {
 			Handler:      c.Logout,
 			AuthRequired: true,
 		},
+		{
+			Name:         "IsAuthorized",
+			Method:       http.MethodGet,
+			Path:         "/is_authorized",
+			Handler:      c.IsAuthorized,
+			AuthRequired: true,
+		},
 	}
 }
 
@@ -166,4 +173,8 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 	EncodeJSONResponse(result.Body, result.StatusCode, w)
+}
+
+func (c *AuthAPIController) IsAuthorized(w http.ResponseWriter, r *http.Request) {
+	EncodeJSONResponse(nil, http.StatusOK, w)
 }

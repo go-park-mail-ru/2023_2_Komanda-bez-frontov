@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/cors"
 )
 
-// Route struct defines parameters of API endpoint
 type Route struct {
 	Name         string
 	Method       string
@@ -17,7 +16,6 @@ type Route struct {
 	AuthRequired bool
 }
 
-// Router defines a list of routes of API
 type Router interface {
 	Routes() []Route
 }

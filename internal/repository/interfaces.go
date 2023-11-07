@@ -7,24 +7,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type AnswerRepository interface {
-	BatchInsert(ctx context.Context, answers []*Answer, tx pgx.Tx) ([]int64, error)
-	Delete(ctx context.Context, ids []int64, tx pgx.Tx) error
-}
-
-type QuestionRepository interface {
-	BatchInsert(ctx context.Context, questions []*Question, tx pgx.Tx) ([]int64, error)
-	Delete(ctx context.Context, ids []int64, tx pgx.Tx) error
-}
-
 type FormRepository interface {
-	FindAll(ctx context.Context) ([]*Form, map[int64]*User, error)
-	FindByID(ctx context.Context, id int64) (*Form, *User, error)
-	Insert(ctx context.Context, form *Form, tx pgx.Tx) (*int64, error)
-	Update(ctx context.Context, id int64, form *Form) (*Form, error)
+	FindAll(ctx context.Context) ([]*model.Form, error)
+	FindByID(ctx context.Context, id int64) (*model.Form, error)
+	Insert(ctx context.Context, form *model.Form, tx pgx.Tx) (*model.Form, error)
+	Update(ctx context.Context, id int64, form *model.Form) (*model.Form, error)
 	Delete(ctx context.Context, id int64) error
-	ToModel(form *Form, author *User) *model.Form
-	FromModel(form *model.Form) *Form
 }
 
 type UserRepository interface {
@@ -42,4 +30,9 @@ type SessionRepository interface {
 	FindByUserID(ctx context.Context, userID int64) (*Session, error)
 	Insert(ctx context.Context, session *Session) error
 	Delete(ctx context.Context, sessionID string) error
+}
+
+type QuestionRepository interface {
+	DeleteByFormID(ctx context.Context, formID int64) error
+	BatchInsert(ctx context.Context, questions []*model.Question, formID int64) ([]*model.Question, error)
 }

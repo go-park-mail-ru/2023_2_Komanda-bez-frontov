@@ -16,35 +16,23 @@ package repository_test
 // func TestFormRepositoryFindAll(t *testing.T) {
 // 	t.Run("NoErrors", func(t *testing.T) {
 // 		t.Parallel()
-// 		mock, err := pgxmock.NewPool()
+// 		db, err := database.ConnectDatabaseWithRetry(&config.Config{
+// 			DatabaseURL:                 "postgres://nofronts:nofronts@localhost:5432/nofronts_dev?sslmode=disable&search_path=nofronts&pool_max_conns=40",
+// 			DatabaseConnectMaxRetries:   5,
+// 			DatabaseConnectRetryTimeout: time.Second,
+// 			DatabaseMaxConnections:      40,
+// 			DatabaseAcquireTimeout:      time.Second,
+// 			DatabaseMigrationsDir:       "../../db/migrations",
+// 		})
 // 		if err != nil {
-// 			t.Logf("failed to create mock: %e", err)
-// 			t.FailNow()
+// 			log.Error().Msgf("failed to connect database: %s", err)
+// 			return
 // 		}
 
-// 		schema := strings.ToLower(strings.ReplaceAll(t.Name(), "/", "_"))
-// 		connPool := database.NewConnPool(mock, schema)
-// 		repo := repository.NewFormDatabaseRepository(connPool, builder)
+// 		repo := repository.NewFormDatabaseRepository(db, builder)
 
-// 		mock.ExpectBegin()
-
-// 		id1 := int64(1)
-// 		id2 := int64(2)
-// 		rows := mock.NewRows([]string{"f.id", "f.title", "f.author_id", "f.created_at", "u.id", "u.username", "u.first_name", "u.last_name", "u.email", "u.avatar"}).
-// 			AddRow(&id1, "title1", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1", emptyString).
-// 			AddRow(&id2, "title2", int64(1), time.Now().UTC(), int64(1), "username1", "first_name1", "last_name1", "email1", emptyString)
-// 		mock.ExpectQuery(fmt.Sprintf("^SELECT .* FROM %s.form as f JOIN %s.user as u ON f.author_id = u.id$", schema, schema)).
-// 			WillReturnRows(rows)
-
-// 		mock.ExpectCommit()
-
-// 		forms, authors, err := repo.FindAll(context.Background())
-// 		if err != nil {
-// 			t.Logf("failed to find_all forms: %e", err)
-// 			t.FailNow()
-// 		}
-// 		assert.Equal(t, 2, len(forms))
-// 		assert.Equal(t, 1, len(authors))
+// 		_, err = repo.FindAll(context.Background())
+// 		assert.Nil(t, err)
 // 	})
 // }
 

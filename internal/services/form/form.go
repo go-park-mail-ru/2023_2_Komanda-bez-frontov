@@ -20,14 +20,16 @@ type Service interface {
 }
 
 type formService struct {
-	formRepository repository.FormRepository
-	validate       *validator.Validate
+	formRepository     repository.FormRepository
+	questionRepository repository.QuestionRepository
+	validate           *validator.Validate
 }
 
-func NewFormService(formRepository repository.FormRepository, validate *validator.Validate) Service {
+func NewFormService(formRepository repository.FormRepository, questionRepository repository.QuestionRepository, validate *validator.Validate) Service {
 	return &formService{
-		formRepository: formRepository,
-		validate:       validate,
+		formRepository:     formRepository,
+		validate:           validate,
+		questionRepository: questionRepository,
 	}
 }
 
@@ -40,13 +42,12 @@ func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Res
 	form.Author = currentUser
 	form.CreatedAt = time.Now().UTC()
 
-	id, err := s.formRepository.Insert(ctx, s.formRepository.FromModel(form))
+	result, err := s.formRepository.Insert(ctx, form, nil)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	form.ID = id
-	return resp.NewResponse(http.StatusOK, form), nil
+	return resp.NewResponse(http.StatusOK, result), nil
 }
 
 func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error) {
@@ -56,7 +57,7 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 
-	existing, _, err := s.formRepository.FindByID(ctx, id)
+	existing, err := s.formRepository.FindByID(ctx, id)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -65,41 +66,42 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
-	if existing.AuthorID != currentUser.ID {
+	if existing.Author.ID != currentUser.ID {
 		return resp.NewResponse(http.StatusForbidden, nil), nil
 	}
 
 	form.Author = currentUser
-	formUpdate, err := s.formRepository.Update(ctx, id, s.formRepository.FromModel(form))
+	formUpdate, err := s.formRepository.Insert(ctx, form, nil)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	res := s.formRepository.ToModel(formUpdate, &repository.User{
-		ID:        currentUser.ID,
-		Username:  currentUser.Username,
-		FirstName: currentUser.FirstName,
-		LastName:  currentUser.LastName,
-		Email:     currentUser.Email,
-		Avatar:    currentUser.Avatar,
-	})
-	return resp.NewResponse(http.StatusOK, res), nil
+	err = s.questionRepository.DeleteByFormID(ctx, id)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	newQuestions, err := s.questionRepository.BatchInsert(ctx, form.Questions, id)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	formUpdate.Questions = newQuestions
+
+	return resp.NewResponse(http.StatusOK, formUpdate), nil
 }
 
 func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {
 	var response model.FormList
 	response.Forms = make([]*model.Form, 0)
 
-	forms, authors, err := s.formRepository.FindAll(ctx)
+	forms, err := s.formRepository.FindAll(ctx)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	for _, form := range forms {
-		response.Forms = append(response.Forms, s.formRepository.ToModel(form, authors[form.AuthorID]))
-	}
-
 	response.Count = len(forms)
+	response.Forms = forms
 	return resp.NewResponse(http.StatusOK, response), nil
 }
 
@@ -112,7 +114,7 @@ func (s *formService) FormDelete(ctx context.Context, id int64) (*resp.Response,
 }
 
 func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, error) {
-	form, author, err := s.formRepository.FindByID(ctx, id)
+	form, err := s.formRepository.FindByID(ctx, id)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -121,5 +123,5 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
-	return resp.NewResponse(http.StatusOK, s.formRepository.ToModel(form, author)), nil
+	return resp.NewResponse(http.StatusOK, form), nil
 }

@@ -72,8 +72,9 @@ func main() {
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	formRepository := repository.NewFormDatabaseRepository(db, builder)
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
+	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
 
-	formService := form.NewFormService(formRepository, validate)
+	formService := form.NewFormService(formRepository, questionRepository, validate)
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
 	userService := user.NewUserService(userRepository, validate)
 

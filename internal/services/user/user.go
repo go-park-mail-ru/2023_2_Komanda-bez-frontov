@@ -13,6 +13,7 @@ import (
 type Service interface {
 	UserList(ctx context.Context) (*resp.Response, error)
 	UserGet(ctx context.Context, id int64) (*resp.Response, error)
+	UserGetAvatar(ctx context.Context, username string) (*resp.Response, error)
 }
 
 type userService struct {
@@ -70,6 +71,23 @@ func (s *userService) UserGet(ctx context.Context, id int64) (*resp.Response, er
 		Avatar:    user.Avatar,
 	}), nil
 }
+
+func (s *userService) UserGetAvatar(ctx context.Context, username string) (*resp.Response, error) {
+	user, err := s.userRepository.FindByUsername(ctx, username)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if user == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	return resp.NewResponse(http.StatusOK, &model.UserAvatarGet{
+		Username:  user.Username,
+		Avatar:    user.Avatar,
+	}), nil
+}
+
 
 func (s *userService) UserUpdate(ctx context.Context, id int64, user *model.UserSignUp) (*resp.Response, error) {
 	return &resp.Response{StatusCode: http.StatusNotImplemented}, nil

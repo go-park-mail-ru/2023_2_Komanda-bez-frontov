@@ -61,6 +61,7 @@ func NewRouter(authMiddleware, currentUserMiddleware func(http.HandlerFunc) http
 	return router
 }
 
-func AllowOriginFunc(_ *http.Request, _ string) bool {
-	return true
+func AllowOriginFunc(r *http.Request, _ string) bool {
+	return 	r.Header.Get("Origin") == "http://212.233.94.20:8000" || 
+			r.Header.Get("Origin") == "http://localhost:8000"
 }

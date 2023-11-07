@@ -27,6 +27,11 @@ type UserGet struct {
 	Avatar    *string `json:"avatar,omitempty"`
 }
 
+type UserAvatarGet struct {
+	Username  string  `json:"username" validate:"required,alphanum"`
+	Avatar    *string `json:"avatar" validate:"required"`
+}
+
 type UserList struct {
 	CollectionResponse
 	Users []*UserGet `json:"users" validate:"required"`

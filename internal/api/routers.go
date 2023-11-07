@@ -37,10 +37,8 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUs
 
 	router.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  AllowOriginFunc,
-		AllowedOrigins:   []string{"http://localhost"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		// AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -65,5 +63,6 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, currentUs
 }
 
 func AllowOriginFunc(r *http.Request, _ string) bool {
-	return true;
+	return 	r.Header.Get("Origin") == "http://212.233.94.20:8000" || 
+			r.Header.Get("Origin") == "http://localhost:8000"
 }

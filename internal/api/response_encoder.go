@@ -21,8 +21,6 @@ func NewResponseEncoder() ResponseEncoder {
 
 func (r *responseEncoder) EncodeJSONResponse(ctx context.Context, i interface{}, status int, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	// ТАК ДЕЛАТЬ НЕЛЬЗЯ!!!
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if status == 0 {
 		status = http.StatusOK

@@ -96,6 +96,15 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		return resp.NewResponse(http.StatusConflict, nil), "", nil
 	}
 
+	existing, err = s.userRepository.FindByUsername(ctx, user.Username)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
+	}
+
+	if existing != nil {
+		return resp.NewResponse(http.StatusConflict, nil), "", nil
+	}
+
 	encPassword, err := s.encryptPassword(user.Password)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
@@ -107,6 +116,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		LastName:  user.LastName,
 		Password:  encPassword,
 		Email:     user.Email,
+		Avatar:	   user.Avatar,
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err

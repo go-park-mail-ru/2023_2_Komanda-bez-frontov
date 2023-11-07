@@ -4,7 +4,9 @@ import (
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/services/user"
 	"net/http"
+	"net/url"
 
+	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
 )
@@ -39,6 +41,13 @@ func (c *UserAPIController) Routes() []Route {
 			Handler:      c.ProfileUpdate,
 			AuthRequired: true,
 		},
+		{
+			Name:         "UserAvatarGet",
+			Method:       http.MethodGet,
+			Path:         "/user/{username}/avatar",
+			Handler:      c.UserAvatarGet,
+			AuthRequired: false,
+		},
 	}
 }
 
@@ -57,4 +66,24 @@ func (c *UserAPIController) ProfileGet(w http.ResponseWriter, r *http.Request) {
 
 func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 	c.responseEncoder.EncodeJSONResponse(r.Context(), nil, http.StatusOK, w)
+}
+
+func (c *UserAPIController) UserAvatarGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	username, err := url.PathUnescape(chi.URLParam(r, "username"))
+	if err != nil {
+		log.Error().Msgf("user_api user_avatar_get unescape error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	result, err := c.service.UserGetAvatar(ctx, username)
+	if err != nil {
+		log.Error().Msgf("user_api user_avatar_get error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }

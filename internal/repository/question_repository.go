@@ -13,7 +13,7 @@ import (
 type Question struct {
 	ID      int64   `db:"id"`
 	FormID  int64   `db:"form_id"`
-	Type    string  `db:"type"`
+	Type    int     `db:"type"`
 	Title   string  `db:"title"`
 	Text    *string `db:"text"`
 	Shuffle bool    `db:"shuffle"`

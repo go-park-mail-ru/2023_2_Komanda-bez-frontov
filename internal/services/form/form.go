@@ -15,6 +15,7 @@ type Service interface {
 	FormSave(ctx context.Context, form *model.Form) (*resp.Response, error)
 	FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error)
 	FormList(ctx context.Context) (*resp.Response, error)
+	FormListByUser(ctx context.Context, username string) (*resp.Response, error)
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
 }
@@ -97,6 +98,20 @@ func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {
 	response.Forms = make([]*model.Form, 0)
 
 	forms, err := s.formRepository.FindAll(ctx)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	response.Count = len(forms)
+	response.Forms = forms
+	return resp.NewResponse(http.StatusOK, response), nil
+}
+
+func (s *formService) FormListByUser(ctx context.Context, username string) (*resp.Response, error) {
+	var response model.FormList
+	response.Forms = make([]*model.Form, 0)
+
+	forms, err := s.formRepository.FindAllByUser(ctx, username)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

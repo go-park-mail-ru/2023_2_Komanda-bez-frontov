@@ -122,6 +122,21 @@ func (s *formService) FormListByUser(ctx context.Context, username string) (*res
 }
 
 func (s *formService) FormDelete(ctx context.Context, id int64) (*resp.Response, error) {
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+	existing, err := s.formRepository.FindByID(ctx, id)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if existing == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+	
+	if existing.Author.ID != currentUser.ID {
+		return resp.NewResponse(http.StatusForbidden, nil), nil
+	}
+
 	if err := s.formRepository.Delete(ctx, id); err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

@@ -132,7 +132,7 @@ func (s *formService) FormDelete(ctx context.Context, id int64) (*resp.Response,
 	if existing == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
-	
+
 	if existing.Author.ID != currentUser.ID {
 		return resp.NewResponse(http.StatusForbidden, nil), nil
 	}

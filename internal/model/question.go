@@ -4,7 +4,7 @@ type Question struct {
 	ID          *int64    `json:"id"`
 	Title       string    `json:"title,omitempty"`
 	Description *string   `json:"description,omitempty"`
-	Type        string    `json:"type" validate:"required,oneof=single_choice multiple_choice no_choice"`
-	Shuffle     bool      `json:"shuffle" validate:"required"`
+	Type        int       `json:"type" validate:"required,oneof=1 2 3"`
+	Shuffle     bool      `json:"shuffle,omitempty"`
 	Answers     []*Answer `json:"answers,omitempty"`
 }

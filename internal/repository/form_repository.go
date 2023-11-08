@@ -87,6 +87,42 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.Fo
 	return r.fromRows(rows)
 }
 
+func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.Form, err error) {
+	query, args, err := r.builder.
+		Select(selectFields...).
+		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"u.username": username}).
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
+	}
+
+	return r.fromRows(rows)
+}
+
 func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *model.Form, err error) {
 	query, args, err := r.builder.
 		Select(selectFields...).

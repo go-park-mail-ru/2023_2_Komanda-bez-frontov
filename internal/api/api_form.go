@@ -103,14 +103,26 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	result, err := c.service.FormList(ctx)
-	if err != nil {
-		log.Error().Msgf("form_api form_list error: %e", err)
-		c.responseEncoder.HandleError(ctx, w, err, result)
-		return
+	author := r.URL.Query().Get("author")
+
+	if author != "" {
+		result, err := c.service.FormListByUser(ctx, author)
+		if err != nil {
+			log.Error().Msgf("form_api form_list error: %e", err)
+			c.responseEncoder.HandleError(ctx, w, err, result)
+			return
+		}
+		c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	} else {
+		result, err := c.service.FormList(ctx)
+		if err != nil {
+			log.Error().Msgf("form_api form_list error: %e", err)
+			c.responseEncoder.HandleError(ctx, w, err, result)
+			return
+		}
+		c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 	}
 
-	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
 // nolint:dupl

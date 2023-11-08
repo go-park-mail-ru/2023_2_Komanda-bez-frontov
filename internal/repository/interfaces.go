@@ -9,6 +9,7 @@ import (
 
 type FormRepository interface {
 	FindAll(ctx context.Context) ([]*model.Form, error)
+	FindAllByUser(ctx context.Context, username string) ([]*model.Form, error)
 	FindByID(ctx context.Context, id int64) (*model.Form, error)
 	Insert(ctx context.Context, form *model.Form, tx pgx.Tx) (*model.Form, error)
 	Update(ctx context.Context, id int64, form *model.Form) (*model.Form, error)

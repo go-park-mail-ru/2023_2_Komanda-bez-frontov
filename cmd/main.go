@@ -84,9 +84,9 @@ func main() {
 	userRouter := api.NewUserAPIController(userService, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
-	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository)
+	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
 
-	r := api.NewRouter(authMiddleware, currentUserMiddleware, formRouter, authRouter, userRouter)
+	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, formRouter, authRouter, userRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {

@@ -5,9 +5,10 @@ import (
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
 	"net/http"
+	"time"
 )
 
-func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository) func(next http.HandlerFunc) http.HandlerFunc {
+func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository,  cookieExpiration time.Duration) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := r.Cookie("session_id")
@@ -18,6 +19,15 @@ func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userR
 
 			sessionInDB, err := sessionRepository.FindByID(r.Context(), session.Value)
 			if err != nil || sessionInDB == nil {
+				cookie := createExpiredCookie("session_id")
+				http.SetCookie(w, cookie)
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			if sessionInDB.CreatedAt.UnixMilli()+cookieExpiration.Milliseconds() < time.Now().UTC().UnixMilli() {
+				cookie := createExpiredCookie("session_id")
+				http.SetCookie(w, cookie)
 				next.ServeHTTP(w, r)
 				return
 			}

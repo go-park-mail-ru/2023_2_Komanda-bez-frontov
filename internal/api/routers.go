@@ -1,6 +1,7 @@
 package api
 
 import (
+	"go-form-hub/internal/config"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -31,12 +32,13 @@ type Router interface {
 //
 // The function returns a new `chi.Router` that has all the routes from the provided routers
 // added to it.
-func NewRouter(authMiddleware, currentUserMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
+func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
 	router.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  AllowOriginFunc,
+		AllowedOrigins:	  []string{cfg.AllowedOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -62,6 +64,5 @@ func NewRouter(authMiddleware, currentUserMiddleware func(http.HandlerFunc) http
 }
 
 func AllowOriginFunc(r *http.Request, _ string) bool {
-	return r.Header.Get("Origin") == "http://212.233.94.20:8000" ||
-		r.Header.Get("Origin") == "http://localhost:8000"
+	return true
 }

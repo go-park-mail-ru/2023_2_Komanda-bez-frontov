@@ -71,11 +71,12 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 	}
 
 	form.Author = currentUser
-	formUpdate, err := s.formRepository.Insert(ctx, form, nil)
+	formUpdate, err := s.formRepository.Update(ctx, id, form)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
+	formUpdate.ID = &id
 	err = s.questionRepository.DeleteByFormID(ctx, id)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err

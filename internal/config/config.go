@@ -25,7 +25,7 @@ const (
 	defaultDatabaseConnectMaxRetries   = 20
 	defaultDatabaseConnectRetryTimeout = 1 * time.Second
 	defaultAcquireTimeout              = 1 * time.Second
-	defaultAllowedOrigin			   = "*"
+	defaultAllowedOrigin               = "*"
 )
 
 type Config struct {
@@ -43,7 +43,7 @@ type Config struct {
 	LogRequests      string        `env:"LOG_REQUESTS" conf:"LOG_REQUESTS" json:"LOG_REQUESTS"`
 	EncryptionKey    string        `env:"ENCRYPTION_KEY" conf:"ENCRYPTION_KEY" json:"ENCRYPTION_KEY"`
 	CookieExpiration time.Duration `env:"COOKIE_EXPIRATION" conf:"COOKIE_EXPIRATION" json:"COOKIE_EXPIRATION"`
-	AllowedOrigin	 string		   `env:"ALLOWED_ORIGIN" conf:"ALLOWED_ORIGIN" json:"ALLOWED_ORIGIN"`
+	AllowedOrigin    string        `env:"ALLOWED_ORIGIN" conf:"ALLOWED_ORIGIN" json:"ALLOWED_ORIGIN"`
 }
 
 func NewConfig() (*Config, error) {
@@ -54,7 +54,7 @@ func NewConfig() (*Config, error) {
 		LogLevel:                    defaultLogLevel,
 		LogRequests:                 defaultLogRequests,
 		CookieExpiration:            defaultCookieExpiration,
-		AllowedOrigin:				 defaultAllowedOrigin,
+		AllowedOrigin:               defaultAllowedOrigin,
 		DatabaseMaxConnections:      defaultDatabaseMaxConnections,
 		DatabaseMigrationsDir:       defaultDatabaseMigrationsDir,
 		DatabaseConnectMaxRetries:   defaultDatabaseConnectMaxRetries,

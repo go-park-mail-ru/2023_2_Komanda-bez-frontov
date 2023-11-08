@@ -38,7 +38,7 @@ func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware func(ht
 
 	router.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  AllowOriginFunc,
-		AllowedOrigins:	  []string{cfg.AllowedOrigin},
+		AllowedOrigins:   []string{cfg.AllowedOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -63,6 +63,6 @@ func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware func(ht
 	return router
 }
 
-func AllowOriginFunc(r *http.Request, _ string) bool {
+func AllowOriginFunc(_ *http.Request, _ string) bool {
 	return true
 }

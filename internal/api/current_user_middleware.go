@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository,  cookieExpiration time.Duration) func(next http.HandlerFunc) http.HandlerFunc {
+func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository, cookieExpiration time.Duration) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := r.Cookie("session_id")

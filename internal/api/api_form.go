@@ -122,7 +122,6 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 		}
 		c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 	}
-
 }
 
 // nolint:dupl

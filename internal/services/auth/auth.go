@@ -116,7 +116,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		LastName:  user.LastName,
 		Password:  encPassword,
 		Email:     user.Email,
-		Avatar:	   user.Avatar,
+		Avatar:    user.Avatar,
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err

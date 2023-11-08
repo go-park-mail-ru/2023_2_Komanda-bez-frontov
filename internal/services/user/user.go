@@ -83,11 +83,10 @@ func (s *userService) UserGetAvatar(ctx context.Context, username string) (*resp
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserAvatarGet{
-		Username:  user.Username,
-		Avatar:    user.Avatar,
+		Username: user.Username,
+		Avatar:   user.Avatar,
 	}), nil
 }
-
 
 func (s *userService) UserUpdate(ctx context.Context, id int64, user *model.UserSignUp) (*resp.Response, error) {
 	return &resp.Response{StatusCode: http.StatusNotImplemented}, nil

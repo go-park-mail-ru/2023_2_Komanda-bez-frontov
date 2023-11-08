@@ -338,7 +338,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 		})
 	}
 
-	var forms []*model.Form
+	forms := make([]*model.Form, 0, len(formMap))
 
 	for _, form := range formMap {
 		form.Questions = questionsByFormID[*form.ID]

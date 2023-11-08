@@ -28,8 +28,8 @@ type UserGet struct {
 }
 
 type UserAvatarGet struct {
-	Username  string  `json:"username" validate:"required,alphanum"`
-	Avatar    *string `json:"avatar" validate:"required"`
+	Username string  `json:"username" validate:"required,alphanum"`
+	Avatar   *string `json:"avatar" validate:"required"`
 }
 
 type UserList struct {

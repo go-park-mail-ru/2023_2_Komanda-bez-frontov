@@ -9,7 +9,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-	"github.com/rs/zerolog/log"
+	// "github.com/rs/zerolog/log"
 )
 
 type Form struct {
@@ -137,7 +137,7 @@ func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *
 		return nil, fmt.Errorf("form_repository find_by_title failed to build query: %e", err)
 	}
 
-	log.Info().Msgf("query: %s", query)
+	// log.Info().Msgf("query: %s", query)
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -326,6 +326,8 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 	questionsByFormID := map[int64][]*model.Question{}
 	answersByQuestionID := map[int64][]*model.Answer{}
 
+	questionWasAppended := map[int64]bool{}
+
 	for rows.Next() {
 		info, err := r.fromRow(rows)
 		if err != nil {
@@ -352,17 +354,16 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 			}
 		}
 
-		if _, ok := questionsByFormID[info.form.ID]; !ok {
-			questionsByFormID[info.form.ID] = make([]*model.Question, 0, 1)
+		if _, ok := questionWasAppended[info.question.ID]; !ok {
+			questionsByFormID[info.form.ID] = append(questionsByFormID[info.form.ID], &model.Question{
+				ID:          &info.question.ID,
+				Title:       info.question.Title,
+				Description: info.question.Text,
+				Type:        info.question.Type,
+				Shuffle:     info.question.Shuffle,
+			})
+			questionWasAppended[info.question.ID] = true
 		}
-
-		questionsByFormID[info.form.ID] = append(questionsByFormID[info.form.ID], &model.Question{
-			ID:          &info.question.ID,
-			Title:       info.question.Title,
-			Description: info.question.Text,
-			Type:        info.question.Type,
-			Shuffle:     info.question.Shuffle,
-		})
 
 		if _, ok := answersByQuestionID[info.question.ID]; !ok {
 			answersByQuestionID[info.question.ID] = make([]*model.Answer, 0, 1)
@@ -423,7 +424,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("user_repository failed to scan row: %e", err)
+		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
 	}
 
 	return &fromRowReturn{form, author, question, answer}, nil

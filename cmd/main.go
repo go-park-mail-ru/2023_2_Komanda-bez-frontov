@@ -76,7 +76,7 @@ func main() {
 
 	formService := form.NewFormService(formRepository, questionRepository, validate)
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
-	userService := user.NewUserService(userRepository, validate)
+	userService := user.NewUserService(userRepository, cfg, validate)
 
 	responseEncoder := api.NewResponseEncoder()
 	formRouter := api.NewFormAPIController(formService, validate, responseEncoder)

@@ -31,7 +31,7 @@ type UserUpdate struct {
 	Username  string  `json:"username" validate:"required,alphanum"`
 	FirstName string  `json:"first_name,omitempty"`
 	LastName  string  `json:"last_name,omitempty"`
-	Password  string  `json:"oldPassword" validate:"required"`
+	Password  string  `json:"oldPassword,omiempty"`
 	NewPassword string `json:"newPassword,omitempty"`
 	Email     string  `json:"email" validate:"required,email"`
 	Avatar    *string `json:"avatar,omitempty"`

@@ -136,7 +136,25 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 
-	existing, err := s.userRepository.FindByID(ctx, currentUser.ID)
+	existing, err := s.userRepository.FindByEmail(ctx, user.Email)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if existing != nil {
+		return resp.NewResponse(http.StatusConflict, nil), nil
+	}
+
+	existing, err = s.userRepository.FindByUsername(ctx, user.Username)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if existing != nil {
+		return resp.NewResponse(http.StatusConflict, nil), nil
+	}
+
+	existing, err = s.userRepository.FindByID(ctx, currentUser.ID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -145,21 +163,24 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
-	encPassword, err := s.encryptPassword(user.Password)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	if user.Username != existing.Username || user.Email != existing.Email || user.NewPassword != "" {
+		encPassword, err := s.encryptPassword(user.Password)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
+
+		if existing.Password != encPassword {
+			return resp.NewResponse(http.StatusForbidden, nil), fmt.Errorf("invalid password")
+		}	
 	}
 
-	if existing.Password != encPassword {
-		return resp.NewResponse(http.StatusForbidden, nil), fmt.Errorf("invalid password")
-	}
 
-	if user.NewPassword == "" {
-		user.NewPassword = user.Password
-	}
 	encNewPassword, err := s.encryptPassword(user.NewPassword)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+	if user.NewPassword == "" {
+		encNewPassword = existing.Password
 	}
 
 	err = s.userRepository.Update(ctx, existing.ID, &repository.User{

@@ -1,12 +1,13 @@
 package api
 
 import (
-	"go-form-hub/internal/model"
-	"go-form-hub/internal/services/user"
-	"net/http"
-	"net/url"
 	"encoding/json"
 	"io"
+	"net/http"
+	"net/url"
+
+	"go-form-hub/internal/model"
+	"go-form-hub/internal/services/user"
 
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"

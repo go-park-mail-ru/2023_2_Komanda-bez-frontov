@@ -3,12 +3,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"go-form-hub/internal/model"
-	"go-form-hub/internal/services/auth"
-	resp "go-form-hub/internal/services/service_response"
 	"io"
 	"net/http"
 	"time"
+
+	"go-form-hub/internal/model"
+	"go-form-hub/internal/services/auth"
+	resp "go-form-hub/internal/services/service_response"
 
 	validator "github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"

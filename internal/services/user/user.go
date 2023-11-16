@@ -8,11 +8,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"go-form-hub/internal/model"
+	"net/http"
+
 	"go-form-hub/internal/config"
+	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
 	resp "go-form-hub/internal/services/service_response"
-	"net/http"
 
 	validator "github.com/go-playground/validator/v10"
 )
@@ -33,7 +34,7 @@ type userService struct {
 func NewUserService(userRepository repository.UserRepository, cfg *config.Config, validate *validator.Validate) Service {
 	return &userService{
 		userRepository: userRepository,
-		cfg:			cfg,
+		cfg:            cfg,
 		validate:       validate,
 	}
 }
@@ -171,9 +172,8 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 
 		if existing.Password != encPassword {
 			return resp.NewResponse(http.StatusForbidden, nil), fmt.Errorf("invalid password")
-		}	
+		}
 	}
-
 
 	encNewPassword, err := s.encryptPassword(user.NewPassword)
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
-		ID:		   currentUser.ID,
+		ID:        currentUser.ID,
 		Username:  user.Username,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,

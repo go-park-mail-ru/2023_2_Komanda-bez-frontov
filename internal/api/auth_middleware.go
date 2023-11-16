@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
 	resp "go-form-hub/internal/services/service_response"
-	"net/http"
-	"time"
 )
 
 func AuthMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository, cookieExpiration time.Duration, responseEncoder ResponseEncoder) func(next http.HandlerFunc) http.HandlerFunc {

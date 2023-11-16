@@ -2,10 +2,11 @@ package api
 
 import (
 	"context"
-	"go-form-hub/internal/model"
-	"go-form-hub/internal/repository"
 	"net/http"
 	"time"
+
+	"go-form-hub/internal/model"
+	"go-form-hub/internal/repository"
 )
 
 func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository, cookieExpiration time.Duration) func(next http.HandlerFunc) http.HandlerFunc {

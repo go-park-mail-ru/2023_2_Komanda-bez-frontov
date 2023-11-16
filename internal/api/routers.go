@@ -1,8 +1,9 @@
 package api
 
 import (
-	"go-form-hub/internal/config"
 	"net/http"
+
+	"go-form-hub/internal/config"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

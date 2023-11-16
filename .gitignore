@@ -46,6 +46,6 @@ go.work
 
 /bin/*
 !/bin/.keep
-config.conf
+# config.conf
 /tmp/**/*.*
 *.tmp

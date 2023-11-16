@@ -3,6 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"go-form-hub/internal/api"
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
@@ -10,11 +16,6 @@ import (
 	"go-form-hub/internal/services/auth"
 	"go-form-hub/internal/services/form"
 	"go-form-hub/internal/services/user"
-	"net"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"

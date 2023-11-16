@@ -47,6 +47,7 @@ func (r *userDatabaseRepository) FindAll(ctx context.Context) (users []*User, er
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_username failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -105,6 +106,7 @@ func (r *userDatabaseRepository) FindByEmail(ctx context.Context, email string) 
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_email failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -131,6 +133,7 @@ func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *
 	if err != nil {
 		return nil, fmt.Errorf("user_repository find_by_id failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -158,6 +161,7 @@ func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64,
 	if err != nil {
 		return 0, fmt.Errorf("user_repository insert failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -199,6 +203,7 @@ func (r *userDatabaseRepository) Update(ctx context.Context, id int64, user *Use
 	if err != nil {
 		return fmt.Errorf("user_repository update failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -227,6 +232,7 @@ func (r *userDatabaseRepository) Delete(ctx context.Context, id int64) error {
 	if err != nil {
 		return fmt.Errorf("user_repository delete failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:

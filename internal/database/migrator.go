@@ -71,6 +71,7 @@ func ParseURI(uri string) (*url.URL, error) {
 		dbQueryParams.Set("search_path", schema)
 		dbURL.RawQuery = dbQueryParams.Encode()
 	}
+
 	return dbURL, nil
 }
 
@@ -137,6 +138,7 @@ func Migrate(db ConnPool, cfg *config.Config, builder squirrel.StatementBuilderT
 	if err != nil {
 		return 0, fmt.Errorf("failed to start transaction error: %e", err)
 	}
+
 	row := tx.QueryRow(ctx, query)
 	if err = row.Scan(&currentVersion.Version, &currentVersion.Dirty); err != nil {
 		if err != pgx.ErrNoRows {
@@ -151,6 +153,7 @@ func Migrate(db ConnPool, cfg *config.Config, builder squirrel.StatementBuilderT
 			return 0, fmt.Errorf("failed to insert current version: %e, sql: %s", err, q)
 		}
 	}
+
 	err = tx.Commit(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("user_repository find_by_username failed to commit transaction: %e", err)
@@ -237,10 +240,12 @@ func Migrate(db ConnPool, cfg *config.Config, builder squirrel.StatementBuilderT
 			return 0, fmt.Errorf("failed to get current version: %e", err)
 		}
 	}
+
 	err = tx.Commit(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("user_repository find_by_username failed to commit transaction: %e", err)
 	}
+
 	currentVersionInt = currentVersion.Version
 	if currentVersionInt < lastMigrationsVersion {
 		return currentVersionInt, fmt.Errorf("failed migration, current version: %d, available version: %d", currentVersionInt, lastMigrationsVersion)

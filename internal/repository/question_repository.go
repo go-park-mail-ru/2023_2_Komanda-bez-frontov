@@ -121,6 +121,7 @@ func (r *questionDatabaseRepository) DeleteByFormID(ctx context.Context, formID 
 	if err != nil {
 		return fmt.Errorf("session_repository delete failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:

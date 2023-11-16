@@ -100,6 +100,7 @@ func LoadConfigFile(cfg *Config, filepath string) error {
 		if len(s) < 2 {
 			continue
 		}
+
 		n := elem.NumField()
 		for i := 0; i < n; i++ {
 			field := typeElem.Field(i)

@@ -71,6 +71,7 @@ func (s *authService) encryptPassword(pass string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	nonce := hasher.Sum(nil)[:12]
 
 	aesgcm, err := cipher.NewGCM(block)
@@ -174,6 +175,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
+
 	fmt.Println(existing)
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
 		ID:        existing.ID,

@@ -85,7 +85,6 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		_ = r.Body.Close()
 	}()
-
 	if err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
@@ -110,6 +109,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
+
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
@@ -134,7 +134,6 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		_ = r.Body.Close()
 	}()
-
 	if err != nil {
 		log.Error().Msgf("api_auth read_body err: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
@@ -162,6 +161,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
+
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
@@ -181,6 +181,7 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 		MaxAge:  -1,
 	}
 	http.SetCookie(w, cookie)
+
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 

@@ -77,7 +77,6 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		_ = r.Body.Close()
 	}()
-
 	if err != nil {
 		log.Error().Msgf("form_api form_save body read error: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
@@ -113,6 +112,7 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 			c.responseEncoder.HandleError(ctx, w, err, result)
 			return
 		}
+
 		c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 	} else {
 		result, err := c.service.FormList(ctx)
@@ -121,6 +121,7 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 			c.responseEncoder.HandleError(ctx, w, err, result)
 			return
 		}
+
 		c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 	}
 }

@@ -137,8 +137,6 @@ func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *
 		return nil, fmt.Errorf("form_repository find_by_title failed to build query: %e", err)
 	}
 
-	// log.Info().Msgf("query: %s", query)
-
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_by_title failed to begin transaction: %e", err)
@@ -224,6 +222,7 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 		if err != nil {
 			return nil, err
 		}
+
 		question.ID = &questionID
 		for _, answer := range question.Answers {
 			q, args, err := answerQuery.Values(answer.Text, question.ID).ToSql()
@@ -244,6 +243,7 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 			if err != nil {
 				return nil, err
 			}
+
 			answer.ID = &answerID
 		}
 	}

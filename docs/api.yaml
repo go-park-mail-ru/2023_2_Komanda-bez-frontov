@@ -139,7 +139,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                $ref: '#/components/schemas/ProfileResponse'
         '401':
           description: not authorized
           content:
@@ -344,7 +344,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/v1/forms/{id}/update:
     put:
-      summary: delete form by id
+      summary: update form by id
       security:
         - cookieAuth: []
       parameters:
@@ -354,6 +354,12 @@ paths:
             type: integer
           required: true
           description: integer id of a form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormRequest'
       responses:
         '200':
           description: success
@@ -408,6 +414,21 @@ components:
           type: string
     ErrorResponse:
       type: object
+    ProfileResponse:
+      type: object
+      required:  # List the required properties here
+        - email
+        - username
+        - first_name
+      properties:
+        email:
+          type: string
+        first_name:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: string
     UserResponse:
       type: object
       required:  # List the required properties here
@@ -466,7 +487,7 @@ components:
           type: string
         questions:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/QuestionRequest'
     FormResponse:
       type: object
@@ -487,7 +508,7 @@ components:
           type: string
         questions:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/QuestionResponse'
     FormsArrayResponse:
       type: object
@@ -496,7 +517,7 @@ components:
           type: integer
         forms:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/FormResponse'
     QuestionRequest:
       type: object
@@ -513,9 +534,11 @@ components:
         type:
           type: integer
           description: 1, 2 or 3
+        required:
+          type: boolean
         answers:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/AnswerRequest'
     QuestionResponse:
       type: object
@@ -525,6 +548,7 @@ components:
         - description
         - type
         - answers
+        - required
       properties:
         id:
           type: integer
@@ -532,12 +556,14 @@ components:
           type: string
         description:
           type: string
+        required:
+          type: boolean
         type:
           type: integer
           description: 1, 2 or 3
         answers:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/AnswerResponse'
     AnswerRequest:
       type: object

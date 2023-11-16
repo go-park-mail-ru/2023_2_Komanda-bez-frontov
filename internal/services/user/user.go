@@ -142,7 +142,7 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	if existing != nil {
+	if existing.ID != currentUser.ID {
 		return resp.NewResponse(http.StatusConflict, nil), nil
 	}
 
@@ -151,7 +151,7 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	if existing != nil {
+	if existing.ID != currentUser.ID {
 		return resp.NewResponse(http.StatusConflict, nil), nil
 	}
 

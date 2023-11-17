@@ -599,6 +599,16 @@ components:
           type: string
         avatar:
           type: string
+    ParticipantResponse:
+      type: object
+      required:
+        - user
+        - completion_time
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        completion_time:
+          type: string
     FormRequest:
       type: object
       required:
@@ -649,7 +659,7 @@ components:
         participants:
           type: array
           items:
-            $ref: '#/components/schemas/UserResponse'
+            $ref: '#/components/schemas/ParticipantResponse'
     QuestionResult:
       type: object
       required:
@@ -687,8 +697,6 @@ components:
           type: string
         selected_times:
           type: integer
-
-
     FormResponseWithoutQuestions:
       type: object
       required:

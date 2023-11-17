@@ -425,16 +425,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/forms/{id}/answers:
+  /api/v1/forms/{id}/results:
     get:
-      summary: Get answers for a specific form
+      summary: Get results for a specific form
+      security:
+        - cookieAuth: []
       parameters:
         - in: path
           name: id
           schema:
             type: integer
           required: true
-          description: Integer id of the form
+          description: ID of the form for which results are requested
       responses:
         '200':
           description: success
@@ -445,7 +447,7 @@ paths:
                 properties:
                   data:
                     type: object
-                    $ref: '#/components/schemas/AnswersArrayResponse'
+                    $ref: '#/components/schemas/FormResultResponse'
         '404':
           description: form not found
           content:
@@ -609,11 +611,85 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QuestionRequest'
-    FormResponse:
+    FormResultResponse:
+      type: object
+      properties:
+        form:
+          $ref: '#/components/schemas/FormResult'
+    FormResult:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - created_at
+        - author
+        - number_of_passages
+        - questions
+        - anonymous
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserResponse'
+        number_of_passages:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionResult'
+        anonymous:
+          type: boolean
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+    QuestionResult:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - type
+        - number_of_passages
+        - answers
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: integer
+        number_of_passages:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerResult'
+    AnswerResult:
+      type: object
+      required:
+        - text
+        - selected_times
+      properties:
+        text:
+          type: string
+        selected_times:
+          type: integer
+
+
+    FormResponseWithoutQuestions:
       type: object
       required:
         - title
-        - questions
         - id
         - author
         - created_at
@@ -623,13 +699,9 @@ components:
         id:
           type: integer
         author:
-           $ref: '#/components/schemas/UserResponse'
+          $ref: '#/components/schemas/UserResponse'
         created_at:
           type: string
-        questions:
-          type: array
-          items:
-            $ref: '#/components/schemas/QuestionResponse'
     AnswersArrayResponse:
       type: object
       properties:
@@ -647,7 +719,7 @@ components:
         forms:
           type: array
           items:
-            $ref: '#/components/schemas/FormResponse'
+            $ref: '#/components/schemas/FormResponseWithoutQuestions'
     QuestionRequest:
       type: object
       required:

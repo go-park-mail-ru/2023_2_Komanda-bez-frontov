@@ -240,6 +240,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/search:
+    get:
+      summary: Search forms based on the logged-in user
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: title
+          schema:
+            type: string
+          required: true
+          description: Title string for searching forms
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormsArrayResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/user/{username}/avatar:
     get:
       summary: returns current user avatar
@@ -384,6 +413,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: form not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/{id}/answers:
+    get:
+      summary: Get answers for a specific form
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: Integer id of the form
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/AnswersArrayResponse'
         '404':
           description: form not found
           content:
@@ -568,6 +630,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QuestionResponse'
+    AnswersArrayResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerResponse'
     FormsArrayResponse:
       type: object
       properties:

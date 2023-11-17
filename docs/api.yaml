@@ -677,9 +677,12 @@ components:
     AnswerResult:
       type: object
       required:
+        - created_at
         - text
         - selected_times
       properties:
+        created_at:
+          type: string
         text:
           type: string
         selected_times:

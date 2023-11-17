@@ -11,12 +11,14 @@ import (
 	resp "go-form-hub/internal/services/service_response"
 )
 
+const sessionCookieName = "session_id"
+
 func AuthMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository, cookieExpiration time.Duration, responseEncoder ResponseEncoder) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 
-			session, err := r.Cookie("session_id")
+			session, err := r.Cookie(sessionCookieName)
 			if err != nil {
 				responseEncoder.HandleError(ctx, w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
@@ -29,14 +31,14 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 			}
 
 			if sessionInDB == nil {
-				cookie := createExpiredCookie("session_id")
+				cookie := createExpiredSessionCookie()
 				http.SetCookie(w, cookie)
 				responseEncoder.HandleError(ctx, w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}
 
 			if sessionInDB.CreatedAt.UnixMilli()+cookieExpiration.Milliseconds() < time.Now().UTC().UnixMilli() {
-				cookie := createExpiredCookie("session_id")
+				cookie := createExpiredSessionCookie()
 				http.SetCookie(w, cookie)
 				responseEncoder.HandleError(ctx, w, fmt.Errorf("session expired"), &resp.Response{StatusCode: http.StatusForbidden})
 				return
@@ -49,7 +51,7 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 			}
 
 			if currentUser == nil {
-				cookie := createExpiredCookie("session_id")
+				cookie := createExpiredSessionCookie()
 				http.SetCookie(w, cookie)
 				responseEncoder.HandleError(ctx, w, fmt.Errorf("you have to log in or sign up to continue"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
@@ -67,9 +69,9 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 	}
 }
 
-func createExpiredCookie(name string) *http.Cookie {
+func createExpiredSessionCookie() *http.Cookie {
 	return &http.Cookie{
-		Name:    name,
+		Name:    sessionCookieName,
 		Value:   "",
 		Expires: time.Unix(0, 0),
 		MaxAge:  -1,

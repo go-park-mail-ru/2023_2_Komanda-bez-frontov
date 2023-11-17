@@ -12,7 +12,7 @@ import (
 func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userRepository repository.UserRepository, cookieExpiration time.Duration) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, err := r.Cookie("session_id")
+			session, err := r.Cookie(sessionCookieName)
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return
@@ -20,14 +20,14 @@ func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userR
 
 			sessionInDB, err := sessionRepository.FindByID(r.Context(), session.Value)
 			if err != nil || sessionInDB == nil {
-				cookie := createExpiredCookie("session_id")
+				cookie := createExpiredSessionCookie()
 				http.SetCookie(w, cookie)
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			if sessionInDB.CreatedAt.UnixMilli()+cookieExpiration.Milliseconds() < time.Now().UTC().UnixMilli() {
-				cookie := createExpiredCookie("session_id")
+				cookie := createExpiredSessionCookie()
 				http.SetCookie(w, cookie)
 				next.ServeHTTP(w, r)
 				return

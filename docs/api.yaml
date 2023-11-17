@@ -17,13 +17,21 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       security: []    # no authentication
       responses:
-        '204':
+        '200':
           description: logged in
           headers:
             Set-Cookie:
               schema:
                 type: string
                 example: session_id=abcde12345;
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/UserResponse'
         '400':
           description: bad data
           content:
@@ -53,13 +61,21 @@ paths:
               $ref: '#/components/schemas/SignupRequest'
       security: []    # no authentication
       responses:
-        '204':
-          description: logged in
+        '200':
+          description: signed up and logged in
           headers:
             Set-Cookie:
               schema:
                 type: string
                 example: session_id=abcde12345;
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/UserResponse'
         '400':
           description: bad data
           content:
@@ -110,6 +126,14 @@ paths:
       responses:
         '200':
           description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_user:
+                    type: object
+                    $ref: '#/components/schemas/UserResponse'
         '401':
           description: not authorized
           content:
@@ -139,7 +163,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/ProfileResponse'
         '401':
           description: not authorized
           content:
@@ -167,15 +195,21 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/UserUpdateRequest'
+              schema:
+                $ref: '#/components/schemas/UserUpdateRequest'
       responses:
         '200':
           description: success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      schema:
+                        $ref: '#/components/schemas/UserResponse'
         '401':
           description: not authorized
           content:
@@ -223,7 +257,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserAvatarResponse'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/UserAvatarResponse'
         '404':
           description: bad cookie
           content:
@@ -250,6 +288,14 @@ paths:
       responses:
         '200':
           description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResponse'
         '500':
           description: server error
           content:
@@ -273,7 +319,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FormsArrayResponse'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormsArrayResponse'
         '500':
           description: server error
           content:
@@ -296,7 +346,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FormResponse'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResponse'
         '404':
           description: form not found
           content:
@@ -344,7 +398,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/v1/forms/{id}/update:
     put:
-      summary: delete form by id
+      summary: update form by id
       security:
         - cookieAuth: []
       parameters:
@@ -354,13 +408,23 @@ paths:
             type: integer
           required: true
           description: integer id of a form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormRequest'
       responses:
         '200':
           description: success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FormResponse'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResponse'
         '403':
           description: unathaurized to update
           content:
@@ -408,6 +472,21 @@ components:
           type: string
     ErrorResponse:
       type: object
+    ProfileResponse:
+      type: object
+      required:  # List the required properties here
+        - email
+        - username
+        - first_name
+      properties:
+        email:
+          type: string
+        first_name:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: string
     UserResponse:
       type: object
       required:  # List the required properties here
@@ -466,7 +545,7 @@ components:
           type: string
         questions:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/QuestionRequest'
     FormResponse:
       type: object
@@ -487,7 +566,7 @@ components:
           type: string
         questions:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/QuestionResponse'
     FormsArrayResponse:
       type: object
@@ -496,7 +575,7 @@ components:
           type: integer
         forms:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/FormResponse'
     QuestionRequest:
       type: object
@@ -513,9 +592,11 @@ components:
         type:
           type: integer
           description: 1, 2 or 3
+        required:
+          type: boolean
         answers:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/AnswerRequest'
     QuestionResponse:
       type: object
@@ -525,6 +606,7 @@ components:
         - description
         - type
         - answers
+        - required
       properties:
         id:
           type: integer
@@ -532,12 +614,14 @@ components:
           type: string
         description:
           type: string
+        required:
+          type: boolean
         type:
           type: integer
           description: 1, 2 or 3
         answers:
           type: array
-          item:
+          items:
             $ref: '#/components/schemas/AnswerResponse'
     AnswerRequest:
       type: object

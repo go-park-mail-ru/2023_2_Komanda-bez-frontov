@@ -12,12 +12,12 @@ import (
 )
 
 type Question struct {
-	ID      int64   `db:"id"`
-	FormID  int64   `db:"form_id"`
-	Type    int     `db:"type"`
-	Title   string  `db:"title"`
-	Text    *string `db:"text"`
-	Shuffle bool    `db:"shuffle"`
+	ID       int64   `db:"id"`
+	FormID   int64   `db:"form_id"`
+	Type     int     `db:"type"`
+	Title    string  `db:"title"`
+	Text     *string `db:"text"`
+	Required bool    `db:"required"`
 }
 
 type questionDatabaseRepository struct {
@@ -50,11 +50,11 @@ func (r *questionDatabaseRepository) BatchInsert(ctx context.Context, questions 
 	questionBatch := &pgx.Batch{}
 	questionQuery := r.builder.
 		Insert(fmt.Sprintf("%s.question", r.db.GetSchema())).
-		Columns("title", "text", "type", "shuffle", "form_id").
+		Columns("title", "text", "type", "required", "form_id").
 		Suffix("RETURNING id")
 
 	for _, question := range questions {
-		q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Shuffle, formID).ToSql()
+		q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, formID).ToSql()
 		if err != nil {
 			return nil, err
 		}

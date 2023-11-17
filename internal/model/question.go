@@ -5,6 +5,6 @@ type Question struct {
 	Title       string    `json:"title,omitempty"`
 	Description *string   `json:"description,omitempty"`
 	Type        int       `json:"type" validate:"required,oneof=1 2 3"`
-	Shuffle     bool      `json:"shuffle,omitempty"`
+	Required    bool      `json:"required"`
 	Answers     []*Answer `json:"answers,omitempty"`
 }

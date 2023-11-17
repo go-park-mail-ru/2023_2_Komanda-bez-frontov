@@ -34,7 +34,7 @@ var (
 		"q.title",
 		"q.text",
 		"q.type",
-		"q.shuffle",
+		"q.required",
 		"a.id",
 		"a.answer_text",
 	}
@@ -197,11 +197,11 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 	questionBatch := &pgx.Batch{}
 	questionQuery := r.builder.
 		Insert(fmt.Sprintf("%s.question", r.db.GetSchema())).
-		Columns("title", "text", "type", "shuffle", "form_id").
+		Columns("title", "text", "type", "required", "form_id").
 		Suffix("RETURNING id")
 
 	for _, question := range form.Questions {
-		q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Shuffle, form.ID).ToSql()
+		q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, form.ID).ToSql()
 		if err != nil {
 			return nil, err
 		}
@@ -360,7 +360,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				Title:       info.question.Title,
 				Description: info.question.Text,
 				Type:        info.question.Type,
-				Shuffle:     info.question.Shuffle,
+				Required:    info.question.Required,
 			})
 			questionWasAppended[info.question.ID] = true
 		}
@@ -415,7 +415,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&question.Title,
 		&question.Text,
 		&question.Type,
-		&question.Shuffle,
+		&question.Required,
 		&answer.ID,
 		&answer.AnswerText,
 	)

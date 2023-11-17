@@ -240,6 +240,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/search:
+    get:
+      summary: Search forms based on the logged-in user
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: title
+          schema:
+            type: string
+          required: true
+          description: Title string for searching forms
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormsArrayResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/user/{username}/avatar:
     get:
       summary: returns current user avatar
@@ -396,6 +425,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/{id}/results:
+    get:
+      summary: Get results for a specific form
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the form for which results are requested
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResultResponse'
+        '404':
+          description: form not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/forms/{id}/update:
     put:
       summary: update form by id
@@ -535,6 +599,16 @@ components:
           type: string
         avatar:
           type: string
+    ParticipantResponse:
+      type: object
+      required:
+        - user
+        - completion_time
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        completion_time:
+          type: string
     FormRequest:
       type: object
       required:
@@ -547,6 +621,98 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QuestionRequest'
+    FormResultResponse:
+      type: object
+      properties:
+        form:
+          $ref: '#/components/schemas/FormResult'
+    FormResult:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - created_at
+        - author
+        - number_of_passages
+        - questions
+        - anonymous
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserResponse'
+        number_of_passages:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionResult'
+        anonymous:
+          type: boolean
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantResponse'
+    QuestionResult:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - type
+        - number_of_passages
+        - answers
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: integer
+        number_of_passages:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerResult'
+    AnswerResult:
+      type: object
+      required:
+        - created_at
+        - text
+        - selected_times
+      properties:
+        created_at:
+          type: string
+        text:
+          type: string
+        selected_times:
+          type: integer
+    FormResponseWithoutQuestions:
+      type: object
+      required:
+        - title
+        - id
+        - author
+        - created_at
+      properties:
+        title:
+          type: string
+        id:
+          type: integer
+        author:
+          $ref: '#/components/schemas/UserResponse'
+        created_at:
+          type: string
     FormResponse:
       type: object
       required:
@@ -568,6 +734,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QuestionResponse'
+    AnswersArrayResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerResponse'
     FormsArrayResponse:
       type: object
       properties:
@@ -576,7 +751,7 @@ components:
         forms:
           type: array
           items:
-            $ref: '#/components/schemas/FormResponse'
+            $ref: '#/components/schemas/FormResponseWithoutQuestions'
     QuestionRequest:
       type: object
       required:

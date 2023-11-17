@@ -713,6 +713,27 @@ components:
           $ref: '#/components/schemas/UserResponse'
         created_at:
           type: string
+    FormResponse:
+      type: object
+      required:
+        - title
+        - questions
+        - id
+        - author
+        - created_at
+      properties:
+        title:
+          type: string
+        id:
+          type: integer
+        author:
+           $ref: '#/components/schemas/UserResponse'
+        created_at:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionResponse'
     AnswersArrayResponse:
       type: object
       properties:

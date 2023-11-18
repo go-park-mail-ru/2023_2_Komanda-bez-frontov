@@ -38,11 +38,6 @@ var (
 		"a.id",
 		"a.answer_text",
 	}
-	formTitleSelectFields = []string{
-		"id",
-		"title",
-		"created_at",
-	}
 )
 
 type formDatabaseRepository struct {

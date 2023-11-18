@@ -38,6 +38,11 @@ var (
 		"a.id",
 		"a.answer_text",
 	}
+	formTitleSelectFields = []string{
+		"id",
+		"title",
+		"created_at",
+	}
 )
 
 type formDatabaseRepository struct {
@@ -88,12 +93,12 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.Fo
 }
 
 func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string) (forms []*model.FormTitle, err error) {
-	const query = `select title, id, created_at
-	FROM (select title, id, created_at, similarity(name, $1) as sim
-	FROM place
-	order by sim desc) as res
-	LIMIT $2`
 	const limit = 5
+	query := fmt.Sprintf(`select id, title, created_at
+	FROM (select title, id, created_at, similarity(title, $1::text) as sim
+	FROM %s.form
+	order by sim desc, created_at) as res
+	LIMIT $2::integer`, r.db.GetSchema())
 
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to build query: %e", err)
@@ -113,7 +118,7 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string) 
 		}
 	}()
 
-	rows, err := tx.Query(ctx, query)
+	rows, err := tx.Query(ctx, query, title, limit)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to execute query: %e", err)
 	}
@@ -509,9 +514,3 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 
 	return &fromRowReturn{form, author, question, answer}, nil
 }
-
-// select name, ts_rank_cd(to_tsvector(name), query) AS rank
-// 	FROM place, to_tsquery('Памтник') query
-// 	WHERE query @@ to_tsvector(name)
-// 	ORDER BY rank DESC
-// 	LIMIT 10;

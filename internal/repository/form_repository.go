@@ -87,6 +87,40 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.Fo
 	return r.fromRows(rows)
 }
 
+func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string) (forms []*model.FormTitle, err error) {
+	const query = `select title, id, created_at
+	FROM (select title, id, created_at, similarity(name, $1) as sim
+	FROM place
+	order by sim desc) as res
+	LIMIT $2`
+	const limit = 5
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_search failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_search failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_search failed to execute query: %e", err)
+	}
+
+	return r.searchTitleFromRows(rows)
+}
+
 func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.Form, err error) {
 	query, args, err := r.builder.
 		Select(selectFields...).
@@ -388,11 +422,57 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 	return forms, nil
 }
 
+func (r *formDatabaseRepository) searchTitleFromRows(rows pgx.Rows) ([]*model.FormTitle, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	formTitleArray := make([]*model.FormTitle, 0)
+
+	for rows.Next() {
+		info, err := r.formTitleFromRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		if info.form == nil {
+			continue
+		}
+
+		formTitleArray = append(formTitleArray, &model.FormTitle{
+			ID:        info.form.ID,
+			Title:     info.form.Title,
+			CreatedAt: info.form.CreatedAt,
+		})
+	}
+
+	return formTitleArray, nil
+}
+
 type fromRowReturn struct {
 	form     *Form
 	author   *User
 	question *Question
 	answer   *Answer
+}
+
+func (r *formDatabaseRepository) formTitleFromRow(row pgx.Row) (*fromRowReturn, error) {
+	form := &Form{}
+
+	err := row.Scan(
+		&form.ID,
+		&form.Title,
+		&form.CreatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
+	}
+
+	return &fromRowReturn{form, nil, nil, nil}, nil
 }
 
 func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
@@ -429,3 +509,9 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 
 	return &fromRowReturn{form, author, question, answer}, nil
 }
+
+// select name, ts_rank_cd(to_tsvector(name), query) AS rank
+// 	FROM place, to_tsquery('Памтник') query
+// 	WHERE query @@ to_tsvector(name)
+// 	ORDER BY rank DESC
+// 	LIMIT 10;

@@ -95,10 +95,6 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string) 
 	order by sim desc, created_at) as res
 	LIMIT $2::integer`, r.db.GetSchema())
 
-	if err != nil {
-		return nil, fmt.Errorf("form_repository form_search failed to build query: %e", err)
-	}
-
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to begin transaction: %e", err)
@@ -430,19 +426,19 @@ func (r *formDatabaseRepository) searchTitleFromRows(rows pgx.Rows) ([]*model.Fo
 	formTitleArray := make([]*model.FormTitle, 0)
 
 	for rows.Next() {
-		info, err := r.formTitleFromRow(rows)
+		form, err := r.formTitleFromRow(rows)
 		if err != nil {
 			return nil, err
 		}
 
-		if info.form == nil {
+		if form == nil {
 			continue
 		}
 
 		formTitleArray = append(formTitleArray, &model.FormTitle{
-			ID:        info.form.ID,
-			Title:     info.form.Title,
-			CreatedAt: info.form.CreatedAt,
+			ID:        form.ID,
+			Title:     form.Title,
+			CreatedAt: form.CreatedAt,
 		})
 	}
 
@@ -456,7 +452,7 @@ type fromRowReturn struct {
 	answer   *Answer
 }
 
-func (r *formDatabaseRepository) formTitleFromRow(row pgx.Row) (*fromRowReturn, error) {
+func (r *formDatabaseRepository) formTitleFromRow(row pgx.Row) (*Form, error) {
 	form := &Form{}
 
 	err := row.Scan(
@@ -472,7 +468,7 @@ func (r *formDatabaseRepository) formTitleFromRow(row pgx.Row) (*fromRowReturn, 
 		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
 	}
 
-	return &fromRowReturn{form, nil, nil, nil}, nil
+	return form, nil
 }
 
 func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {

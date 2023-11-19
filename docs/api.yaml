@@ -702,15 +702,12 @@ components:
       required:
         - title
         - id
-        - author
         - created_at
       properties:
         title:
           type: string
         id:
           type: integer
-        author:
-          $ref: '#/components/schemas/UserResponse'
         created_at:
           type: string
     FormResponse:

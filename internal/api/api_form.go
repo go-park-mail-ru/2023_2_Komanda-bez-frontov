@@ -67,6 +67,13 @@ func (c *FormAPIController) Routes() []Route {
 			Handler:      c.FormUpdate,
 			AuthRequired: true,
 		},
+		{
+			Name:         "FormSearch",
+			Method:       http.MethodGet,
+			Path:         "/forms/search",
+			Handler:      c.FormSearch,
+			AuthRequired: true,
+		},
 	}
 }
 
@@ -181,6 +188,19 @@ func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormSearch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	title := r.URL.Query().Get("title")
+	result, err := c.service.FormSearch(ctx, title)
+	if err != nil {
+		log.Error().Msgf("form_api form_search error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 

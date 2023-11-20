@@ -507,6 +507,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/passage:
+    post:
+      summary: saves passage answers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormPassageRequest'
+      responses:
+        '204':
+          description: success
+        '400':
+          description: passage contains invalid answers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: unathaurized for unanonymous form
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     LoginRequest:
@@ -812,6 +843,31 @@ components:
           type: integer
         text:
           type: string
+    PassageAnswerRequest:
+      type: object
+      required:
+        - answer_id
+        - question_id
+        - answer_text
+      properties:
+        answer_id:
+          type: integer
+        question_id:
+          type: integer
+        answer_text:
+          type: string
+    FormPassageRequest:
+      type: object
+      required:
+        - form_id
+        - passage_answers
+      properties:
+        form_id:
+          type: integer
+        passage_answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PassageAnswerRequest'
 
   securitySchemes:
     cookieAuth:

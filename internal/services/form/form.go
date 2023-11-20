@@ -19,7 +19,7 @@ type Service interface {
 	FormListByUser(ctx context.Context, username string) (*resp.Response, error)
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
-	FormSearch(ctx context.Context, title string) (*resp.Response, error)
+	FormSearch(ctx context.Context, title string, userId uint) (*resp.Response, error)
 }
 
 type formService struct {
@@ -159,8 +159,8 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 	return resp.NewResponse(http.StatusOK, form), nil
 }
 
-func (s *formService) FormSearch(ctx context.Context, title string) (*resp.Response, error) {
-	forms, err := s.formRepository.FormsSearch(ctx, title)
+func (s *formService) FormSearch(ctx context.Context, title string, userId uint) (*resp.Response, error) {
+	forms, err := s.formRepository.FormsSearch(ctx, title, userId)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

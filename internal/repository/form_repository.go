@@ -87,13 +87,14 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.Fo
 	return r.fromRows(rows)
 }
 
-func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string) (forms []*model.FormTitle, err error) {
+func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, userId uint) (forms []*model.FormTitle, err error) {
 	const limit = 5
 	query := fmt.Sprintf(`select id, title, created_at
 	FROM (select title, id, created_at, similarity(title, $1::text) as sim
 	FROM %s.form
+	WHERE author_id = $2::integer
 	order by sim desc, created_at) as res
-	LIMIT $2::integer`, r.db.GetSchema())
+	LIMIT $3::integer`, r.db.GetSchema())
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -109,7 +110,7 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string) 
 		}
 	}()
 
-	rows, err := tx.Query(ctx, query, title, limit)
+	rows, err := tx.Query(ctx, query, title, userId, limit)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to execute query: %e", err)
 	}

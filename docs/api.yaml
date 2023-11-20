@@ -507,7 +507,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/forms/passage:
+  /api/v1/forms/pass:
     post:
       summary: saves passage answers
       requestBody:

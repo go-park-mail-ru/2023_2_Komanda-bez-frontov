@@ -109,7 +109,7 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 			_ = tx.Rollback(ctx)
 		}
 	}()
-  
+
 	rows, err := tx.Query(ctx, query, title, userId, limit)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to execute query: %e", err)
@@ -286,6 +286,42 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 	}
 
 	return form, nil
+}
+
+func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userId uint64) error {
+	var err error
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("form_facade insert failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	passageAnswerBatch := &pgx.Batch{}
+	passageAnswerQuery := fmt.Sprintf(`INSERT INTO %s.passage_answer
+	(answer_text, question_id, user_id)
+	VALUES($1::text, $2::integer, $3::integer)`, r.db.GetSchema())
+
+	for _, passageAnswer := range formPassage.PassageAnswers {
+		passageAnswerBatch.Queue(passageAnswerQuery, passageAnswer.Text,
+			passageAnswer.QuestionID, userId)
+	}
+	_ = tx.SendBatch(ctx, passageAnswerBatch)
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.Form) (result *model.Form, err error) {

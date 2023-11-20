@@ -20,6 +20,7 @@ type Service interface {
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
 	FormSearch(ctx context.Context, title string, userId uint) (*resp.Response, error)
+	FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error)
 }
 
 type formService struct {
@@ -51,6 +52,22 @@ func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Res
 	}
 
 	return resp.NewResponse(http.StatusOK, result), nil
+}
+
+func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error) {
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+	if err := s.validate.Struct(formPassage); err != nil {
+		return resp.NewResponse(http.StatusBadRequest, nil), err
+	}
+
+	//TODO: добавить проверки для ответов, анонимность, required
+
+	err := s.formRepository.FormPassageSave(ctx, formPassage, uint64(currentUser.ID))
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	return resp.NewResponse(http.StatusOK, nil), nil
 }
 
 func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error) {

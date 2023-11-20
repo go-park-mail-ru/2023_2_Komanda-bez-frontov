@@ -74,6 +74,13 @@ func (c *FormAPIController) Routes() []Route {
 			Handler:      c.FormSearch,
 			AuthRequired: true,
 		},
+		{
+			Name:         "FormPassage",
+			Method:       http.MethodPost,
+			Path:         "/forms/pass",
+			Handler:      c.FormPass,
+			AuthRequired: false, //TODO: возможно false даже контекст не отдаст
+		},
 	}
 }
 
@@ -100,6 +107,36 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 	result, err := c.service.FormSave(r.Context(), &formSave)
 	if err != nil {
 		log.Error().Msgf("form_api form_save error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormPass(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	requestJSON, err := io.ReadAll(r.Body)
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	if err != nil {
+		log.Error().Msgf("form_api form_pass body read error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	var formPassage model.FormPassage
+	if err = json.Unmarshal(requestJSON, &formPassage); err != nil {
+		log.Error().Msgf("form_api form_passage unmarshal error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	result, err := c.service.FormPass(ctx, &formPassage)
+	if err != nil {
+		log.Error().Msgf("form_api form_pass error: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}

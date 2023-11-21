@@ -212,7 +212,7 @@ func (c *FormAPIController) FormSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *FormAPIController) FormResults(w http.ResponseWriter, r *http.Request) {
-    ctx := r.Context()
+	ctx := r.Context()
 
 	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
 	if err != nil {
@@ -228,17 +228,16 @@ func (c *FormAPIController) FormResults(w http.ResponseWriter, r *http.Request) 
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
-	
-    result, err := c.service.FormResults(ctx, id)
-    if err != nil {
-        log.Error().Msgf("form_api form_results error: %e", err)
-        c.responseEncoder.HandleError(ctx, w, err, result)
-        return
-    }
 
-    c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	result, err := c.service.FormResults(ctx, id)
+	if err != nil {
+		log.Error().Msgf("form_api form_results error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
-
 
 func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

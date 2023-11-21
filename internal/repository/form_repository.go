@@ -213,8 +213,8 @@ func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.Fo
 		}
 
 		answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], &model.AnswerResult{
-			Description:     info.answerResult.Description,
-			SelectedTimes:   info.answerResult.SelectedTimes,
+			Description:      info.answerResult.Description,
+			SelectedTimes:    info.answerResult.SelectedTimes,
 			NumberOfPassages: info.answerResult.NumberOfPassages,
 		})
 	}
@@ -233,7 +233,7 @@ func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.Fo
 }
 
 type formResultsFromRowReturn struct {
-	formResult    *model.FormResult
+	formResult     *model.FormResult
 	questionResult *model.QuestionResult
 	answerResult   *model.AnswerResult
 }
@@ -274,7 +274,6 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 
 	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
 }
-
 
 func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.Form, err error) {
 	query, args, err := r.builder.

@@ -50,7 +50,6 @@ func (s *formService) FormResults(ctx context.Context, formID int64) (*resp.Resp
 	return resp.NewResponse(http.StatusOK, formResults), nil
 }
 
-
 func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Response, error) {
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 	if err := s.validate.Struct(form); err != nil {

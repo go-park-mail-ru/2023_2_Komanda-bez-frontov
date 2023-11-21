@@ -6,7 +6,7 @@ type Answer struct {
 }
 
 type AnswerResult struct {
-	Description     string `json:"text"`
-	SelectedTimes   int    `json:"selected_times"`
-	NumberOfPassages int   `json:"number_of_passages"`
+	Description      string `json:"text"`
+	SelectedTimes    int    `json:"selected_times"`
+	NumberOfPassages int    `json:"number_of_passages"`
 }

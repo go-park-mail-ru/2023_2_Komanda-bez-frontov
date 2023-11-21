@@ -27,11 +27,13 @@ type FormTitleList struct {
 }
 
 type FormResult struct {
-	ID               int64             `json:"id"`
-	Title            string            `json:"title"`
-	Description      string            `json:"description"`
-	CreatedAt        time.Time         `json:"created_at"`
-	Author           *UserGet          `json:"author"`
-	NumberOfPassages int               `json:"number_of_passages"`
-	Questions        []*QuestionResult `json:"questions"`
+	ID                   int64             `json:"id"`
+	Title                string            `json:"title"`
+	Description          string            `json:"description"`
+	CreatedAt            time.Time         `json:"created_at"`
+	Author               *UserGet          `json:"author"`
+	NumberOfPassagesForm int               `json:"number_of_passages"`
+	Questions            []*QuestionResult `json:"questions"`
+	Anonymous            bool              `json:"is_anonymous"`
+	// Participants     []*UserGet
 }

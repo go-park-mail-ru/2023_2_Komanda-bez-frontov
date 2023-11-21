@@ -10,11 +10,11 @@ type Question struct {
 }
 
 type QuestionResult struct {
-	ID               int64           `json:"id"`
-	Title            string          `json:"title"`
-	Description      string          `json:"description"`
-	Type             int             `json:"type"`
-	Required         bool            `json:"required"`
-	NumberOfPassages int             `json:"number_of_passages"`
-	Answers          []*AnswerResult `json:"answers"`
+	ID                       int64           `json:"id"`
+	Title                    string          `json:"title"`
+	Description              string          `json:"description"`
+	Type                     int             `json:"type"`
+	Required                 bool            `json:"required"`
+	NumberOfPassagesQuestion int             `json:"number_of_passages"`
+	Answers                  []*AnswerResult `json:"answers"`
 }

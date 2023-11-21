@@ -117,6 +117,165 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string) 
 	return r.searchTitleFromRows(rows)
 }
 
+func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {
+	formQuery, args, err := r.builder.
+		Select(selectFields...).
+		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"f.id": id}).
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, formQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results failed to execute query: %e", err)
+	}
+
+	formResults, err := r.formResultsFromRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(formResults) == 0 {
+		return nil, nil
+	}
+
+	return formResults[0], nil
+}
+
+func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.FormResult, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	formResultMap := map[int64]*model.FormResult{}
+	questionsByFormID := map[int64][]*model.QuestionResult{}
+	answersByQuestionID := map[int64][]*model.AnswerResult{}
+
+	questionWasAppended := map[int64]bool{}
+
+	for rows.Next() {
+		info, err := r.formResultsFromRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		if info.formResult == nil {
+			continue
+		}
+
+		if _, ok := formResultMap[info.formResult.ID]; !ok {
+			formResultMap[info.formResult.ID] = &model.FormResult{
+				ID:               info.formResult.ID,
+				Title:            info.formResult.Title,
+				Description:      info.formResult.Description,
+				CreatedAt:        info.formResult.CreatedAt,
+				Author:           info.formResult.Author,
+				NumberOfPassages: info.formResult.NumberOfPassages,
+				Questions:        []*model.QuestionResult{},
+			}
+		}
+
+		if _, ok := questionWasAppended[info.questionResult.ID]; !ok {
+			questionsByFormID[info.formResult.ID] = append(questionsByFormID[info.formResult.ID], &model.QuestionResult{
+				ID:               info.questionResult.ID,
+				Title:            info.questionResult.Title,
+				Description:      info.questionResult.Description,
+				Type:             info.questionResult.Type,
+				Required:         info.questionResult.Required,
+				NumberOfPassages: info.questionResult.NumberOfPassages,
+				Answers:          []*model.AnswerResult{},
+			})
+			questionWasAppended[info.questionResult.ID] = true
+		}
+
+		if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
+			answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0, 1)
+		}
+
+		answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], &model.AnswerResult{
+			Description:     info.answerResult.Description,
+			SelectedTimes:   info.answerResult.SelectedTimes,
+			NumberOfPassages: info.answerResult.NumberOfPassages,
+		})
+	}
+
+	formResults := make([]*model.FormResult, 0, len(formResultMap))
+
+	for _, formResult := range formResultMap {
+		formResult.Questions = questionsByFormID[formResult.ID]
+		for _, questionResult := range formResult.Questions {
+			questionResult.Answers = answersByQuestionID[questionResult.ID]
+		}
+		formResults = append(formResults, formResult)
+	}
+
+	return formResults, nil
+}
+
+type formResultsFromRowReturn struct {
+	formResult    *model.FormResult
+	questionResult *model.QuestionResult
+	answerResult   *model.AnswerResult
+}
+
+func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFromRowReturn, error) {
+	formResult := &model.FormResult{}
+	questionResult := &model.QuestionResult{}
+	answerResult := &model.AnswerResult{}
+
+	err := row.Scan(
+		&formResult.ID,
+		&formResult.Title,
+		&formResult.Description,
+		&formResult.CreatedAt,
+		&formResult.Author.ID,
+		&formResult.Author.Username,
+		&formResult.Author.FirstName,
+		&formResult.Author.LastName,
+		&formResult.Author.Email,
+		&formResult.NumberOfPassages,
+		&questionResult.ID,
+		&questionResult.Title,
+		&questionResult.Description,
+		&questionResult.Type,
+		&questionResult.Required,
+		&questionResult.NumberOfPassages,
+		&answerResult.Description,
+		&answerResult.SelectedTimes,
+		&answerResult.NumberOfPassages,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
+	}
+
+	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
+}
+
+
 func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.Form, err error) {
 	query, args, err := r.builder.
 		Select(selectFields...).

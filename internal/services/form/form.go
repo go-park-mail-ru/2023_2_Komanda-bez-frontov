@@ -20,6 +20,7 @@ type Service interface {
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
 	FormSearch(ctx context.Context, title string) (*resp.Response, error)
+	FormResults(ctx context.Context, id int64) (*resp.Response, error)
 }
 
 type formService struct {
@@ -35,6 +36,20 @@ func NewFormService(formRepository repository.FormRepository, questionRepository
 		questionRepository: questionRepository,
 	}
 }
+
+func (s *formService) FormResults(ctx context.Context, formID int64) (*resp.Response, error) {
+	formResults, err := s.formRepository.FormResults(ctx, formID)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if formResults == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	return resp.NewResponse(http.StatusOK, formResults), nil
+}
+
 
 func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Response, error) {
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)

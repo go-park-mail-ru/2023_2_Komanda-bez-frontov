@@ -25,3 +25,13 @@ type FormTitleList struct {
 	CollectionResponse
 	FormTitles []*FormTitle `json:"forms" validate:"required"`
 }
+
+type FormResult struct {
+	ID               int64             `json:"id"`
+	Title            string            `json:"title"`
+	Description      string            `json:"description"`
+	CreatedAt        time.Time         `json:"created_at"`
+	Author           *UserGet          `json:"author"`
+	NumberOfPassages int               `json:"number_of_passages"`
+	Questions        []*QuestionResult `json:"questions"`
+}

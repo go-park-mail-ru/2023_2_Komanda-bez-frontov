@@ -76,8 +76,8 @@ func (c *FormAPIController) Routes() []Route {
 		},
 		{
 			Name:         "FormResults",
-			Method:       http.MethodPost,
-			Path:         "/surveys/results/save",
+			Method:       http.MethodGet,
+			Path:         "/forms/{id}/results",
 			Handler:      c.FormResults,
 			AuthRequired: true,
 		},

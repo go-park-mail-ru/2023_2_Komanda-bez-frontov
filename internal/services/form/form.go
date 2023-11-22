@@ -19,7 +19,7 @@ type Service interface {
 	FormListByUser(ctx context.Context, username string) (*resp.Response, error)
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
-	FormSearch(ctx context.Context, title string) (*resp.Response, error)
+	FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error)
 	FormResults(ctx context.Context, id int64) (*resp.Response, error)
 }
 

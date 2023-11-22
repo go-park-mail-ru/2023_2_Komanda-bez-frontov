@@ -148,6 +148,10 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 	return r.searchTitleFromRows(rows)
 }
 
+// FormResults извлекает результаты формы по ID формы.
+// Эта функция строит SQL-запрос для получения данных, связанных с формой,
+// из базы данных, включая информацию о форме, вопросах, ответах и участниках.
+// Результат представляет собой структурированный model.FormResult.
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {
 	formQuery, args, err := r.builder.
 		Select(selectFieldsResults...).
@@ -196,6 +200,12 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 	return formResults[0], nil
 }
 
+// formResultsFromRows обрабатывает строки, полученные из результата запроса к базе данных,
+// и создает список структурированных результатов формы.
+// Она заполняет карты для организации вопросов и ответов по ID формы
+// и вычисляет количество прохождений для каждой формы.
+// Кроме того, она извлекает информацию о участниках для каждой формы,
+// вызывая функцию getParticipantsForForm.
 func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows pgx.Rows) ([]*model.FormResult, error) {
 	defer func() {
 		rows.Close()
@@ -285,6 +295,9 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 	return formResults, nil
 }
 
+// getParticipantsForForm извлекает информацию о участниках (UserGet) для данной формы.
+// Она строит SQL-запрос для выбора уникальных участников, которые ответили на вопросы в форме.
+// Результат представляет собой слайс структурированных model.UserGet.
 func (r *formDatabaseRepository) getParticipantsForForm(ctx context.Context, formID int64) ([]*model.UserGet, error) {
 	query, args, err := r.builder.
 		Select("u.id", "u.username", "u.first_name", "u.last_name", "u.email").
@@ -340,6 +353,9 @@ type formResultsFromRowReturn struct {
 	participantInfo *model.UserGet
 }
 
+// formResultsFromRowReturn представляет структурированные данные,
+// возвращаемые при обработке одной строки в результате запроса к базе данных.
+// Она включает информацию о форме, вопросе, ответе и участнике.
 func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFromRowReturn, error) {
 	formResult := &model.FormResult{}
 	questionResult := &model.QuestionResult{}

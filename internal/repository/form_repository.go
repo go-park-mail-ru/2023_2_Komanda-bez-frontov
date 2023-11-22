@@ -222,13 +222,12 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 				Description:          info.formResult.Description,
 				CreatedAt:            info.formResult.CreatedAt,
 				Author:               info.formResult.Author,
-				NumberOfPassagesForm: info.formResult.NumberOfPassagesForm,
+				NumberOfPassagesForm: 0,
 				Questions:            []*model.QuestionResult{},
 				Anonymous:            info.formResult.Anonymous,
 			}
 		}
 	
-		// Проверяем наличие вопроса в форме
 		var questionExists bool
 		var existingQuestion *model.QuestionResult
 	
@@ -238,8 +237,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 				break
 			}
 		}
-	
-		// Если вопрос уже существует, увеличиваем значения
+
 		if questionExists {
 			existingQuestion.NumberOfPassagesQuestion++
 			for _, existingAnswer := range existingQuestion.Answers {
@@ -249,13 +247,9 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 				}
 			}
 		} else {
-			// Если вопроса нет, добавляем его
 			formResultMap[info.formResult.ID].Questions = append(formResultMap[info.formResult.ID].Questions, info.questionResult)
-			info.questionResult.NumberOfPassagesQuestion++
-			info.answerResult.SelectedTimesAnswer++
 			info.questionResult.Answers = append(info.questionResult.Answers, info.answerResult)
 	
-			// Добавляем вопрос и ответ в мапы для дальнейшего использования
 			if _, ok := questionsByFormID[info.formResult.ID]; !ok {
 				questionsByFormID[info.formResult.ID] = make([]*model.QuestionResult, 0)
 			}
@@ -268,6 +262,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 	
 			answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
 		}
+		formResultMap[info.formResult.ID].NumberOfPassagesForm++
 	}
 
     formResults := make([]*model.FormResult, 0, len(formResultMap))

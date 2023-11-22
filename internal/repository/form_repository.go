@@ -154,7 +154,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
-		LeftJoin(fmt.Sprintf("%s.passage_answer as pa ON q.id = pa.question_id", r.db.GetSchema())). // Добавлено соединение с passage_answer
+		LeftJoin(fmt.Sprintf("%s.passage_answer as pa ON q.id = pa.question_id", r.db.GetSchema())).
 		Where(squirrel.Eq{"f.id": id}).
 		GroupBy("f.id, f.title, f.created_at, f.description, f.author_id, u.id, u.username, u.first_name, u.last_name, u.email, q.id, q.title, q.text, q.type, q.required, a.id, a.answer_text, pa.user_id"). // Добавлено условие для группировки по user_id из passage_answer
 		ToSql()
@@ -206,40 +206,69 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
     answersByQuestionID := map[int64][]*model.AnswerResult{}
 
     for rows.Next() {
-        info, err := r.formResultsFromRow(rows)
-        if err != nil {
-            return nil, err
-        }
-
-        if info.formResult == nil {
-            continue
-        }
-
-        if _, ok := formResultMap[info.formResult.ID]; !ok {
-            formResultMap[info.formResult.ID] = &model.FormResult{
-                ID:                   info.formResult.ID,
-                Title:                info.formResult.Title,
-                Description:          info.formResult.Description,
-                CreatedAt:            info.formResult.CreatedAt,
-                Author:               info.formResult.Author,
-                NumberOfPassagesForm: info.formResult.NumberOfPassagesForm,
-                Questions:            []*model.QuestionResult{},
-                Anonymous:            info.formResult.Anonymous,
-            }
-        }
-
-        if _, ok := questionsByFormID[info.formResult.ID]; !ok {
-            questionsByFormID[info.formResult.ID] = make([]*model.QuestionResult, 0)
-        }
-
-        questionsByFormID[info.formResult.ID] = append(questionsByFormID[info.formResult.ID], info.questionResult)
-
-        if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
-            answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
-        }
-
-        answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
-    }
+		info, err := r.formResultsFromRow(rows)
+		if err != nil {
+			return nil, err
+		}
+	
+		if info.formResult == nil {
+			continue
+		}
+	
+		if _, ok := formResultMap[info.formResult.ID]; !ok {
+			formResultMap[info.formResult.ID] = &model.FormResult{
+				ID:                   info.formResult.ID,
+				Title:                info.formResult.Title,
+				Description:          info.formResult.Description,
+				CreatedAt:            info.formResult.CreatedAt,
+				Author:               info.formResult.Author,
+				NumberOfPassagesForm: info.formResult.NumberOfPassagesForm,
+				Questions:            []*model.QuestionResult{},
+				Anonymous:            info.formResult.Anonymous,
+			}
+		}
+	
+		// Проверяем наличие вопроса в форме
+		var questionExists bool
+		var existingQuestion *model.QuestionResult
+	
+		for _, existingQuestion = range formResultMap[info.formResult.ID].Questions {
+			if existingQuestion.ID == info.questionResult.ID {
+				questionExists = true
+				break
+			}
+		}
+	
+		// Если вопрос уже существует, увеличиваем значения
+		if questionExists {
+			existingQuestion.NumberOfPassagesQuestion++
+			for _, existingAnswer := range existingQuestion.Answers {
+				if existingAnswer.ID == info.answerResult.ID {
+					existingAnswer.SelectedTimesAnswer++
+					break
+				}
+			}
+		} else {
+			// Если вопроса нет, добавляем его
+			formResultMap[info.formResult.ID].Questions = append(formResultMap[info.formResult.ID].Questions, info.questionResult)
+			info.questionResult.NumberOfPassagesQuestion++
+			info.answerResult.SelectedTimesAnswer++
+			info.questionResult.Answers = append(info.questionResult.Answers, info.answerResult)
+	
+			// Добавляем вопрос и ответ в мапы для дальнейшего использования
+			if _, ok := questionsByFormID[info.formResult.ID]; !ok {
+				questionsByFormID[info.formResult.ID] = make([]*model.QuestionResult, 0)
+			}
+	
+			questionsByFormID[info.formResult.ID] = append(questionsByFormID[info.formResult.ID], info.questionResult)
+	
+			if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
+				answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
+			}
+	
+			answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
+		}
+	}
 
     formResults := make([]*model.FormResult, 0, len(formResultMap))
 
@@ -249,7 +278,6 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
             questionResult.Answers = answersByQuestionID[questionResult.ID]
         }
 
-        // Добавляем информацию о пользователях, ответивших на вопросы в этой форме
         participants, err := r.getParticipantsForForm(ctx, formResult.ID)
         if err != nil {
             return nil, err

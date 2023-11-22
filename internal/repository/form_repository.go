@@ -190,80 +190,85 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 }
 
 func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.FormResult, error) {
-	defer func() {
-		rows.Close()
-	}()
+    defer func() {
+        rows.Close()
+    }()
 
-	formResultMap := map[int64]*model.FormResult{}
-	questionsByFormID := map[int64][]*model.QuestionResult{}
-	answersByQuestionID := map[int64][]*model.AnswerResult{}
+    formResultMap := map[int64]*model.FormResult{}
+    questionsByFormID := map[int64][]*model.QuestionResult{}
+    answersByQuestionID := map[int64][]*model.AnswerResult{}
 
-	questionWasAppended := map[int64]bool{}
+    questionWasAppended := map[int64]bool{}
 
-	for rows.Next() {
-		info, err := r.formResultsFromRow(rows)
-		if err != nil {
-			return nil, err
+    for rows.Next() {
+        info, err := r.formResultsFromRow(rows)
+        if err != nil {
+            return nil, err
+        }
+
+        if info.formResult == nil {
+            continue
+        }
+
+        if _, ok := formResultMap[info.formResult.ID]; !ok {
+            formResultMap[info.formResult.ID] = &model.FormResult{
+                ID:                   info.formResult.ID,
+                Title:                info.formResult.Title,
+                Description:          info.formResult.Description,
+                CreatedAt:            info.formResult.CreatedAt,
+                Author:               info.formResult.Author,
+                NumberOfPassagesForm: info.formResult.NumberOfPassagesForm,
+                Questions:            []*model.QuestionResult{},
+                Anonymous:            info.formResult.Anonymous,
+                Participants:         []*model.UserGet{}, // Добавлено поле для участников формы
+            }
+        }
+		if !info.formResult.Anonymous {
+        	formResultMap[info.formResult.ID].Participants = append(formResultMap[info.formResult.ID].Participants, info.participantInfo)
 		}
+        if _, ok := questionWasAppended[info.questionResult.ID]; !ok {
+            questionsByFormID[info.formResult.ID] = append(questionsByFormID[info.formResult.ID], &model.QuestionResult{
+                ID:                       info.questionResult.ID,
+                Title:                    info.questionResult.Title,
+                Description:              info.questionResult.Description,
+                Type:                     info.questionResult.Type,
+                Required:                 info.questionResult.Required,
+                NumberOfPassagesQuestion: info.questionResult.NumberOfPassagesQuestion,
+                Answers:                  []*model.AnswerResult{},
+            })
+            questionWasAppended[info.questionResult.ID] = true
+        }
 
-		if info.formResult == nil {
-			continue
-		}
+        if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
+            answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0, 1)
+        }
 
-		if _, ok := formResultMap[info.formResult.ID]; !ok {
-			formResultMap[info.formResult.ID] = &model.FormResult{
-				ID:                   info.formResult.ID,
-				Title:                info.formResult.Title,
-				Description:          info.formResult.Description,
-				CreatedAt:            info.formResult.CreatedAt,
-				Author:               info.formResult.Author,
-				NumberOfPassagesForm: info.formResult.NumberOfPassagesForm,
-				Questions:            []*model.QuestionResult{},
-				Anonymous:            info.formResult.Anonymous,
-			}
-		}
+        answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], &model.AnswerResult{
+            ID:                  info.answerResult.ID,
+            Text:                info.answerResult.Text,
+            SelectedTimesAnswer: info.answerResult.SelectedTimesAnswer,
+        })
+    }
 
-		if _, ok := questionWasAppended[info.questionResult.ID]; !ok {
-			questionsByFormID[info.formResult.ID] = append(questionsByFormID[info.formResult.ID], &model.QuestionResult{
-				ID:                       info.questionResult.ID,
-				Title:                    info.questionResult.Title,
-				Description:              info.questionResult.Description,
-				Type:                     info.questionResult.Type,
-				Required:                 info.questionResult.Required,
-				NumberOfPassagesQuestion: info.questionResult.NumberOfPassagesQuestion,
-				Answers:                  []*model.AnswerResult{},
-			})
-			questionWasAppended[info.questionResult.ID] = true
-		}
+    formResults := make([]*model.FormResult, 0, len(formResultMap))
 
-		if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
-			answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0, 1)
-		}
+    for _, formResult := range formResultMap {
+        formResult.Questions = questionsByFormID[formResult.ID]
+        for _, questionResult := range formResult.Questions {
+            questionResult.Answers = answersByQuestionID[questionResult.ID]
+        }
+        formResults = append(formResults, formResult)
+    }
 
-		answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], &model.AnswerResult{
-			ID:                  info.answerResult.ID,
-			Text:                info.answerResult.Text,
-			SelectedTimesAnswer: info.answerResult.SelectedTimesAnswer,
-		})
-	}
-
-	formResults := make([]*model.FormResult, 0, len(formResultMap))
-
-	for _, formResult := range formResultMap {
-		formResult.Questions = questionsByFormID[formResult.ID]
-		for _, questionResult := range formResult.Questions {
-			questionResult.Answers = answersByQuestionID[questionResult.ID]
-		}
-		formResults = append(formResults, formResult)
-	}
-
-	return formResults, nil
+    return formResults, nil
 }
+
 
 type formResultsFromRowReturn struct {
 	formResult     *model.FormResult
 	questionResult *model.QuestionResult
 	answerResult   *model.AnswerResult
+	participantInfo *model.UserGet
 }
 
 func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFromRowReturn, error) {
@@ -271,6 +276,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 	questionResult := &model.QuestionResult{}
 	answerResult := &model.AnswerResult{}
 	formResult.Author = &model.UserGet{}
+	participantInfo := &model.UserGet{}
 
 	err := row.Scan(
 		&formResult.ID,
@@ -302,8 +308,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
 	}
 
-	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
-}
+    return &formResultsFromRowReturn{formResult, questionResult, answerResult, participantInfo}, nil}
 
 func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.Form, err error) {
 	query, args, err := r.builder.

@@ -52,6 +52,11 @@ var (
 		"u.first_name",
 		"u.last_name",
 		"u.email",
+		"u.id",
+		"u.username",
+		"u.first_name",
+		"u.last_name",
+		"u.email",
 		"q.id",
 		"q.title",
 		"q.text",
@@ -308,14 +313,15 @@ type formResultsFromRowReturn struct {
     formResult      *model.FormResult
     questionResult  *model.QuestionResult
     answerResult    *model.AnswerResult
-    participantInfo *model.UserGet // Добавлено поле для информации о пользователе
+    participantInfo *model.UserGet
 }
 
 func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFromRowReturn, error) {
     formResult := &model.FormResult{}
     questionResult := &model.QuestionResult{}
     answerResult := &model.AnswerResult{}
-    participantInfo := &model.UserGet{} // Новая переменная для информации о пользователе
+	formResult.Author = &model.UserGet{}
+    participantInfo := &model.UserGet{}
 
     err := row.Scan(
         &formResult.ID,
@@ -323,6 +329,11 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
         &formResult.CreatedAt,
         &formResult.Description,
         &formResult.Anonymous,
+		&formResult.Author.ID,
+        &formResult.Author.Username,
+        &formResult.Author.FirstName,
+        &formResult.Author.LastName,
+        &formResult.Author.Email,
 		&participantInfo.ID,
         &participantInfo.Username,
         &participantInfo.FirstName,

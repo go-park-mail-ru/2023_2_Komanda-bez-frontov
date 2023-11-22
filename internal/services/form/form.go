@@ -173,8 +173,8 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 	return resp.NewResponse(http.StatusOK, form), nil
 }
 
-func (s *formService) FormSearch(ctx context.Context, title string) (*resp.Response, error) {
-	forms, err := s.formRepository.FormsSearch(ctx, title)
+func (s *formService) FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error) {
+	forms, err := s.formRepository.FormsSearch(ctx, title, userID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

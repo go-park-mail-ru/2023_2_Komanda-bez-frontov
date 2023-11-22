@@ -59,7 +59,6 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 	if err := s.validate.Struct(formPassage); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
-
 	//TODO: добавить проверки для ответов, анонимность, required
 
 	err := s.formRepository.FormPassageSave(ctx, formPassage, uint64(currentUser.ID))

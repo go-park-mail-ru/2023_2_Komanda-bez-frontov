@@ -314,7 +314,8 @@ func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassag
 		passageAnswerBatch.Queue(passageAnswerQuery, passageAnswer.Text,
 			passageAnswer.QuestionID, userId)
 	}
-	_ = tx.SendBatch(ctx, passageAnswerBatch)
+	answerBatch := tx.SendBatch(ctx, passageAnswerBatch)
+	answerBatch.Close()
 
 	err = tx.Commit(ctx)
 	if err != nil {

@@ -35,5 +35,5 @@ type FormResult struct {
 	NumberOfPassagesForm int               `json:"number_of_passages"`
 	Questions            []*QuestionResult `json:"questions"`
 	Anonymous            bool              `json:"is_anonymous"`
-    Participants         []*UserGet        `json:"participants,omitempty"`
+	Participants         []*UserGet        `json:"participants,omitempty"`
 }

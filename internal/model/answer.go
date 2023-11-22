@@ -6,7 +6,7 @@ type Answer struct {
 }
 
 type AnswerResult struct {
-	ID                  int64 `json:"id"`
+	ID                  int64  `json:"id"`
 	Text                string `json:"text"`
 	SelectedTimesAnswer int    `json:"selected_times"`
 }

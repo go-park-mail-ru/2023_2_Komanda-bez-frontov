@@ -55,13 +55,18 @@ func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Res
 }
 
 func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error) {
-	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+	value := ctx.Value(model.ContextCurrentUser)
+	userID := 0
+	if value != nil {
+		currentUser := value.(*model.UserGet)
+		userID = int(currentUser.ID)
+	}
 	if err := s.validate.Struct(formPassage); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 	//TODO: добавить проверки для ответов, анонимность, required
 
-	err := s.formRepository.FormPassageSave(ctx, formPassage, uint64(currentUser.ID))
+	err := s.formRepository.FormPassageSave(ctx, formPassage, uint64(userID))
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

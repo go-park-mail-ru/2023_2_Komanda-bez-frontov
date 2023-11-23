@@ -17,11 +17,15 @@ begin
  from form
  where id = passage_form_id;
 
- if anon = true and user_id is null then
-    return true;
- elsif anon = false and user_id is not null then
-    return true;
-end if;
+   if anon then
+      if user_id is null then
+         return true;
+      end if;
+   elsif not anon then
+      if user_id is not null then
+         return true;
+      end if;
+   end if;
  return false;
 end;
 $$;

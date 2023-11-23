@@ -79,7 +79,7 @@ func (c *FormAPIController) Routes() []Route {
 			Method:       http.MethodPost,
 			Path:         "/forms/pass",
 			Handler:      c.FormPass,
-			AuthRequired: false, //TODO: возможно false даже контекст не отдаст
+			AuthRequired: false,
 		},
 	}
 }

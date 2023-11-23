@@ -74,6 +74,10 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
+	if !existingForm.Anonymous && userID == 0 {
+		return resp.NewResponse(http.StatusUnauthorized, nil), nil
+	}
+
 	var validator FormValidator
 	err = validator.ValidateFormPassage(formPassage, existingForm)
 	if err != nil {

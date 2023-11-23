@@ -17,6 +17,7 @@ type Form struct {
 	ID        int64     `db:"id"`
 	AuthorID  int64     `db:"author_id"`
 	CreatedAt time.Time `db:"created_at"`
+	Anonymous bool      `db:"anonymous"`
 }
 
 var (
@@ -25,6 +26,7 @@ var (
 		"f.title",
 		"f.created_at",
 		"f.author_id",
+		"f.anonymous",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -520,6 +522,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&form.Title,
 		&form.CreatedAt,
 		&form.AuthorID,
+		&form.Anonymous,
 		&author.ID,
 		&author.Username,
 		&author.FirstName,

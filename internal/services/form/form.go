@@ -2,6 +2,7 @@ package form
 
 import (
 	"context"
+	"errors"
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/repository"
 	"net/http"
@@ -10,6 +11,13 @@ import (
 	resp "go-form-hub/internal/services/service_response"
 
 	validator "github.com/go-playground/validator/v10"
+)
+
+var (
+	ErrMultipleAnswers            = errors.New("multiple answers given to single answer question")
+	ErrQuestionDoesntExist        = errors.New("answer to non-existent question was given")
+	ErrAnswerDoesntExist          = errors.New("non selectable answer was given")
+	ErrRequiredQuestionUnanswered = errors.New("required question was not answered")
 )
 
 type Service interface {
@@ -65,7 +73,16 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 
-	err := s.formRepository.FormPassageSave(ctx, formPassage, uint64(userID))
+	existingForm, err := s.formRepository.FindByID(ctx, int64(*formPassage.FormID))
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if existingForm == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	err = s.formRepository.FormPassageSave(ctx, formPassage, uint64(userID))
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -191,4 +208,78 @@ func (s *formService) FormSearch(ctx context.Context, title string, userID uint)
 	formTitleList.Count = len(forms)
 
 	return resp.NewResponse(http.StatusOK, formTitleList), nil
+}
+
+func validatePassageAnswers(formPassage *model.FormPassage, form *model.Form) error {
+	questionMap := questionMapFromArray(form.Questions)
+	foundQuestionsMap := make(map[int64]bool)
+	foundAnswerMap := make(map[int64]bool)
+
+	for _, passageAnswer := range formPassage.PassageAnswers {
+		question, found := questionMap[*passageAnswer.QuestionID]
+		if !found {
+			return ErrQuestionDoesntExist
+		}
+
+		if foundQuestionsMap[*passageAnswer.QuestionID] && question.Type != 3 {
+			return ErrMultipleAnswers
+		}
+		foundQuestionsMap[*passageAnswer.QuestionID] = true
+
+		if question.Type == 1 {
+			continue
+		}
+
+		if question.Type == 2 {
+			found := false
+			for _, answer := range question.Answers {
+				if answer.Text == passageAnswer.Text {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				return ErrAnswerDoesntExist
+			}
+			continue
+		}
+
+		if question.Type == 3 {
+			found := false
+			for _, answer := range question.Answers {
+				if answer.Text == passageAnswer.Text {
+					_, questionFound := foundAnswerMap[*answer.ID]
+					if questionFound {
+						return ErrMultipleAnswers
+					}
+					foundAnswerMap[*answer.ID] = true
+
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				return ErrAnswerDoesntExist
+			}
+			continue
+		}
+	}
+
+	for questionID, found := range foundQuestionsMap {
+		if !found && questionMap[questionID].Required {
+			return ErrRequiredQuestionUnanswered
+		}
+	}
+
+	return nil
+}
+
+func questionMapFromArray(questions []*model.Question) map[int64]*model.Question {
+	questionMap := make(map[int64]*model.Question)
+	for _, question := range questions {
+		questionMap[*question.ID] = question
+	}
+	return questionMap
 }

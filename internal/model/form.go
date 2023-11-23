@@ -27,12 +27,12 @@ type FormTitleList struct {
 }
 
 type FormPassage struct {
-	FormID         *uint64          `json:"form_id" validate:"required"`
+	FormID         *int64           `json:"form_id" validate:"required"`
 	PassageAnswers []*PassageAnswer `json:"passage_answers" validate:"required"`
 }
 
 type PassageAnswer struct {
-	AnswerID   *uint64 `json:"answer_id" validate:"required"`
-	QuestionID *uint64 `json:"question_id" validate:"required"`
-	Text       string  `json:"answer_text"`
+	AnswerID   *int64 `json:"answer_id" validate:"required"`
+	QuestionID *int64 `json:"question_id" validate:"required"`
+	Text       string `json:"answer_text"`
 }

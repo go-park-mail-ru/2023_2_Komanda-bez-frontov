@@ -22,6 +22,7 @@ begin
 	  		return true;
 	  	end if;
   	end loop;
+	return false;
   elsif question_type = 3 then
   	for answer_row in select answer_text from answer where answer.question_id = passage_question_id
   	loop
@@ -29,7 +30,8 @@ begin
 	  		return true;
 	  	end if;
   	end loop;
+	return false;
   end if;
- return false;
+ return true;
 end;
 $$;

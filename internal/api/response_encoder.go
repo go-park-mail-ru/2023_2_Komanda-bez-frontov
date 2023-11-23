@@ -21,6 +21,9 @@ func NewResponseEncoder() ResponseEncoder {
 }
 
 func (r *responseEncoder) EncodeJSONResponse(ctx context.Context, i interface{}, status int, w http.ResponseWriter) {
+	if status == http.StatusNoContent {
+		return
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	if status == 0 {

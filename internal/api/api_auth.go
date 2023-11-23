@@ -135,21 +135,21 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 	}()
 	if err != nil {
-		log.Error().Msgf("api_auth read_body err: %e", err)
+		log.Error().Msgf("api_auth read_body err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	var user model.UserSignUp
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
-		log.Error().Msgf("api_auth unmarshal err: %e", err)
+		log.Error().Msgf("api_auth unmarshal err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	result, sessionID, err := c.authService.AuthSignUp(ctx, &user)
 	if err != nil {
-		log.Error().Msgf("api_auth sugnip err: %e", err)
+		log.Error().Msgf("api_auth sugnip err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}

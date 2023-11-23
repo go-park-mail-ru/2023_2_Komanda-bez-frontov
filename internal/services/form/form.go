@@ -2,22 +2,14 @@ package form
 
 import (
 	"context"
-	"errors"
-	"go-form-hub/internal/model"
-	"go-form-hub/internal/repository"
 	"net/http"
 	"time"
 
+	"go-form-hub/internal/model"
+	"go-form-hub/internal/repository"
 	resp "go-form-hub/internal/services/service_response"
 
 	validator "github.com/go-playground/validator/v10"
-)
-
-var (
-	ErrMultipleAnswers            = errors.New("multiple answers given to single answer question")
-	ErrQuestionDoesntExist        = errors.New("answer to non-existent question was given")
-	ErrAnswerDoesntExist          = errors.New("non selectable answer was given")
-	ErrRequiredQuestionUnanswered = errors.New("required question was not answered")
 )
 
 type Service interface {
@@ -93,7 +85,7 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	return resp.NewResponse(http.StatusOK, nil), nil
+	return resp.NewResponse(http.StatusNoContent, nil), nil
 }
 
 func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error) {

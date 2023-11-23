@@ -1,7 +1,9 @@
 package form
 
 import (
+	"errors"
 	"fmt"
+
 	"go-form-hub/internal/model"
 )
 
@@ -11,6 +13,13 @@ type FormValidator struct {
 	foundQuestionsMap map[int64]bool
 }
 
+var (
+	ErrMultipleAnswers            = errors.New("multiple answers given to single answer question")
+	ErrQuestionDoesntExist        = errors.New("answer to non-existent question was given")
+	ErrAnswerDoesntExist          = errors.New("non selectable answer was given")
+	ErrRequiredQuestionUnanswered = errors.New("required question was not answered")
+)
+
 func (v *FormValidator) ValidateFormPassage(formPassage *model.FormPassage, form *model.Form) error {
 	v.questionMap = questionMapFromArray(form.Questions)
 	v.foundQuestionsMap = make(map[int64]bool)
@@ -19,12 +28,13 @@ func (v *FormValidator) ValidateFormPassage(formPassage *model.FormPassage, form
 	for _, passageAnswer := range formPassage.PassageAnswers {
 		err := v.validatePassageAnswer(passageAnswer)
 		if err != nil {
-			return fmt.Errorf("error validating answer: %e", err)
+			return fmt.Errorf("error validating answer: %v", err)
 		}
 	}
 
-	for questionID, found := range v.foundQuestionsMap {
-		if !found && v.questionMap[questionID].Required {
+	for questionID, question := range v.questionMap {
+		_, found := v.foundQuestionsMap[questionID]
+		if question.Required && !found {
 			return ErrRequiredQuestionUnanswered
 		}
 	}
@@ -38,7 +48,8 @@ func (v *FormValidator) validatePassageAnswer(passageAnswer *model.PassageAnswer
 		return ErrQuestionDoesntExist
 	}
 
-	if v.foundQuestionsMap[*passageAnswer.QuestionID] && question.Type != 3 {
+	passed, found := v.foundQuestionsMap[*passageAnswer.QuestionID]
+	if passed && question.Type != 3 {
 		return ErrMultipleAnswers
 	}
 	v.foundQuestionsMap[*passageAnswer.QuestionID] = true

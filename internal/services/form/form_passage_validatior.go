@@ -7,7 +7,7 @@ import (
 	"go-form-hub/internal/model"
 )
 
-type FormValidator struct {
+type PassageValidator struct {
 	questionMap       map[int64]*model.Question
 	foundAnswerMap    map[int64]bool
 	foundQuestionsMap map[int64]bool
@@ -20,7 +20,7 @@ var (
 	ErrRequiredQuestionUnanswered = errors.New("required question was not answered")
 )
 
-func (v *FormValidator) ValidateFormPassage(formPassage *model.FormPassage, form *model.Form) error {
+func (v *PassageValidator) ValidateFormPassage(formPassage *model.FormPassage, form *model.Form) error {
 	v.questionMap = questionMapFromArray(form.Questions)
 	v.foundQuestionsMap = make(map[int64]bool)
 	v.foundAnswerMap = make(map[int64]bool)
@@ -42,14 +42,14 @@ func (v *FormValidator) ValidateFormPassage(formPassage *model.FormPassage, form
 	return nil
 }
 
-func (v *FormValidator) validatePassageAnswer(passageAnswer *model.PassageAnswer) error {
+func (v *PassageValidator) validatePassageAnswer(passageAnswer *model.PassageAnswer) error {
 	question, found := v.questionMap[*passageAnswer.QuestionID]
 	if !found {
 		return ErrQuestionDoesntExist
 	}
 
-	passed, found := v.foundQuestionsMap[*passageAnswer.QuestionID]
-	if passed && question.Type != 3 {
+	found = v.foundQuestionsMap[*passageAnswer.QuestionID]
+	if found && question.Type != 3 {
 		return ErrMultipleAnswers
 	}
 	v.foundQuestionsMap[*passageAnswer.QuestionID] = true
@@ -70,16 +70,18 @@ func (v *FormValidator) validatePassageAnswer(passageAnswer *model.PassageAnswer
 	case 3:
 		found := false
 		for _, answer := range question.Answers {
-			if answer.Text == passageAnswer.Text {
-				_, questionFound := v.foundAnswerMap[*answer.ID]
-				if questionFound {
-					return ErrMultipleAnswers
-				}
-				v.foundAnswerMap[*answer.ID] = true
-
-				found = true
-				break
+			if answer.Text != passageAnswer.Text {
+				continue
 			}
+
+			questionFound := v.foundAnswerMap[*answer.ID]
+			if questionFound {
+				return ErrMultipleAnswers
+			}
+			v.foundAnswerMap[*answer.ID] = true
+
+			found = true
+			break
 		}
 
 		if !found {

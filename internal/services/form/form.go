@@ -65,7 +65,7 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
 
-	existingForm, err := s.formRepository.FindByID(ctx, int64(*formPassage.FormID))
+	existingForm, err := s.formRepository.FindByID(ctx, *formPassage.FormID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
@@ -78,8 +78,8 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 		return resp.NewResponse(http.StatusUnauthorized, nil), nil
 	}
 
-	var validator FormValidator
-	err = validator.ValidateFormPassage(formPassage, existingForm)
+	var formValidator PassageValidator
+	err = formValidator.ValidateFormPassage(formPassage, existingForm)
 	if err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}

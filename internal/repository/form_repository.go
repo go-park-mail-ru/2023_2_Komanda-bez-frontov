@@ -218,8 +218,8 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 
 	formQuery, args, err := r.builder.
 		Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Columns("title", "author_id", "created_at").
-		Values(form.Title, form.Author.ID, form.CreatedAt).
+		Columns("title", "author_id", "created_at", "anonymous").
+		Values(form.Title, form.Author.ID, form.CreatedAt, form.Anonymous).
 		Suffix("RETURNING id").
 		ToSql()
 	err = tx.QueryRow(ctx, formQuery, args...).Scan(&form.ID)
@@ -413,6 +413,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				ID:        &info.form.ID,
 				Title:     info.form.Title,
 				CreatedAt: info.form.CreatedAt,
+				Anonymous: info.form.Anonymous,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,

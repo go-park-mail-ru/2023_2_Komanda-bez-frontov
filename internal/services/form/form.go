@@ -19,7 +19,7 @@ type Service interface {
 	FormListByUser(ctx context.Context, username string) (*resp.Response, error)
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
-	FormSearch(ctx context.Context, title string, userId uint) (*resp.Response, error)
+	FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error)
 	FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error)
 }
 
@@ -64,7 +64,6 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 	if err := s.validate.Struct(formPassage); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
-	//TODO: добавить проверки для ответов, анонимность, required
 
 	err := s.formRepository.FormPassageSave(ctx, formPassage, uint64(userID))
 	if err != nil {
@@ -180,8 +179,8 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 	return resp.NewResponse(http.StatusOK, form), nil
 }
 
-func (s *formService) FormSearch(ctx context.Context, title string, userId uint) (*resp.Response, error) {
-	forms, err := s.formRepository.FormsSearch(ctx, title, userId)
+func (s *formService) FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error) {
+	forms, err := s.formRepository.FormsSearch(ctx, title, userID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

@@ -87,7 +87,7 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.Fo
 	return r.fromRows(rows)
 }
 
-func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, userId uint) (forms []*model.FormTitle, err error) {
+func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error) {
 	const limit = 5
 	query := fmt.Sprintf(`select id, title, created_at
 	FROM (select title, id, created_at, similarity(title, $1::text) as sim
@@ -110,7 +110,7 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 		}
 	}()
 
-	rows, err := tx.Query(ctx, query, title, userId, limit)
+	rows, err := tx.Query(ctx, query, title, userID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to execute query: %e", err)
 	}
@@ -288,7 +288,7 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 	return form, nil
 }
 
-func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userId uint64) error {
+func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userID uint64) error {
 	var err error
 
 	tx, err := r.db.Begin(ctx)
@@ -312,7 +312,7 @@ func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassag
 
 	for _, passageAnswer := range formPassage.PassageAnswers {
 		passageAnswerBatch.Queue(passageAnswerQuery, passageAnswer.Text,
-			passageAnswer.QuestionID, userId)
+			passageAnswer.QuestionID, userID)
 	}
 	answerBatch := tx.SendBatch(ctx, passageAnswerBatch)
 	answerBatch.Close()

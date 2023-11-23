@@ -16,7 +16,6 @@ begin
    if question_type = 1 then
 	return true;
   elsif question_type = 2 then
---  	Здесь(и сверху) надо бы еще проверить, что других ответов на этот же вопрос не кидали(или во внешней функции...)
   	for answer_row in select answer_text from answer where answer.question_id = passage_question_id
   	loop
 	  	if answer_row.answer_text = passage_answer then

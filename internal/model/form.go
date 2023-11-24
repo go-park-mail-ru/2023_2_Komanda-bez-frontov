@@ -34,6 +34,6 @@ type FormResult struct {
 	Author               *UserGet          `json:"author"`
 	NumberOfPassagesForm int               `json:"number_of_passages"`
 	Questions            []*QuestionResult `json:"questions"`
-	Anonymous            bool              `json:"is_anonymous"`
+	Anonymous            bool              `json:"anonymous"`
 	Participants         []*UserGet        `json:"participants,omitempty"`
 }

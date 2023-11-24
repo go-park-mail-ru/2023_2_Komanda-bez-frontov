@@ -161,7 +161,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.passage_answer as pa ON q.id = pa.question_id", r.db.GetSchema())).
 		Where(squirrel.Eq{"f.id": id}).
-		GroupBy("f.id, f.title, f.created_at, f.description, f.author_id, u.id, u.username, u.first_name, u.last_name, u.email, q.id, q.title, q.text, q.type, q.required, a.id, a.answer_text, pa.user_id"). // Добавлено условие для группировки по user_id из passage_answer
+		GroupBy("f.id, f.title, f.created_at, f.description, f.author_id, u.id, u.username, u.first_name, u.last_name, u.email, q.id, q.title, q.text, q.type, q.required, a.id, a.answer_text, pa.user_id").
 		ToSql()
 
 	fmt.Println("SQL Query:", formQuery)
@@ -254,6 +254,15 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 				if existingAnswer.ID == info.answerResult.ID {
 					existingAnswer.SelectedTimesAnswer++
 					break
+				} else {
+					if existingAnswer == existingQuestion.Answers[len(existingQuestion.Answers)-1] {
+						existingQuestion.Answers = append(existingQuestion.Answers, info.answerResult)
+						if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
+							answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
+						}
+						answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
+
+					}
 				}
 			}
 		} else {
@@ -272,7 +281,6 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 
 			answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
 		}
-		formResultMap[info.formResult.ID].NumberOfPassagesForm++
 	}
 
 	formResults := make([]*model.FormResult, 0, len(formResultMap))
@@ -287,7 +295,11 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 		if err != nil {
 			return nil, err
 		}
-		formResult.Participants = participants
+		if !formResult.Anonymous {
+			formResult.Participants = participants
+		}
+
+		formResultMap[formResult.ID].NumberOfPassagesForm = len(participants)
 
 		formResults = append(formResults, formResult)
 	}
@@ -300,7 +312,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 // Результат представляет собой слайс структурированных model.UserGet.
 func (r *formDatabaseRepository) getParticipantsForForm(ctx context.Context, formID int64) ([]*model.UserGet, error) {
 	query, args, err := r.builder.
-		Select("u.id", "u.username", "u.first_name", "u.last_name", "u.email").
+		Select("u.id", "MAX(u.username) as username", "MAX(u.first_name) as first_name", "MAX(u.last_name) as last_name", "MAX(u.email) as email").
 		From(fmt.Sprintf("%s.passage_answer as pa", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON pa.user_id = u.id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).

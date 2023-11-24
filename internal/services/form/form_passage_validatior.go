@@ -74,8 +74,8 @@ func (v *PassageValidator) validatePassageAnswer(passageAnswer *model.PassageAns
 				continue
 			}
 
-			questionFound := v.foundAnswerMap[*answer.ID]
-			if questionFound {
+			answerFound := v.foundAnswerMap[*answer.ID]
+			if answerFound {
 				return ErrMultipleAnswers
 			}
 			v.foundAnswerMap[*answer.ID] = true

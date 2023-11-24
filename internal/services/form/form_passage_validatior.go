@@ -18,6 +18,7 @@ var (
 	ErrQuestionDoesntExist        = errors.New("answer to non-existent question was given")
 	ErrAnswerDoesntExist          = errors.New("non selectable answer was given")
 	ErrRequiredQuestionUnanswered = errors.New("required question was not answered")
+	ErrDuplicateAnswer            = errors.New("duplicate answer to multiple answer question")
 )
 
 func (v *PassageValidator) ValidateFormPassage(formPassage *model.FormPassage, form *model.Form) error {
@@ -76,7 +77,7 @@ func (v *PassageValidator) validatePassageAnswer(passageAnswer *model.PassageAns
 
 			answerFound := v.foundAnswerMap[*answer.ID]
 			if answerFound {
-				return ErrMultipleAnswers
+				return ErrDuplicateAnswer
 			}
 			v.foundAnswerMap[*answer.ID] = true
 

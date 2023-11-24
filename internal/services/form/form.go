@@ -91,6 +91,11 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
+	err = s.formRepository.IncFormPassage(ctx, *formPassage.FormID)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
 	return resp.NewResponse(http.StatusNoContent, nil), nil
 }
 

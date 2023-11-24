@@ -327,6 +327,33 @@ func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassag
 	return nil
 }
 
+func (r *formDatabaseRepository) IncFormPassage(ctx context.Context, formID int64) (err error) {
+	query := fmt.Sprintf(`UPDATE %s.form
+	set passage_count = passage_count + 1
+	where id = $1`, r.db.GetSchema())
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("form_repository update failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, formID)
+	if err != nil {
+		return fmt.Errorf("form_repository update failed to execute query: %e", err)
+	}
+
+	return nil
+}
+
 func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.Form) (result *model.Form, err error) {
 	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("title", form.Title).

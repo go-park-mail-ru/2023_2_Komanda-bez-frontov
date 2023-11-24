@@ -33,7 +33,6 @@ type FormPassage struct {
 }
 
 type PassageAnswer struct {
-	AnswerID   *int64 `json:"answer_id" validate:"required"`
 	QuestionID *int64 `json:"question_id" validate:"required"`
 	Text       string `json:"answer_text"`
 }

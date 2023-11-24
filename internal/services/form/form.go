@@ -12,6 +12,8 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
+const anonUserID = 0
+
 type Service interface {
 	FormSave(ctx context.Context, form *model.Form) (*resp.Response, error)
 	FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error)
@@ -55,12 +57,8 @@ func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Res
 }
 
 func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error) {
-	value := ctx.Value(model.ContextCurrentUser)
-	userID := 0
-	if value != nil {
-		currentUser := value.(*model.UserGet)
-		userID = int(currentUser.ID)
-	}
+	userID := anonUserID
+
 	if err := s.validate.Struct(formPassage); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
@@ -74,8 +72,14 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
 
-	if !existingForm.Anonymous && userID == 0 {
-		return resp.NewResponse(http.StatusUnauthorized, nil), nil
+	if !existingForm.Anonymous {
+		value := ctx.Value(model.ContextCurrentUser)
+		if value == nil {
+			return resp.NewResponse(http.StatusUnauthorized, nil), nil
+		}
+
+		currentUser := value.(*model.UserGet)
+		userID = int(currentUser.ID)
 	}
 
 	var formValidator PassageValidator

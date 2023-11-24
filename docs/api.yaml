@@ -846,12 +846,9 @@ components:
     PassageAnswerRequest:
       type: object
       required:
-        - answer_id
         - question_id
         - answer_text
       properties:
-        answer_id:
-          type: integer
         question_id:
           type: integer
         answer_text:

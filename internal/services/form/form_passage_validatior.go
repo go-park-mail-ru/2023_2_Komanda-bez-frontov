@@ -49,13 +49,13 @@ func (v *PassageValidator) validatePassageAnswer(passageAnswer *model.PassageAns
 	}
 
 	found = v.foundQuestionsMap[*passageAnswer.QuestionID]
-	if found && question.Type != 2 {
+	if found && question.Type != model.MultipleAnswerType {
 		return ErrMultipleAnswers
 	}
 	v.foundQuestionsMap[*passageAnswer.QuestionID] = true
 
 	switch question.Type {
-	case 1:
+	case model.SingleAnswerType:
 		found := false
 		for _, answer := range question.Answers {
 			if answer.Text == passageAnswer.Text {
@@ -67,7 +67,7 @@ func (v *PassageValidator) validatePassageAnswer(passageAnswer *model.PassageAns
 		if !found {
 			return ErrAnswerDoesntExist
 		}
-	case 2:
+	case model.MultipleAnswerType:
 		found := false
 		for _, answer := range question.Answers {
 			if answer.Text != passageAnswer.Text {

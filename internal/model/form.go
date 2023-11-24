@@ -2,6 +2,8 @@ package model
 
 import "time"
 
+const AnonUserID = 0
+
 type Form struct {
 	ID        *int64      `json:"id"`
 	Title     string      `json:"title" validate:"required"`

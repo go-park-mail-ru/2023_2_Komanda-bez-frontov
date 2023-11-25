@@ -291,7 +291,7 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 	return form, nil
 }
 
-func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.Form) (result *model.Form, err error) {
+func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.FormUpdate) (result *model.FormUpdate, err error) {
 	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("title", form.Title).
 		Set("description", form.Description).

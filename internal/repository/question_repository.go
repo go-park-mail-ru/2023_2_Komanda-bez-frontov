@@ -32,10 +32,10 @@ func NewQuestionDatabaseRepository(db database.ConnPool, builder squirrel.Statem
 	}
 }
 
-func (r *questionDatabaseRepository) BatchInsert(ctx context.Context, questions []*model.Question, formID int64) ([]*model.Question, error) {
+func (r *questionDatabaseRepository) BatchInsert(ctx context.Context, question *model.Question, formID int64) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("session_repository insert failed to begin transaction: %e", err)
+		return fmt.Errorf("session_repository insert failed to begin transaction: %e", err)
 	}
 
 	defer func() {
@@ -53,14 +53,13 @@ func (r *questionDatabaseRepository) BatchInsert(ctx context.Context, questions 
 		Columns("title", "text", "type", "required", "form_id").
 		Suffix("RETURNING id")
 
-	for _, question := range questions {
-		q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, formID).ToSql()
-		if err != nil {
-			return nil, err
-		}
-
-		questionBatch.Queue(q, args...)
+	q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, formID).ToSql()
+	if err != nil {
+		return err
 	}
+
+	questionBatch.Queue(q, args...)
+
 	questionResults := tx.SendBatch(ctx, questionBatch)
 
 	answerBatch := &pgx.Batch{}
@@ -69,43 +68,42 @@ func (r *questionDatabaseRepository) BatchInsert(ctx context.Context, questions 
 		Columns("answer_text", "question_id").
 		Suffix("RETURNING id")
 
-	for _, question := range questions {
-		questionID := int64(0)
-		err = questionResults.QueryRow().Scan(&questionID)
-		if err != nil {
-			return nil, err
-		}
-		question.ID = &questionID
-		for _, answer := range question.Answers {
-			q, args, err := answerQuery.Values(answer.Text, question.ID).ToSql()
-			if err != nil {
-				return nil, err
-			}
-
-			answerBatch.Queue(q, args...)
-		}
+	questionID := int64(0)
+	err = questionResults.QueryRow().Scan(&questionID)
+	if err != nil {
+		return err
 	}
+	question.ID = &questionID
+	for _, answer := range question.Answers {
+		q, args, err := answerQuery.Values(answer.Text, question.ID).ToSql()
+		if err != nil {
+			return err
+		}
+
+		answerBatch.Queue(q, args...)
+	}
+	
 	questionResults.Close()
 
 	answerResults := tx.SendBatch(ctx, answerBatch)
-	for _, question := range questions {
-		for _, answer := range question.Answers {
-			answerID := int64(0)
-			err = answerResults.QueryRow().Scan(&answerID)
-			if err != nil {
-				return nil, err
-			}
-			answer.ID = &answerID
+
+	for _, answer := range question.Answers {
+		answerID := int64(0)
+		err = answerResults.QueryRow().Scan(&answerID)
+		if err != nil {
+			return err
 		}
+		answer.ID = &answerID
 	}
+	
 	answerResults.Close()
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return questions, nil
+	return nil
 }
 
 func (r *questionDatabaseRepository) DeleteByFormID(ctx context.Context, formID int64) error {
@@ -134,4 +132,68 @@ func (r *questionDatabaseRepository) DeleteByFormID(ctx context.Context, formID 
 	_, err = tx.Exec(ctx, query, args...)
 
 	return err
+}
+
+func (r *questionDatabaseRepository) DeleteAllByID(ctx context.Context, ids []int64) error {
+	for _, id := range ids {
+		query, args, err := r.builder.
+			Delete(fmt.Sprintf("%s.question", r.db.GetSchema())).
+			Where(squirrel.Eq{"id": id}).
+			ToSql()
+		if err != nil {
+			return fmt.Errorf("question_repository delete failed to build query: %e", err)
+		}
+
+		tx, err := r.db.Begin(ctx)
+		if err != nil {
+			return fmt.Errorf("question_repository delete failed to begin transaction: %e", err)
+		}
+
+		defer func() {
+			switch err {
+			case nil:
+				err = tx.Commit(ctx)
+			default:
+				_ = tx.Rollback(ctx)
+			}
+		}()
+
+		_, err = tx.Exec(ctx, query, args...)
+
+		return err
+	}
+	return nil
+}
+
+func (r *questionDatabaseRepository) Update(ctx context.Context, id int64, question *model.Question) error {
+	query, args, err := r.builder.Update(fmt.Sprintf("%s.question", r.db.GetSchema())).
+		Set("title", question.Title).
+		Set("text", question.Description).
+		Set("type", question.Type).
+		Set("required", question.Required).
+		Where(squirrel.Eq{"id": id}).ToSql()
+	if err != nil {
+		return fmt.Errorf("question_repository update failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("qestion_repository update failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("question_repository update failed to execute query: %e", err)
+	}
+
+	return nil
 }

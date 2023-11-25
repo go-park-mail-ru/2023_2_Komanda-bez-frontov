@@ -42,7 +42,7 @@ var (
 
 var (
 	selectFieldsResults = []string{
-		"f.id",
+		"DISTINCT f.id",
 		"f.title",
 		"f.created_at",
 		"f.description",
@@ -52,7 +52,7 @@ var (
 		"u.first_name",
 		"u.last_name",
 		"u.email",
-		"u.id",
+		"pa.user_id",
 		"u.username",
 		"u.first_name",
 		"u.last_name",
@@ -62,11 +62,10 @@ var (
 		"q.text",
 		"q.type",
 		"q.required",
-		"a.id",
-		"a.answer_text",
+		"pa.answer_text",
 		"COUNT(DISTINCT q.id) AS NumberOfPassagesForm",
-		"COUNT(DISTINCT a.id) AS NumberOfPassagesQuestion",
-		"COUNT(DISTINCT a.answer_text) AS SelectedTimesAnswer",
+		"COUNT(DISTINCT CONCAT(pa.user_id, pa.created_at)) AS NumberOfPassagesQuestion",
+		"COUNT(DISTINCT CONCAT(pa.user_id, pa.created_at)) AS SelectedTimesAnswer",
 	}
 )
 
@@ -161,7 +160,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.passage_answer as pa ON q.id = pa.question_id", r.db.GetSchema())).
 		Where(squirrel.Eq{"f.id": id}).
-		GroupBy("f.id, f.title, f.created_at, f.description, f.author_id, u.id, u.username, u.first_name, u.last_name, u.email, q.id, q.title, q.text, q.type, q.required, a.id, a.answer_text, pa.user_id").
+		GroupBy("f.id, f.title, f.created_at, f.description, f.author_id, u.id, u.username, u.first_name, u.last_name, u.email, q.id, q.title, q.text, q.type, q.required, pa.id, pa.answer_text, pa.user_id").
 		ToSql()
 
 	fmt.Println("SQL Query:", formQuery)
@@ -251,7 +250,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 		if questionExists {
 			existingQuestion.NumberOfPassagesQuestion++
 			for _, existingAnswer := range existingQuestion.Answers {
-				if existingAnswer.ID == info.answerResult.ID {
+				if existingAnswer.Text == info.answerResult.Text {
 					existingAnswer.SelectedTimesAnswer++
 					break
 				} else {
@@ -396,7 +395,6 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		&questionResult.Description,
 		&questionResult.Type,
 		&questionResult.Required,
-		&answerResult.ID,
 		&answerResult.Text,
 		&formResult.NumberOfPassagesForm,
 		&questionResult.NumberOfPassagesQuestion,

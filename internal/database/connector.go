@@ -2,8 +2,7 @@ package database
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/stdlib"
 )
 
 type ConnPool interface {

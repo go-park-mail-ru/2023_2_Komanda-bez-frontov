@@ -1,5 +1,5 @@
 CREATE or replace TRIGGER anon_form
   BEFORE INSERT
-  ON passage_answer
+  ON form_passage
   FOR EACH ROW
   EXECUTE PROCEDURE make_anon();

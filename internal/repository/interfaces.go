@@ -45,6 +45,6 @@ type QuestionRepository interface {
 type AnswerRepository interface {
 	DeleteAllByID(ctx context.Context, ids []int64) error
 	Update(ctx context.Context, id int64, answer *model.Answer) error
-	Insert(ctx context.Context, question_id int64, answer *model.Answer) error
+	Insert(ctx context.Context, questionID int64, answer *model.Answer) error
 	DeleteByQuestionID(ctx context.Context, questionID int64) error
 }

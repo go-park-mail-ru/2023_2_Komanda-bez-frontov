@@ -135,33 +135,33 @@ func (r *questionDatabaseRepository) DeleteByFormID(ctx context.Context, formID 
 }
 
 func (r *questionDatabaseRepository) DeleteAllByID(ctx context.Context, ids []int64) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("question_repository delete failed to begin transaction: %e", err)
+	}
+
 	for _, id := range ids {
 		query, args, err := r.builder.
 			Delete(fmt.Sprintf("%s.question", r.db.GetSchema())).
 			Where(squirrel.Eq{"id": id}).
 			ToSql()
 		if err != nil {
+			_ = tx.Rollback(ctx)
 			return fmt.Errorf("question_repository delete failed to build query: %e", err)
 		}
 
-		tx, err := r.db.Begin(ctx)
-		if err != nil {
-			return fmt.Errorf("question_repository delete failed to begin transaction: %e", err)
-		}
-
-		defer func() {
-			switch err {
-			case nil:
-				err = tx.Commit(ctx)
-			default:
-				_ = tx.Rollback(ctx)
-			}
-		}()
-
 		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			_ = tx.Rollback(ctx)
+			return err
+		}
+	}
 
+	err = tx.Commit(ctx)
+	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

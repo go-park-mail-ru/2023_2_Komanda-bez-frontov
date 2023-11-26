@@ -29,33 +29,33 @@ func NewAnswerDatabaseRepository(db database.ConnPool, builder squirrel.Statemen
 }
 
 func (r *answerDatabaseRepository) DeleteAllByID(ctx context.Context, ids []int64) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("answer_repository delete failed to begin transaction: %e", err)
+	}
+
 	for _, id := range ids {
 		query, args, err := r.builder.
 			Delete(fmt.Sprintf("%s.answer", r.db.GetSchema())).
 			Where(squirrel.Eq{"id": id}).
 			ToSql()
 		if err != nil {
+			_ = tx.Rollback(ctx) // Откатываем транзакцию в случае ошибки в запросе
 			return fmt.Errorf("answer_repository delete failed to build query: %e", err)
 		}
 
-		tx, err := r.db.Begin(ctx)
-		if err != nil {
-			return fmt.Errorf("answer_repository delete failed to begin transaction: %e", err)
-		}
-
-		defer func() {
-			switch err {
-			case nil:
-				err = tx.Commit(ctx)
-			default:
-				_ = tx.Rollback(ctx)
-			}
-		}()
-
 		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			_ = tx.Rollback(ctx) // Откатываем транзакцию в случае ошибки выполнения запроса
+			return err
+		}
+	}
 
+	err = tx.Commit(ctx)
+	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -90,10 +90,10 @@ func (r *answerDatabaseRepository) Update(ctx context.Context, id int64, answer 
 	return nil
 }
 
-func (r *answerDatabaseRepository) Insert(ctx context.Context, question_id int64, answer *model.Answer) error {
+func (r *answerDatabaseRepository) Insert(ctx context.Context, questionID int64, answer *model.Answer) error {
 	query, args, err := r.builder.Insert(fmt.Sprintf("%s.answer", r.db.GetSchema())).
 		Columns("answer_text", "question_id").
-		Values(answer.Text, question_id).
+		Values(answer.Text, questionID).
 		Suffix("RETURNING id").ToSql()
 	if err != nil {
 		return fmt.Errorf("answer_repository update failed to build query: %e", err)

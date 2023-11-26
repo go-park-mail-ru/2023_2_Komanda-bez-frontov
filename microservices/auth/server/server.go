@@ -1,4 +1,4 @@
-package session_main
+package main
 
 import (
 	"fmt"
@@ -36,11 +36,6 @@ func main() {
 	defer db.Close()
 
 	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	_, err = database.Migrate(db, cfg, builder)
-	if err != nil {
-		log.Error().Msgf("failed to migrate database: %s", err)
-		return
-	}
 
 	validate := validator.New()
 

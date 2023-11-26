@@ -79,7 +79,7 @@ func (m *AuthManager) Check(ctx context.Context, sessionID *session.Session) (*s
 }
 
 func (m *AuthManager) Delete(ctx context.Context, sessionID *session.Session) (*session.Nothing, error) {
-	m.authService.AuthLogout(ctx)
+	m.authService.AuthLogout(ctx, sessionID.Session)
 
 	return &session.Nothing{}, nil
 }

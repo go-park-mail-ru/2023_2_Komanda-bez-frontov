@@ -22,6 +22,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func StartServer(cfg *config.Config, r http.Handler) (*http.Server, error) {
@@ -71,9 +72,10 @@ func main() {
 
 	grcpConn, err := grpc.Dial(
 		"127.0.0.1:8081",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Fatal().Msgf("cant connect to grpc")
+		log.Fatal().Msgf("cant connect to grpc %v", err)
 	}
 	defer grcpConn.Close()
 

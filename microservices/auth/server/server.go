@@ -18,6 +18,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+const defaultSocket = ":8081"
+
 func main() {
 	log.Info().Msg("Starting microservice...")
 	cfg, err := config.NewConfig()
@@ -44,7 +46,7 @@ func main() {
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
 	authManager := service.NewAuthManager(authService, validate)
 
-	lis, err := net.Listen("tcp", ":8081")
+	lis, err := net.Listen("tcp", defaultSocket)
 	if err != nil {
 		log.Fatal().Msg("cant listen to port: " + err.Error())
 	}
@@ -53,6 +55,6 @@ func main() {
 
 	session.RegisterAuthCheckerServer(server, authManager)
 
-	fmt.Println("starting server at :8081")
+	fmt.Printf("starting server at %s\n", defaultSocket)
 	server.Serve(lis)
 }

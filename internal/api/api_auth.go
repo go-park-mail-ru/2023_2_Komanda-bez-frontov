@@ -171,13 +171,13 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
-	// ctx := r.Context()
+	ctx := r.Context()
 
-	// result, _, err := c.authService.Delete(ctx, )
-	// if err != nil {
-	// c.responseEncoder.HandleError(ctx, w, err, result)
-	// return
-	// }
+	_, err := c.authService.Delete(ctx, &session.Session{})
+	if err != nil {
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
 
 	cookie := &http.Cookie{
 		Name:    "session_id",
@@ -187,7 +187,7 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	// c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, nil, http.StatusOK, w)
 }
 
 func (c *AuthAPIController) IsAuthorized(w http.ResponseWriter, r *http.Request) {

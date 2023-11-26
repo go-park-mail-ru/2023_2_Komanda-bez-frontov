@@ -307,14 +307,25 @@ func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassag
 		}
 	}()
 
+	formPassageQuery := fmt.Sprintf(`INSERT INTO %s.form_passage
+	(user_id, form_id)
+	VALUES($1::integer, $2::integer)
+	RETURNING id`, r.db.GetSchema())
+
+	var formPassageID int64
+	err = tx.QueryRow(ctx, formPassageQuery, userID, formPassage.FormID).Scan(&formPassageID)
+	if err != nil {
+		return err
+	}
+
 	passageAnswerBatch := &pgx.Batch{}
-	passageAnswerQuery := fmt.Sprintf(`INSERT INTO %s.passage_answer
-	(answer_text, question_id, user_id)
+	passageAnswerQuery := fmt.Sprintf(`INSERT INTO %s.form_passage_answer
+	(answer_text, question_id, form_passage_id)
 	VALUES($1::text, $2::integer, $3::integer)`, r.db.GetSchema())
 
 	for _, passageAnswer := range formPassage.PassageAnswers {
 		passageAnswerBatch.Queue(passageAnswerQuery, passageAnswer.Text,
-			passageAnswer.QuestionID, userID)
+			passageAnswer.QuestionID, formPassageID)
 	}
 	answerBatch := tx.SendBatch(ctx, passageAnswerBatch)
 	answerBatch.Close()
@@ -327,14 +338,12 @@ func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassag
 	return nil
 }
 
-func (r *formDatabaseRepository) IncFormPassage(ctx context.Context, formID int64) (err error) {
-	query := fmt.Sprintf(`UPDATE %s.form
-	set passage_count = passage_count + 1
-	where id = $1`, r.db.GetSchema())
+func (r *formDatabaseRepository) FormPassageCount(ctx context.Context, formID int64) (int64, error) {
+	var err error
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("form_repository update failed to begin transaction: %e", err)
+		return 0, fmt.Errorf("form_facade insert failed to begin transaction: %e", err)
 	}
 
 	defer func() {
@@ -346,12 +355,17 @@ func (r *formDatabaseRepository) IncFormPassage(ctx context.Context, formID int6
 		}
 	}()
 
-	_, err = tx.Exec(ctx, query, formID)
+	formPassageQuery := fmt.Sprintf(`select count(*)
+	from %s.form_passage
+	where form_id = $1`, r.db.GetSchema())
+
+	var total int64
+	err = tx.QueryRow(ctx, formPassageQuery, formID).Scan(&total)
 	if err != nil {
-		return fmt.Errorf("form_repository update failed to execute query: %e", err)
+		return 0, err
 	}
 
-	return nil
+	return total, nil
 }
 
 func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.Form) (result *model.Form, err error) {

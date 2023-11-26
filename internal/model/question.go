@@ -1,5 +1,11 @@
 package model
 
+const (
+	SingleAnswerType   = 1
+	MultipleAnswerType = 2
+	InputAnswerType    = 3
+)
+
 type Question struct {
 	ID          *int64    `json:"id"`
 	Title       string    `json:"title,omitempty"`

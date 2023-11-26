@@ -2,11 +2,11 @@ package form
 
 import (
 	"context"
-	"go-form-hub/internal/model"
-	"go-form-hub/internal/repository"
 	"net/http"
 	"time"
 
+	"go-form-hub/internal/model"
+	"go-form-hub/internal/repository"
 	resp "go-form-hub/internal/services/service_response"
 
 	validator "github.com/go-playground/validator/v10"
@@ -20,7 +20,11 @@ type Service interface {
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
 	FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error)
+<<<<<<< HEAD
 	FormResults(ctx context.Context, id int64) (*resp.Response, error)
+=======
+	FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error)
+>>>>>>> origin/Komisaki51_form-passage
 }
 
 type formService struct {
@@ -65,6 +69,46 @@ func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Res
 	}
 
 	return resp.NewResponse(http.StatusOK, result), nil
+}
+
+func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error) {
+	userID := model.AnonUserID
+
+	if err := s.validate.Struct(formPassage); err != nil {
+		return resp.NewResponse(http.StatusBadRequest, nil), err
+	}
+
+	existingForm, err := s.formRepository.FindByID(ctx, *formPassage.FormID)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if existingForm == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	if !existingForm.Anonymous {
+		value := ctx.Value(model.ContextCurrentUser)
+		if value == nil {
+			return resp.NewResponse(http.StatusUnauthorized, nil), nil
+		}
+
+		currentUser := value.(*model.UserGet)
+		userID = int(currentUser.ID)
+	}
+
+	var formValidator PassageValidator
+	err = formValidator.ValidateFormPassage(formPassage, existingForm)
+	if err != nil {
+		return resp.NewResponse(http.StatusBadRequest, nil), err
+	}
+
+	err = s.formRepository.FormPassageSave(ctx, formPassage, uint64(userID))
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	return resp.NewResponse(http.StatusNoContent, nil), nil
 }
 
 func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error) {

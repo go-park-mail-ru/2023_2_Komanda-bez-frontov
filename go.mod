@@ -9,6 +9,7 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator/v10 v10.15.5
 	github.com/jackc/pgx/v5 v5.4.3
+	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/rs/zerolog v1.31.0
 	github.com/stretchr/testify v1.8.4
 )

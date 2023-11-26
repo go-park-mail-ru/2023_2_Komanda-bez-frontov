@@ -75,19 +75,18 @@ func (c *FormAPIController) Routes() []Route {
 			AuthRequired: true,
 		},
 		{
-<<<<<<< HEAD
 			Name:         "FormResults",
 			Method:       http.MethodGet,
 			Path:         "/forms/{id}/results",
 			Handler:      c.FormResults,
 			AuthRequired: true,
-=======
+		},
+		{
 			Name:         "FormPassage",
 			Method:       http.MethodPost,
 			Path:         "/forms/pass",
 			Handler:      c.FormPass,
 			AuthRequired: false,
->>>>>>> origin/Komisaki51_form-passage
 		},
 	}
 }

@@ -29,7 +29,6 @@ type FormTitleList struct {
 	FormTitles []*FormTitle `json:"forms" validate:"required"`
 }
 
-<<<<<<< HEAD
 type FormResult struct {
 	ID                   int64             `json:"id"`
 	Title                string            `json:"title"`
@@ -40,7 +39,8 @@ type FormResult struct {
 	Questions            []*QuestionResult `json:"questions"`
 	Anonymous            bool              `json:"anonymous"`
 	Participants         []*UserGet        `json:"participants,omitempty"`
-=======
+}
+
 type FormPassage struct {
 	FormID         *int64           `json:"form_id" validate:"required"`
 	PassageAnswers []*PassageAnswer `json:"passage_answers" validate:"required"`
@@ -49,5 +49,4 @@ type FormPassage struct {
 type PassageAnswer struct {
 	QuestionID *int64 `json:"question_id" validate:"required"`
 	Text       string `json:"answer_text"`
->>>>>>> origin/Komisaki51_form-passage
 }

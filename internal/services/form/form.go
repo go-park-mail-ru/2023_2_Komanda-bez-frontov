@@ -20,11 +20,8 @@ type Service interface {
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
 	FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error)
-<<<<<<< HEAD
 	FormResults(ctx context.Context, id int64) (*resp.Response, error)
-=======
 	FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error)
->>>>>>> origin/Komisaki51_form-passage
 }
 
 type formService struct {

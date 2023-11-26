@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
@@ -18,7 +21,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const defaultSocket = ":8081"
+const defaultPort = ":8081"
 
 func main() {
 	log.Info().Msg("Starting microservice...")
@@ -46,15 +49,26 @@ func main() {
 	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
 	authManager := service.NewAuthManager(authService, validate)
 
-	lis, err := net.Listen("tcp", defaultSocket)
+	lis, err := net.Listen("tcp", defaultPort) // #nosec G102
 	if err != nil {
-		log.Fatal().Msg("cant listen to port: " + err.Error())
+		log.Error().Msgf("failed to listen to port: %v", err)
+		return
 	}
 
 	server := grpc.NewServer()
 
 	session.RegisterAuthCheckerServer(server, authManager)
+	err = server.Serve(lis)
+	if err != nil {
+		log.Error().Msgf("failed to serve port: %v", err)
+		return
+	}
 
-	fmt.Printf("starting server at %s\n", defaultSocket)
-	server.Serve(lis)
+	log.Info().Msgf("Server started. Listening port %s", cfg.HTTPPort)
+
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-interrupt
+
+	log.Info().Msgf("Received system signal: %s, application will be shutdown", sig)
 }

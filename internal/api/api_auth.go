@@ -69,10 +69,10 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 
 	cookieSession, err := r.Cookie("session_id")
 	if err == nil {
-		session := &session.Session{
+		curSession := &session.Session{
 			Session: cookieSession.Value,
 		}
-		isValid, err := c.authService.Check(ctx, session)
+		isValid, err := c.authService.Check(ctx, curSession)
 		if err != nil {
 			c.responseEncoder.HandleError(ctx, w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
 			return
@@ -121,10 +121,10 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	cookieSession, err := r.Cookie("session_id")
 	if err == nil {
-		session := &session.Session{
+		curSession := &session.Session{
 			Session: cookieSession.Value,
 		}
-		isValid, err := c.authService.Check(ctx, session)
+		isValid, err := c.authService.Check(ctx, curSession)
 		if err != nil {
 			c.responseEncoder.HandleError(ctx, w, err, &resp.Response{Body: nil, StatusCode: http.StatusInternalServerError})
 			return

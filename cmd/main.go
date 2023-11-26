@@ -75,7 +75,8 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Fatal().Msgf("cant connect to grpc %v", err)
+		log.Error().Msgf("cant connect to grpc: %s", err)
+		return
 	}
 	defer grcpConn.Close()
 

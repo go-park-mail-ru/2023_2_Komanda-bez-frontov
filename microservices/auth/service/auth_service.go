@@ -1,4 +1,4 @@
-package session_service
+package session
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"go-form-hub/microservices/auth/session"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -34,6 +35,7 @@ func (m *AuthManager) Login(ctx context.Context, userLogin *session.UserLogin) (
 
 	_, sessionID, err := m.authService.AuthLogin(ctx, &user)
 	if err != nil {
+		log.Error().Msgf("error logging in: %v", err)
 		return nil, status.Errorf(codes.NotFound, err.Error())
 	}
 
@@ -55,6 +57,7 @@ func (m *AuthManager) Signup(ctx context.Context, userSignup *session.UserSignup
 
 	_, sessionID, err := m.authService.AuthSignUp(ctx, &user)
 	if err != nil {
+		log.Error().Msgf("error signing up: %v", err)
 		return nil, status.Errorf(codes.Canceled, err.Error())
 	}
 
@@ -68,6 +71,7 @@ func (m *AuthManager) Signup(ctx context.Context, userSignup *session.UserSignup
 func (m *AuthManager) Check(ctx context.Context, sessionID *session.Session) (*session.CheckResult, error) {
 	valid, err := m.authService.IsSessionValid(ctx, sessionID.Session)
 	if err != nil {
+		log.Error().Msgf("error finding session: %v", err)
 		return nil, status.Errorf(codes.NotFound, err.Error())
 	}
 
@@ -79,7 +83,10 @@ func (m *AuthManager) Check(ctx context.Context, sessionID *session.Session) (*s
 }
 
 func (m *AuthManager) Delete(ctx context.Context, sessionID *session.Session) (*session.Nothing, error) {
-	m.authService.AuthLogout(ctx, sessionID.Session)
-
+	_, _, err := m.authService.AuthLogout(ctx, sessionID.Session)
+	if err != nil {
+		log.Error().Msgf("error logging in: %v", err)
+		return nil, err
+	}
 	return &session.Nothing{}, nil
 }

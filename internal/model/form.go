@@ -3,13 +3,13 @@ package model
 import "time"
 
 type Form struct {
-	ID        *int64      `json:"id"`
-	Title     string      `json:"title" validate:"required"`
-	Description  *string   `json:"description"`
-	Anonymous bool		  `json:"anonymous"`
-	Author    *UserGet    `json:"author"`
-	CreatedAt time.Time   `json:"created_at"`
-	Questions []*Question `json:"questions" validate:"required"`
+	ID          *int64      `json:"id"`
+	Title       string      `json:"title" validate:"required"`
+	Description *string     `json:"description"`
+	Anonymous   bool        `json:"anonymous"`
+	Author      *UserGet    `json:"author"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Questions   []*Question `json:"questions" validate:"required"`
 }
 
 type FormTitle struct {
@@ -29,13 +29,13 @@ type FormTitleList struct {
 }
 
 type FormUpdate struct {
-	ID        *int64      `json:"id"`
-	Title     string      `json:"title" validate:"required"`
-	Description  *string   `json:"description"`
-	Anonymous bool		  `json:"anonymous"`
-	Author    *UserGet    `json:"author"`
-	CreatedAt time.Time   `json:"created_at"`
-	Questions []*Question `json:"questions" validate:"required"`
-	RemovedQuestions []int64 `json:"removed_questions"`
-	RemovedAnswers   []int64 `json:"removed_answers"`
+	ID               *int64      `json:"id"`
+	Title            string      `json:"title" validate:"required"`
+	Description      *string     `json:"description"`
+	Anonymous        bool        `json:"anonymous"`
+	Author           *UserGet    `json:"author"`
+	CreatedAt        time.Time   `json:"created_at"`
+	Questions        []*Question `json:"questions" validate:"required"`
+	RemovedQuestions []int64     `json:"removed_questions"`
+	RemovedAnswers   []int64     `json:"removed_answers"`
 }

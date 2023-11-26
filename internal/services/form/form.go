@@ -87,7 +87,7 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 			return resp.NewResponse(http.StatusInternalServerError, nil), err
 		}
 	}
-	
+
 	if len(form.RemovedQuestions) != 0 {
 		err = s.questionRepository.DeleteAllByID(ctx, form.RemovedQuestions)
 		if err != nil {

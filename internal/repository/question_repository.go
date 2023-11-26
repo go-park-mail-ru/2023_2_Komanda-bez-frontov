@@ -82,7 +82,7 @@ func (r *questionDatabaseRepository) BatchInsert(ctx context.Context, question *
 
 		answerBatch.Queue(q, args...)
 	}
-	
+
 	questionResults.Close()
 
 	answerResults := tx.SendBatch(ctx, answerBatch)
@@ -95,7 +95,7 @@ func (r *questionDatabaseRepository) BatchInsert(ctx context.Context, question *
 		}
 		answer.ID = &answerID
 	}
-	
+
 	answerResults.Close()
 
 	err = tx.Commit(ctx)

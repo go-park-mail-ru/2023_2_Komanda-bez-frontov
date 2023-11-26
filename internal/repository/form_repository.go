@@ -13,12 +13,12 @@ import (
 )
 
 type Form struct {
-	Title     string    `db:"title"`
-	ID        int64     `db:"id"`
-	Description *string `db:"description"`
-	Anonymous bool 		`db:"anonymous"`
-	AuthorID  int64     `db:"author_id"`
-	CreatedAt time.Time `db:"created_at"`
+	Title       string    `db:"title"`
+	ID          int64     `db:"id"`
+	Description *string   `db:"description"`
+	Anonymous   bool      `db:"anonymous"`
+	AuthorID    int64     `db:"author_id"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 var (
@@ -376,11 +376,11 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 
 		if _, ok := formMap[info.form.ID]; !ok {
 			formMap[info.form.ID] = &model.Form{
-				ID:        &info.form.ID,
-				Title:     info.form.Title,
+				ID:          &info.form.ID,
+				Title:       info.form.Title,
 				Description: info.form.Description,
-				Anonymous: info.form.Anonymous,
-				CreatedAt: info.form.CreatedAt,
+				Anonymous:   info.form.Anonymous,
+				CreatedAt:   info.form.CreatedAt,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,

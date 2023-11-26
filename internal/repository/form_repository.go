@@ -17,6 +17,7 @@ type Form struct {
 	ID        int64     `db:"id"`
 	AuthorID  int64     `db:"author_id"`
 	CreatedAt time.Time `db:"created_at"`
+	Anonymous bool      `db:"anonymous"`
 }
 
 var (
@@ -25,6 +26,7 @@ var (
 		"f.title",
 		"f.created_at",
 		"f.author_id",
+		"f.anonymous",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -216,8 +218,8 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 
 	formQuery, args, err := r.builder.
 		Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Columns("title", "author_id", "created_at").
-		Values(form.Title, form.Author.ID, form.CreatedAt).
+		Columns("title", "author_id", "created_at", "anonymous").
+		Values(form.Title, form.Author.ID, form.CreatedAt, form.Anonymous).
 		Suffix("RETURNING id").
 		ToSql()
 	err = tx.QueryRow(ctx, formQuery, args...).Scan(&form.ID)
@@ -286,6 +288,84 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 	}
 
 	return form, nil
+}
+
+func (r *formDatabaseRepository) FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userID uint64) error {
+	var err error
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("form_facade insert failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	formPassageQuery := fmt.Sprintf(`INSERT INTO %s.form_passage
+	(user_id, form_id)
+	VALUES($1::integer, $2::integer)
+	RETURNING id`, r.db.GetSchema())
+
+	var formPassageID int64
+	err = tx.QueryRow(ctx, formPassageQuery, userID, formPassage.FormID).Scan(&formPassageID)
+	if err != nil {
+		return err
+	}
+
+	passageAnswerBatch := &pgx.Batch{}
+	passageAnswerQuery := fmt.Sprintf(`INSERT INTO %s.form_passage_answer
+	(answer_text, question_id, form_passage_id)
+	VALUES($1::text, $2::integer, $3::integer)`, r.db.GetSchema())
+
+	for _, passageAnswer := range formPassage.PassageAnswers {
+		passageAnswerBatch.Queue(passageAnswerQuery, passageAnswer.Text,
+			passageAnswer.QuestionID, formPassageID)
+	}
+	answerBatch := tx.SendBatch(ctx, passageAnswerBatch)
+	answerBatch.Close()
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *formDatabaseRepository) FormPassageCount(ctx context.Context, formID int64) (int64, error) {
+	var err error
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("form_facade insert failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	formPassageQuery := fmt.Sprintf(`select count(*)
+	from %s.form_passage
+	where form_id = $1`, r.db.GetSchema())
+
+	var total int64
+	err = tx.QueryRow(ctx, formPassageQuery, formID).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
 }
 
 func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.Form) (result *model.Form, err error) {
@@ -374,6 +454,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				ID:        &info.form.ID,
 				Title:     info.form.Title,
 				CreatedAt: info.form.CreatedAt,
+				Anonymous: info.form.Anonymous,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,
@@ -483,6 +564,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&form.Title,
 		&form.CreatedAt,
 		&form.AuthorID,
+		&form.Anonymous,
 		&author.ID,
 		&author.Username,
 		&author.FirstName,

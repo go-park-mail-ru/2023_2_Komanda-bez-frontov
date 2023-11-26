@@ -16,6 +16,8 @@ type FormRepository interface {
 	Update(ctx context.Context, id int64, form *model.Form) (*model.Form, error)
 	Delete(ctx context.Context, id int64) error
 	FormsSearch(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error)
+	FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userID uint64) error
+	FormPassageCount(ctx context.Context, formID int64) (int64, error)
 }
 
 type UserRepository interface {

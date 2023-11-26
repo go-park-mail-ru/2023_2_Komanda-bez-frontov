@@ -18,10 +18,10 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthCheckerClient interface {
-	Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*SessionID, error)
-	Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*SessionID, error)
-	Check(ctx context.Context, in *SessionID, opts ...grpc.CallOption) (*User, error)
-	Delete(ctx context.Context, in *SessionID, opts ...grpc.CallOption) (*Nothing, error)
+	Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*Session, error)
+	Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*Session, error)
+	Check(ctx context.Context, in *Session, opts ...grpc.CallOption) (*CheckResult, error)
+	Delete(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Nothing, error)
 }
 
 type authCheckerClient struct {
@@ -32,8 +32,8 @@ func NewAuthCheckerClient(cc grpc.ClientConnInterface) AuthCheckerClient {
 	return &authCheckerClient{cc}
 }
 
-func (c *authCheckerClient) Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*SessionID, error) {
-	out := new(SessionID)
+func (c *authCheckerClient) Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*Session, error) {
+	out := new(Session)
 	err := c.cc.Invoke(ctx, "/session.AuthChecker/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -41,8 +41,8 @@ func (c *authCheckerClient) Login(ctx context.Context, in *UserLogin, opts ...gr
 	return out, nil
 }
 
-func (c *authCheckerClient) Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*SessionID, error) {
-	out := new(SessionID)
+func (c *authCheckerClient) Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*Session, error) {
+	out := new(Session)
 	err := c.cc.Invoke(ctx, "/session.AuthChecker/Signup", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -50,8 +50,8 @@ func (c *authCheckerClient) Signup(ctx context.Context, in *UserSignup, opts ...
 	return out, nil
 }
 
-func (c *authCheckerClient) Check(ctx context.Context, in *SessionID, opts ...grpc.CallOption) (*User, error) {
-	out := new(User)
+func (c *authCheckerClient) Check(ctx context.Context, in *Session, opts ...grpc.CallOption) (*CheckResult, error) {
+	out := new(CheckResult)
 	err := c.cc.Invoke(ctx, "/session.AuthChecker/Check", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (c *authCheckerClient) Check(ctx context.Context, in *SessionID, opts ...gr
 	return out, nil
 }
 
-func (c *authCheckerClient) Delete(ctx context.Context, in *SessionID, opts ...grpc.CallOption) (*Nothing, error) {
+func (c *authCheckerClient) Delete(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Nothing, error) {
 	out := new(Nothing)
 	err := c.cc.Invoke(ctx, "/session.AuthChecker/Delete", in, out, opts...)
 	if err != nil {
@@ -72,10 +72,10 @@ func (c *authCheckerClient) Delete(ctx context.Context, in *SessionID, opts ...g
 // All implementations must embed UnimplementedAuthCheckerServer
 // for forward compatibility
 type AuthCheckerServer interface {
-	Login(context.Context, *UserLogin) (*SessionID, error)
-	Signup(context.Context, *UserSignup) (*SessionID, error)
-	Check(context.Context, *SessionID) (*User, error)
-	Delete(context.Context, *SessionID) (*Nothing, error)
+	Login(context.Context, *UserLogin) (*Session, error)
+	Signup(context.Context, *UserSignup) (*Session, error)
+	Check(context.Context, *Session) (*CheckResult, error)
+	Delete(context.Context, *Session) (*Nothing, error)
 	mustEmbedUnimplementedAuthCheckerServer()
 }
 
@@ -83,16 +83,16 @@ type AuthCheckerServer interface {
 type UnimplementedAuthCheckerServer struct {
 }
 
-func (UnimplementedAuthCheckerServer) Login(context.Context, *UserLogin) (*SessionID, error) {
+func (UnimplementedAuthCheckerServer) Login(context.Context, *UserLogin) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedAuthCheckerServer) Signup(context.Context, *UserSignup) (*SessionID, error) {
+func (UnimplementedAuthCheckerServer) Signup(context.Context, *UserSignup) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Signup not implemented")
 }
-func (UnimplementedAuthCheckerServer) Check(context.Context, *SessionID) (*User, error) {
+func (UnimplementedAuthCheckerServer) Check(context.Context, *Session) (*CheckResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
 }
-func (UnimplementedAuthCheckerServer) Delete(context.Context, *SessionID) (*Nothing, error) {
+func (UnimplementedAuthCheckerServer) Delete(context.Context, *Session) (*Nothing, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedAuthCheckerServer) mustEmbedUnimplementedAuthCheckerServer() {}
@@ -145,7 +145,7 @@ func _AuthChecker_Signup_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 func _AuthChecker_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SessionID)
+	in := new(Session)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -157,13 +157,13 @@ func _AuthChecker_Check_Handler(srv interface{}, ctx context.Context, dec func(i
 		FullMethod: "/session.AuthChecker/Check",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthCheckerServer).Check(ctx, req.(*SessionID))
+		return srv.(AuthCheckerServer).Check(ctx, req.(*Session))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _AuthChecker_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SessionID)
+	in := new(Session)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func _AuthChecker_Delete_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: "/session.AuthChecker/Delete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthCheckerServer).Delete(ctx, req.(*SessionID))
+		return srv.(AuthCheckerServer).Delete(ctx, req.(*Session))
 	}
 	return interceptor(ctx, in, info, handler)
 }

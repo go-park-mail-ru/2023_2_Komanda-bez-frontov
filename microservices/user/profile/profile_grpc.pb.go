@@ -18,9 +18,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthCheckerClient interface {
-	UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*User, error)
-	AvatarGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*UserAvatar, error)
-	Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*User, error)
+	UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*Response, error)
+	AvatarGet(ctx context.Context, in *CurrentUserUsername, opts ...grpc.CallOption) (*Response, error)
+	Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*Response, error)
 }
 
 type authCheckerClient struct {
@@ -31,8 +31,8 @@ func NewAuthCheckerClient(cc grpc.ClientConnInterface) AuthCheckerClient {
 	return &authCheckerClient{cc}
 }
 
-func (c *authCheckerClient) UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*User, error) {
-	out := new(User)
+func (c *authCheckerClient) UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
 	err := c.cc.Invoke(ctx, "/profile.AuthChecker/UserGet", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -40,8 +40,8 @@ func (c *authCheckerClient) UserGet(ctx context.Context, in *CurrentUserID, opts
 	return out, nil
 }
 
-func (c *authCheckerClient) AvatarGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*UserAvatar, error) {
-	out := new(UserAvatar)
+func (c *authCheckerClient) AvatarGet(ctx context.Context, in *CurrentUserUsername, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
 	err := c.cc.Invoke(ctx, "/profile.AuthChecker/AvatarGet", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -49,8 +49,8 @@ func (c *authCheckerClient) AvatarGet(ctx context.Context, in *CurrentUserID, op
 	return out, nil
 }
 
-func (c *authCheckerClient) Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*User, error) {
-	out := new(User)
+func (c *authCheckerClient) Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
 	err := c.cc.Invoke(ctx, "/profile.AuthChecker/Update", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -62,9 +62,9 @@ func (c *authCheckerClient) Update(ctx context.Context, in *UserUpdate, opts ...
 // All implementations must embed UnimplementedAuthCheckerServer
 // for forward compatibility
 type AuthCheckerServer interface {
-	UserGet(context.Context, *CurrentUserID) (*User, error)
-	AvatarGet(context.Context, *CurrentUserID) (*UserAvatar, error)
-	Update(context.Context, *UserUpdate) (*User, error)
+	UserGet(context.Context, *CurrentUserID) (*Response, error)
+	AvatarGet(context.Context, *CurrentUserUsername) (*Response, error)
+	Update(context.Context, *UserUpdate) (*Response, error)
 	mustEmbedUnimplementedAuthCheckerServer()
 }
 
@@ -72,13 +72,13 @@ type AuthCheckerServer interface {
 type UnimplementedAuthCheckerServer struct {
 }
 
-func (UnimplementedAuthCheckerServer) UserGet(context.Context, *CurrentUserID) (*User, error) {
+func (UnimplementedAuthCheckerServer) UserGet(context.Context, *CurrentUserID) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserGet not implemented")
 }
-func (UnimplementedAuthCheckerServer) AvatarGet(context.Context, *CurrentUserID) (*UserAvatar, error) {
+func (UnimplementedAuthCheckerServer) AvatarGet(context.Context, *CurrentUserUsername) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AvatarGet not implemented")
 }
-func (UnimplementedAuthCheckerServer) Update(context.Context, *UserUpdate) (*User, error) {
+func (UnimplementedAuthCheckerServer) Update(context.Context, *UserUpdate) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedAuthCheckerServer) mustEmbedUnimplementedAuthCheckerServer() {}
@@ -113,7 +113,7 @@ func _AuthChecker_UserGet_Handler(srv interface{}, ctx context.Context, dec func
 }
 
 func _AuthChecker_AvatarGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CurrentUserID)
+	in := new(CurrentUserUsername)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func _AuthChecker_AvatarGet_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: "/profile.AuthChecker/AvatarGet",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthCheckerServer).AvatarGet(ctx, req.(*CurrentUserID))
+		return srv.(AuthCheckerServer).AvatarGet(ctx, req.(*CurrentUserUsername))
 	}
 	return interceptor(ctx, in, info, handler)
 }

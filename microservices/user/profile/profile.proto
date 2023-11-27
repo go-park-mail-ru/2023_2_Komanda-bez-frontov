@@ -1,0 +1,42 @@
+syntax = "proto3";
+option go_package = "./;profile";
+
+// protoc --go_out=. --go-grpc_out=. --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative *.proto
+
+package profile;
+
+message CurrentUserID {
+    int64 id = 1;
+}
+
+message User {
+  string username = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string password = 4;
+  string email = 5;
+  string avatar = 6;
+  string id = 7;
+}
+
+message UserUpdate {
+  string username = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string password = 4;
+  string email = 5;
+  string avatar = 6;
+  string newPassword = 7;
+}
+
+message UserAvatar {
+    string username = 1;
+    string avatar = 2;
+}
+
+// grpc-сервис проверки авторизации
+service AuthChecker {
+    rpc UserGet (CurrentUserID) returns (User) {}
+    rpc AvatarGet (CurrentUserID) returns (UserAvatar) {}
+    rpc Update (UserUpdate) returns (User) {}
+}

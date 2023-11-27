@@ -11,19 +11,21 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-type ProfileManager struct {
+type ProfileController struct {
+	profile.UnimplementedProfileServer
+
 	service   user.Service
 	validator *validator.Validate
 }
 
-func NewProfileManager(userService user.Service, v *validator.Validate) *ProfileManager {
-	return &ProfileManager{
+func NewProfileController(userService user.Service, v *validator.Validate) *ProfileController {
+	return &ProfileController{
 		service:   userService,
 		validator: v,
 	}
 }
 
-func (pm *ProfileManager) UserGet(ctx context.Context, userID *profile.CurrentUserID) (*profile.Response, error) {
+func (pm *ProfileController) UserGet(ctx context.Context, userID *profile.CurrentUserID) (*profile.Response, error) {
 	result, err := pm.service.UserGet(ctx, userID.Id)
 	if err != nil {
 		return nil, err
@@ -50,7 +52,7 @@ func (pm *ProfileManager) UserGet(ctx context.Context, userID *profile.CurrentUs
 
 	return response, nil
 }
-func (pm *ProfileManager) AvatarGet(ctx context.Context, userID *profile.CurrentUserUsername) (*profile.Response, error) {
+func (pm *ProfileController) AvatarGet(ctx context.Context, userID *profile.CurrentUserUsername) (*profile.Response, error) {
 	result, err := pm.service.UserGetAvatar(ctx, userID.Username)
 	if err != nil {
 		return nil, err
@@ -73,7 +75,7 @@ func (pm *ProfileManager) AvatarGet(ctx context.Context, userID *profile.Current
 
 	return response, nil
 }
-func (pm *ProfileManager) Update(ctx context.Context, userUpdate *profile.UserUpdate) (*profile.Response, error) {
+func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.UserUpdate) (*profile.Response, error) {
 	userModelUpdate := &model.UserUpdate{
 		Username:    userUpdate.Username,
 		FirstName:   userUpdate.FirstName,

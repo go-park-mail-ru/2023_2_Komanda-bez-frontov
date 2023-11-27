@@ -14,158 +14,158 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// AuthCheckerClient is the client API for AuthChecker service.
+// ProfileClient is the client API for Profile service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type AuthCheckerClient interface {
+type ProfileClient interface {
 	UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*Response, error)
 	AvatarGet(ctx context.Context, in *CurrentUserUsername, opts ...grpc.CallOption) (*Response, error)
 	Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*Response, error)
 }
 
-type authCheckerClient struct {
+type profileClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewAuthCheckerClient(cc grpc.ClientConnInterface) AuthCheckerClient {
-	return &authCheckerClient{cc}
+func NewProfileClient(cc grpc.ClientConnInterface) ProfileClient {
+	return &profileClient{cc}
 }
 
-func (c *authCheckerClient) UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*Response, error) {
+func (c *profileClient) UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
-	err := c.cc.Invoke(ctx, "/profile.AuthChecker/UserGet", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/profile.Profile/UserGet", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authCheckerClient) AvatarGet(ctx context.Context, in *CurrentUserUsername, opts ...grpc.CallOption) (*Response, error) {
+func (c *profileClient) AvatarGet(ctx context.Context, in *CurrentUserUsername, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
-	err := c.cc.Invoke(ctx, "/profile.AuthChecker/AvatarGet", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/profile.Profile/AvatarGet", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authCheckerClient) Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*Response, error) {
+func (c *profileClient) Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
-	err := c.cc.Invoke(ctx, "/profile.AuthChecker/Update", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/profile.Profile/Update", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AuthCheckerServer is the server API for AuthChecker service.
-// All implementations must embed UnimplementedAuthCheckerServer
+// ProfileServer is the server API for Profile service.
+// All implementations must embed UnimplementedProfileServer
 // for forward compatibility
-type AuthCheckerServer interface {
+type ProfileServer interface {
 	UserGet(context.Context, *CurrentUserID) (*Response, error)
 	AvatarGet(context.Context, *CurrentUserUsername) (*Response, error)
 	Update(context.Context, *UserUpdate) (*Response, error)
-	mustEmbedUnimplementedAuthCheckerServer()
+	mustEmbedUnimplementedProfileServer()
 }
 
-// UnimplementedAuthCheckerServer must be embedded to have forward compatible implementations.
-type UnimplementedAuthCheckerServer struct {
+// UnimplementedProfileServer must be embedded to have forward compatible implementations.
+type UnimplementedProfileServer struct {
 }
 
-func (UnimplementedAuthCheckerServer) UserGet(context.Context, *CurrentUserID) (*Response, error) {
+func (UnimplementedProfileServer) UserGet(context.Context, *CurrentUserID) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserGet not implemented")
 }
-func (UnimplementedAuthCheckerServer) AvatarGet(context.Context, *CurrentUserUsername) (*Response, error) {
+func (UnimplementedProfileServer) AvatarGet(context.Context, *CurrentUserUsername) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AvatarGet not implemented")
 }
-func (UnimplementedAuthCheckerServer) Update(context.Context, *UserUpdate) (*Response, error) {
+func (UnimplementedProfileServer) Update(context.Context, *UserUpdate) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedAuthCheckerServer) mustEmbedUnimplementedAuthCheckerServer() {}
+func (UnimplementedProfileServer) mustEmbedUnimplementedProfileServer() {}
 
-// UnsafeAuthCheckerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to AuthCheckerServer will
+// UnsafeProfileServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProfileServer will
 // result in compilation errors.
-type UnsafeAuthCheckerServer interface {
-	mustEmbedUnimplementedAuthCheckerServer()
+type UnsafeProfileServer interface {
+	mustEmbedUnimplementedProfileServer()
 }
 
-func RegisterAuthCheckerServer(s grpc.ServiceRegistrar, srv AuthCheckerServer) {
-	s.RegisterService(&AuthChecker_ServiceDesc, srv)
+func RegisterProfileServer(s grpc.ServiceRegistrar, srv ProfileServer) {
+	s.RegisterService(&Profile_ServiceDesc, srv)
 }
 
-func _AuthChecker_UserGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Profile_UserGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CurrentUserID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthCheckerServer).UserGet(ctx, in)
+		return srv.(ProfileServer).UserGet(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/profile.AuthChecker/UserGet",
+		FullMethod: "/profile.Profile/UserGet",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthCheckerServer).UserGet(ctx, req.(*CurrentUserID))
+		return srv.(ProfileServer).UserGet(ctx, req.(*CurrentUserID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthChecker_AvatarGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Profile_AvatarGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CurrentUserUsername)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthCheckerServer).AvatarGet(ctx, in)
+		return srv.(ProfileServer).AvatarGet(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/profile.AuthChecker/AvatarGet",
+		FullMethod: "/profile.Profile/AvatarGet",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthCheckerServer).AvatarGet(ctx, req.(*CurrentUserUsername))
+		return srv.(ProfileServer).AvatarGet(ctx, req.(*CurrentUserUsername))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthChecker_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Profile_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserUpdate)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthCheckerServer).Update(ctx, in)
+		return srv.(ProfileServer).Update(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/profile.AuthChecker/Update",
+		FullMethod: "/profile.Profile/Update",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthCheckerServer).Update(ctx, req.(*UserUpdate))
+		return srv.(ProfileServer).Update(ctx, req.(*UserUpdate))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// AuthChecker_ServiceDesc is the grpc.ServiceDesc for AuthChecker service.
+// Profile_ServiceDesc is the grpc.ServiceDesc for Profile service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var AuthChecker_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "profile.AuthChecker",
-	HandlerType: (*AuthCheckerServer)(nil),
+var Profile_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "profile.Profile",
+	HandlerType: (*ProfileServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "UserGet",
-			Handler:    _AuthChecker_UserGet_Handler,
+			Handler:    _Profile_UserGet_Handler,
 		},
 		{
 			MethodName: "AvatarGet",
-			Handler:    _AuthChecker_AvatarGet_Handler,
+			Handler:    _Profile_AvatarGet_Handler,
 		},
 		{
 			MethodName: "Update",
-			Handler:    _AuthChecker_Update_Handler,
+			Handler:    _Profile_Update_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

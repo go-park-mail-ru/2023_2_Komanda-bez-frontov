@@ -45,7 +45,7 @@ message Response {
 }
 
 // grpc-сервис проверки авторизации
-service AuthChecker {
+service Profile {
     rpc UserGet (CurrentUserID) returns (Response) {}
     rpc AvatarGet (CurrentUserUsername) returns (Response) {}
     rpc Update (UserUpdate) returns (Response) {}

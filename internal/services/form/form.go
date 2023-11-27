@@ -12,12 +12,6 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
-const (
-	TypeSingleChoise   = 1
-	TypeMultipleChoise = 2
-	TypeText           = 3
-)
-
 type Service interface {
 	FormSave(ctx context.Context, form *model.Form) (*resp.Response, error)
 	FormUpdate(ctx context.Context, id int64, form *model.FormUpdate) (*resp.Response, error)
@@ -163,7 +157,7 @@ func (s *formService) QuestionUpdate(ctx context.Context, question *model.Questi
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
-	if question.Type == TypeText {
+	if question.Type == model.InputAnswerType {
 		err := s.answerRepository.DeleteByQuestionID(ctx, *question.ID)
 		if err != nil {
 			return resp.NewResponse(http.StatusInternalServerError, nil), err

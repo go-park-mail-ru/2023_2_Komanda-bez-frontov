@@ -13,14 +13,16 @@ import (
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
-	"go-form-hub/internal/services/auth"
 	"go-form-hub/internal/services/form"
 	"go-form-hub/internal/services/user"
+	"go-form-hub/microservices/auth/session"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func StartServer(cfg *config.Config, r http.Handler) (*http.Server, error) {
@@ -68,6 +70,18 @@ func main() {
 		return
 	}
 
+	grcpConn, err := grpc.Dial(
+		"127.0.0.1:8081",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Error().Msgf("cant connect to grpc: %s", err)
+		return
+	}
+	defer grcpConn.Close()
+
+	sessManager := session.NewAuthCheckerClient(grcpConn)
+
 	validate := validator.New()
 
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
@@ -76,12 +90,11 @@ func main() {
 	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
 
 	formService := form.NewFormService(formRepository, questionRepository, validate)
-	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
 	userService := user.NewUserService(userRepository, cfg, validate)
 
 	responseEncoder := api.NewResponseEncoder()
 	formRouter := api.NewFormAPIController(formService, validate, responseEncoder)
-	authRouter := api.NewAuthAPIController(authService, validate, cfg.CookieExpiration, responseEncoder)
+	authRouter := api.NewAuthAPIController(sessManager, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userService, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)

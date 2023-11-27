@@ -47,7 +47,7 @@ var (
 		"f.id",
 		"f.title",
 		"f.created_at",
-		"f.description",
+		"COALESCE(f.description, '')",
 		"f.anonymous",
 		"u.id",
 		"u.username",
@@ -55,10 +55,10 @@ var (
 		"u.last_name",
 		"u.email",
 		"q.id",
-		"q.title",
+		"COALESCE(q.title, '')",
 		"q.text",
 		"q.type",
-		"a.answer_text",
+		"COALESCE(a.answer_text, '')",
 	}
 	selectFieldsFormPassageInfo = []string{
 		"fp.id",
@@ -163,7 +163,6 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"f.id": id}).
 		ToSql()
-
 
 	fmt.Println("SQL Query:", formInfoQuery)
 
@@ -280,7 +279,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 	// Объединение результатов двух запросов
 	for _, formPassageResult := range formPassageResults {
 		formResult := formResults[0] // Поскольку у нас только один результат первого запроса, мы его берем
-		for _, formCount := range countFormResults{
+		for _, formCount := range countFormResults {
 			if formCount.ID == formResult.ID {
 				formResult.NumberOfPassagesForm = formCount.NumberOfPassagesForm
 			}
@@ -288,7 +287,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		// Поиск вопроса в результатах формы, к которому привязан результат прохождения
 		for _, questionResult := range formResult.Questions {
 			if questionResult.ID == formPassageResult.QuestionID {
-				for _, questionCount := range countQuestionResults{
+				for _, questionCount := range countQuestionResults {
 					if questionCount.ID == questionResult.ID {
 						questionResult.NumberOfPassagesQuestion = questionCount.NumberOfPassagesQuestion
 					}
@@ -303,15 +302,15 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 				}
 				if !answerExist {
 					questionResult.Answers = append(questionResult.Answers, &model.AnswerResult{
-						Text: formPassageResult.AnswerText,
+						Text:                formPassageResult.AnswerText,
 						SelectedTimesAnswer: 1,
 						// Добавьте другие поля ответа, если они есть
 					})
 				}
-				
+
 				//ToDO добавляем проверку на существование вопроса и тогда либо +1 либо далее(либо можно через типы)
 				// Добавление ответа в соответствующий вопрос
-				
+
 			}
 		}
 		if !formResult.Anonymous {
@@ -324,9 +323,9 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 			}
 			if !userExist {
 				formResult.Participants = append(formResult.Participants, &model.UserGet{
-					ID: formPassageResult.UserID,
+					ID:        formPassageResult.UserID,
 					FirstName: formPassageResult.FirstName,
-					Username: formPassageResult.Username,
+					Username:  formPassageResult.Username,
 					// Добавьте другие поля ответа, если они есть
 				})
 			}
@@ -392,18 +391,22 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 				// 	existingAnswer.SelectedTimesAnswer++
 				// 	break
 				// } else {
-					if existingAnswer == existingQuestion.Answers[len(existingQuestion.Answers)-1] {
+				if existingAnswer == existingQuestion.Answers[len(existingQuestion.Answers)-1] {
+					if existingAnswer.Text != "" {
 						existingQuestion.Answers = append(existingQuestion.Answers, info.answerResult)
 						if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
 							answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
 						}
 						answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
 
-				//	}
+					}
+
+					//	}
 				}
 			}
 		} else {
 			formResultMap[info.formResult.ID].Questions = append(formResultMap[info.formResult.ID].Questions, info.questionResult)
+
 			info.questionResult.Answers = append(info.questionResult.Answers, info.answerResult)
 
 			if _, ok := questionsByFormID[info.formResult.ID]; !ok {
@@ -411,12 +414,15 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 			}
 
 			questionsByFormID[info.formResult.ID] = append(questionsByFormID[info.formResult.ID], info.questionResult)
+			if info.answerResult.Text != "" {
 
-			if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
-				answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
+				if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
+					answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
+				}
+
+				answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
+
 			}
-
-			answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
 		}
 	}
 
@@ -566,9 +572,9 @@ func (r *formDatabaseRepository) countFormFromRows(ctx context.Context, rows pgx
 }
 
 type formResultsFromRowReturn struct {
-	formResult      *model.FormResult
-	questionResult  *model.QuestionResult
-	answerResult    *model.AnswerResult
+	formResult     *model.FormResult
+	questionResult *model.QuestionResult
+	answerResult   *model.AnswerResult
 }
 
 // formResultsFromRowReturn представляет структурированные данные,
@@ -601,7 +607,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
+		return nil, fmt.Errorf("form_repository form_results failed to scan row: %e", err)
 	}
 
 	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
@@ -1034,7 +1040,7 @@ func (r *formDatabaseRepository) formTitleFromRow(row pgx.Row) (*Form, error) {
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
+		return nil, fmt.Errorf("form_repository form Title failed to scan row: %e", err)
 	}
 
 	return form, nil
@@ -1070,7 +1076,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
+		return nil, fmt.Errorf("form_repository from_row failed to scan row: %e", err)
 	}
 
 	return &fromRowReturn{form, author, question, answer}, nil

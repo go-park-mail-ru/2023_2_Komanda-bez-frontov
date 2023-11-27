@@ -12,6 +12,13 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
+const (
+	TypeSingleChoise = 1
+	TypeMultipleChoise = 2
+	TypeText = 3
+)
+
+
 type Service interface {
 	FormSave(ctx context.Context, form *model.Form) (*resp.Response, error)
 	FormUpdate(ctx context.Context, id int64, form *model.FormUpdate) (*resp.Response, error)
@@ -97,38 +104,45 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 
 	for _, question := range form.Questions {
 		if *question.ID == 0 {
-			err := s.questionRepository.BatchInsert(ctx, question, id)
+			err := s.questionRepository.Insert(ctx, question, id)
 			if err != nil {
 				return resp.NewResponse(http.StatusInternalServerError, nil), err
 			}
 		} else {
-			err := s.questionRepository.Update(ctx, *question.ID, question)
-			if err != nil {
-				return resp.NewResponse(http.StatusInternalServerError, nil), err
-			}
-			if question.Type == 3 {
-				err := s.answerRepository.DeleteByQuestionID(ctx, *question.ID)
-				if err != nil {
-					return resp.NewResponse(http.StatusInternalServerError, nil), err
-				}
-			}
-			for _, answer := range question.Answers {
-				if *answer.ID == 0 {
-					err := s.answerRepository.Insert(ctx, *question.ID, answer)
-					if err != nil {
-						return resp.NewResponse(http.StatusInternalServerError, nil), err
-					}
-				} else {
-					err := s.answerRepository.Update(ctx, *answer.ID, answer)
-					if err != nil {
-						return resp.NewResponse(http.StatusInternalServerError, nil), err
-					}
-				}
+			if response, err := s.QuestionUpdate(ctx, question.ID, question); err != nil {
+				return response, err
 			}
 		}
 	}
 
 	return resp.NewResponse(http.StatusOK, formUpdate), nil
+}
+
+func (s *formService) QuestionUpdate(ctx context.Context, id *int64, question *model.Question) (*resp.Response, error) {
+	err := s.questionRepository.Update(ctx, *question.ID, question)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+	if question.Type == TypeText {
+		err := s.answerRepository.DeleteByQuestionID(ctx, *question.ID)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
+	}
+	for _, answer := range question.Answers {
+		if *answer.ID == 0 {
+			err := s.answerRepository.Insert(ctx, *question.ID, answer)
+			if err != nil {
+				return resp.NewResponse(http.StatusInternalServerError, nil), err
+			}
+		} else {
+			err := s.answerRepository.Update(ctx, *answer.ID, answer)
+			if err != nil {
+				return resp.NewResponse(http.StatusInternalServerError, nil), err
+			}
+		}
+	}
+	return resp.NewResponse(http.StatusOK, nil), nil
 }
 
 func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {

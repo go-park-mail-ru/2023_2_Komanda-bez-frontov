@@ -39,7 +39,7 @@ type QuestionRepository interface {
 	DeleteByFormID(ctx context.Context, formID int64) error
 	DeleteAllByID(ctx context.Context, ids []int64) error
 	Update(ctx context.Context, id int64, question *model.Question) error
-	BatchInsert(ctx context.Context, questions *model.Question, formID int64) error
+	Insert(ctx context.Context, questions *model.Question, formID int64) error
 }
 
 type AnswerRepository interface {

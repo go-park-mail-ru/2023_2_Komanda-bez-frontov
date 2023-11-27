@@ -34,21 +34,19 @@ func (r *answerDatabaseRepository) DeleteAllByID(ctx context.Context, ids []int6
 		return fmt.Errorf("answer_repository delete failed to begin transaction: %e", err)
 	}
 
-	for _, id := range ids {
-		query, args, err := r.builder.
-			Delete(fmt.Sprintf("%s.answer", r.db.GetSchema())).
-			Where(squirrel.Eq{"id": id}).
-			ToSql()
-		if err != nil {
-			_ = tx.Rollback(ctx) // Откатываем транзакцию в случае ошибки в запросе
-			return fmt.Errorf("answer_repository delete failed to build query: %e", err)
-		}
+	query, args, err := r.builder.
+		Delete(fmt.Sprintf("%s.answer", r.db.GetSchema())).
+		Where(squirrel.Eq{"id": ids}).
+		ToSql()
+	if err != nil {
+		_ = tx.Rollback(ctx)
+		return fmt.Errorf("answer_repository delete failed to build query: %e", err)
+	}
 
-		_, err = tx.Exec(ctx, query, args...)
-		if err != nil {
-			_ = tx.Rollback(ctx) // Откатываем транзакцию в случае ошибки выполнения запроса
-			return err
-		}
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		_ = tx.Rollback(ctx)
+		return err
 	}
 
 	err = tx.Commit(ctx)

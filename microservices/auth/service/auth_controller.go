@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"go-form-hub/internal/model"
-	"go-form-hub/internal/services/auth"
 	"go-form-hub/microservices/auth/session"
 
 	"github.com/go-playground/validator/v10"
@@ -13,21 +12,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type AuthManager struct {
+type AuthController struct {
 	session.UnimplementedAuthCheckerServer
 
-	authService auth.Service
+	authService Service
 	validator   *validator.Validate
 }
 
-func NewAuthManager(authService auth.Service, v *validator.Validate) *AuthManager {
-	return &AuthManager{
+func NewAuthController(authService Service, v *validator.Validate) *AuthController {
+	return &AuthController{
 		authService: authService,
 		validator:   v,
 	}
 }
 
-func (m *AuthManager) Login(ctx context.Context, userLogin *session.UserLogin) (*session.Session, error) {
+func (m *AuthController) Login(ctx context.Context, userLogin *session.UserLogin) (*session.Session, error) {
 	user := model.UserLogin{
 		Email:    userLogin.Email,
 		Password: userLogin.Password,
@@ -46,7 +45,7 @@ func (m *AuthManager) Login(ctx context.Context, userLogin *session.UserLogin) (
 	return res, nil
 }
 
-func (m *AuthManager) Signup(ctx context.Context, userSignup *session.UserSignup) (*session.Session, error) {
+func (m *AuthController) Signup(ctx context.Context, userSignup *session.UserSignup) (*session.Session, error) {
 	user := model.UserSignUp{
 		Email:     userSignup.Email,
 		Password:  userSignup.Password,
@@ -68,7 +67,7 @@ func (m *AuthManager) Signup(ctx context.Context, userSignup *session.UserSignup
 	return res, nil
 }
 
-func (m *AuthManager) Check(ctx context.Context, sessionID *session.Session) (*session.CheckResult, error) {
+func (m *AuthController) Check(ctx context.Context, sessionID *session.Session) (*session.CheckResult, error) {
 	valid, err := m.authService.IsSessionValid(ctx, sessionID.Session)
 	if err != nil {
 		log.Error().Msgf("error finding session: %v", err)
@@ -82,7 +81,7 @@ func (m *AuthManager) Check(ctx context.Context, sessionID *session.Session) (*s
 	return res, nil
 }
 
-func (m *AuthManager) Delete(ctx context.Context, sessionID *session.Session) (*session.Nothing, error) {
+func (m *AuthController) Delete(ctx context.Context, sessionID *session.Session) (*session.Nothing, error) {
 	_, _, err := m.authService.AuthLogout(ctx, sessionID.Session)
 	if err != nil {
 		log.Error().Msgf("error logging in: %v", err)

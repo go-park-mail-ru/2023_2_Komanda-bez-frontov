@@ -10,7 +10,6 @@ import (
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
-	"go-form-hub/internal/services/auth"
 	service "go-form-hub/microservices/auth/service"
 	"go-form-hub/microservices/auth/session"
 
@@ -46,8 +45,8 @@ func main() {
 
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
-	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
-	authManager := service.NewAuthManager(authService, validate)
+	authService := service.NewAuthService(userRepository, sessionRepository, cfg, validate)
+	authController := service.NewAuthController(authService, validate)
 
 	lis, err := net.Listen("tcp", defaultPort) // #nosec G102
 	if err != nil {
@@ -57,7 +56,7 @@ func main() {
 
 	server := grpc.NewServer()
 
-	session.RegisterAuthCheckerServer(server, authManager)
+	session.RegisterAuthCheckerServer(server, authController)
 	err = server.Serve(lis)
 	if err != nil {
 		log.Error().Msgf("failed to serve port: %v", err)

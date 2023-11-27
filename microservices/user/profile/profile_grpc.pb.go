@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type ProfileClient interface {
 	UserGet(ctx context.Context, in *CurrentUserID, opts ...grpc.CallOption) (*Response, error)
 	AvatarGet(ctx context.Context, in *CurrentUserUsername, opts ...grpc.CallOption) (*Response, error)
-	Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*Response, error)
+	Update(ctx context.Context, in *UserUpdateReq, opts ...grpc.CallOption) (*Response, error)
 }
 
 type profileClient struct {
@@ -49,7 +49,7 @@ func (c *profileClient) AvatarGet(ctx context.Context, in *CurrentUserUsername, 
 	return out, nil
 }
 
-func (c *profileClient) Update(ctx context.Context, in *UserUpdate, opts ...grpc.CallOption) (*Response, error) {
+func (c *profileClient) Update(ctx context.Context, in *UserUpdateReq, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
 	err := c.cc.Invoke(ctx, "/profile.Profile/Update", in, out, opts...)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *profileClient) Update(ctx context.Context, in *UserUpdate, opts ...grpc
 type ProfileServer interface {
 	UserGet(context.Context, *CurrentUserID) (*Response, error)
 	AvatarGet(context.Context, *CurrentUserUsername) (*Response, error)
-	Update(context.Context, *UserUpdate) (*Response, error)
+	Update(context.Context, *UserUpdateReq) (*Response, error)
 	mustEmbedUnimplementedProfileServer()
 }
 
@@ -78,7 +78,7 @@ func (UnimplementedProfileServer) UserGet(context.Context, *CurrentUserID) (*Res
 func (UnimplementedProfileServer) AvatarGet(context.Context, *CurrentUserUsername) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AvatarGet not implemented")
 }
-func (UnimplementedProfileServer) Update(context.Context, *UserUpdate) (*Response, error) {
+func (UnimplementedProfileServer) Update(context.Context, *UserUpdateReq) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedProfileServer) mustEmbedUnimplementedProfileServer() {}
@@ -131,7 +131,7 @@ func _Profile_AvatarGet_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _Profile_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserUpdate)
+	in := new(UserUpdateReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func _Profile_Update_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: "/profile.Profile/Update",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProfileServer).Update(ctx, req.(*UserUpdate))
+		return srv.(ProfileServer).Update(ctx, req.(*UserUpdateReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -67,8 +67,8 @@ func (c *UserAPIController) ProfileGet(w http.ResponseWriter, r *http.Request) {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 	}
 
-	var user *profile.User
-	err = result.Body.UnmarshalTo(user)
+	var user profile.User
+	err = result.Body.UnmarshalTo(&user)
 	if err != nil {
 		log.Error().Msgf("couldnt parse response: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
@@ -88,6 +88,7 @@ func (c *UserAPIController) ProfileGet(w http.ResponseWriter, r *http.Request) {
 
 func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	curUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
@@ -107,6 +108,16 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	err = c.validator.Struct(updatedUser)
+	if err != nil {
+		log.Error().Msgf("user_api user_update validate error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+	if updatedUser.Avatar == nil {
+		updatedUser.Avatar = new(string)
+	}
+
 	userUpdate := profile.UserUpdate{
 		Avatar:      *updatedUser.Avatar,
 		Username:    updatedUser.Username,
@@ -117,15 +128,28 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 		Email:       updatedUser.Email,
 	}
 
-	result, err := c.service.Update(ctx, &userUpdate)
+	curUserMsg := profile.User{
+		Username:  curUser.Username,
+		FirstName: curUser.FirstName,
+		LastName:  curUser.LastName,
+		Email:     curUser.Email,
+		Id:        curUser.ID,
+	}
+
+	msg := profile.UserUpdateReq{
+		Update:      &userUpdate,
+		CurrentUser: &curUserMsg,
+	}
+
+	result, err := c.service.Update(ctx, &msg)
 	if err != nil {
 		log.Error().Msgf("user_api user_update error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	var user *profile.User
-	err = result.Body.UnmarshalTo(user)
+	var user profile.User
+	err = result.Body.UnmarshalTo(&user)
 	if err != nil {
 		log.Error().Msgf("couldnt parse response: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
@@ -164,8 +188,8 @@ func (c *UserAPIController) UserAvatarGet(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var avatar *profile.UserAvatar
-	err = result.Body.UnmarshalTo(avatar)
+	var avatar profile.UserAvatar
+	err = result.Body.UnmarshalTo(&avatar)
 	if err != nil {
 		log.Error().Msgf("couldnt parse response: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)

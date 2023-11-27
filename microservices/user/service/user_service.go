@@ -11,6 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+const defaultAvatar = ""
+
 type ProfileController struct {
 	profile.UnimplementedProfileServer
 
@@ -32,6 +34,10 @@ func (pm *ProfileController) UserGet(ctx context.Context, userID *profile.Curren
 	}
 
 	user := result.Body.(*model.UserGet)
+	if user.Avatar == nil {
+		empty := defaultAvatar
+		user.Avatar = &empty
+	}
 	userMsg := &profile.User{
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -59,6 +65,10 @@ func (pm *ProfileController) AvatarGet(ctx context.Context, userID *profile.Curr
 	}
 
 	user := result.Body.(*model.UserAvatarGet)
+	if user.Avatar == nil {
+		empty := defaultAvatar
+		user.Avatar = &empty
+	}
 	userMsg := &profile.UserAvatar{
 		Username: user.Username,
 		Avatar:   *user.Avatar,
@@ -75,16 +85,24 @@ func (pm *ProfileController) AvatarGet(ctx context.Context, userID *profile.Curr
 
 	return response, nil
 }
-func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.UserUpdate) (*profile.Response, error) {
+func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.UserUpdateReq) (*profile.Response, error) {
 	userModelUpdate := &model.UserUpdate{
-		Username:    userUpdate.Username,
-		FirstName:   userUpdate.FirstName,
-		LastName:    userUpdate.LastName,
-		Password:    userUpdate.Password,
-		NewPassword: userUpdate.NewPassword,
-		Email:       userUpdate.Email,
-		Avatar:      &userUpdate.Avatar,
+		Username:    userUpdate.Update.Username,
+		FirstName:   userUpdate.Update.FirstName,
+		LastName:    userUpdate.Update.LastName,
+		Password:    userUpdate.Update.Password,
+		NewPassword: userUpdate.Update.NewPassword,
+		Email:       userUpdate.Update.Email,
+		Avatar:      &userUpdate.Update.Avatar,
 	}
+
+	ctx = context.WithValue(ctx, model.ContextCurrentUser, &model.UserGet{
+		ID:        userUpdate.CurrentUser.Id,
+		Username:  userUpdate.CurrentUser.Username,
+		FirstName: userUpdate.CurrentUser.FirstName,
+		LastName:  userUpdate.CurrentUser.LastName,
+		Email:     userUpdate.CurrentUser.Email,
+	})
 
 	result, err := pm.service.UserUpdate(ctx, userModelUpdate)
 	if err != nil {
@@ -92,6 +110,10 @@ func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.Use
 	}
 
 	user := result.Body.(*model.UserGet)
+	if user.Avatar == nil {
+		empty := defaultAvatar
+		user.Avatar = &empty
+	}
 	userMsg := &profile.User{
 		Email:     user.Email,
 		FirstName: user.FirstName,

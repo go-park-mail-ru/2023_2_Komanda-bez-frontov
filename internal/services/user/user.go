@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/md5" // nolint:gosec
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +25,11 @@ type Service interface {
 	UserGet(ctx context.Context, id int64) (*resp.Response, error)
 	UserGetAvatar(ctx context.Context, username string) (*resp.Response, error)
 }
+
+var (
+	ErrCouldntFindUser = errors.New("couldnt find user")
+	ErrUserMisalign    = errors.New("current user differs from searched one")
+)
 
 type userService struct {
 	userRepository repository.UserRepository
@@ -102,7 +108,7 @@ func (s *userService) UserGet(ctx context.Context, id int64) (*resp.Response, er
 	}
 
 	if user == nil {
-		return resp.NewResponse(http.StatusNotFound, nil), nil
+		return resp.NewResponse(http.StatusNotFound, nil), ErrCouldntFindUser
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
@@ -122,7 +128,7 @@ func (s *userService) UserGetAvatar(ctx context.Context, username string) (*resp
 	}
 
 	if user == nil {
-		return resp.NewResponse(http.StatusNotFound, nil), nil
+		return resp.NewResponse(http.StatusNotFound, nil), ErrCouldntFindUser
 	}
 
 	return resp.NewResponse(http.StatusOK, &model.UserAvatarGet{
@@ -143,7 +149,7 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 	}
 
 	if existing.ID != currentUser.ID {
-		return resp.NewResponse(http.StatusConflict, nil), nil
+		return resp.NewResponse(http.StatusConflict, nil), ErrUserMisalign
 	}
 
 	existing, err = s.userRepository.FindByUsername(ctx, user.Username)
@@ -152,7 +158,7 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 	}
 
 	if existing.ID != currentUser.ID {
-		return resp.NewResponse(http.StatusConflict, nil), nil
+		return resp.NewResponse(http.StatusConflict, nil), ErrUserMisalign
 	}
 
 	existing, err = s.userRepository.FindByID(ctx, currentUser.ID)
@@ -161,7 +167,7 @@ func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 	}
 
 	if existing == nil {
-		return resp.NewResponse(http.StatusNotFound, nil), nil
+		return resp.NewResponse(http.StatusNotFound, nil), ErrCouldntFindUser
 	}
 
 	if user.Username != existing.Username || user.Email != existing.Email || user.NewPassword != "" {

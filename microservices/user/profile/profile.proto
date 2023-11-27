@@ -14,6 +14,11 @@ message CurrentUserUsername {
   string username = 1;
 }
 
+message UserUpdateReq {
+  UserUpdate update = 1;
+  User currentUser = 2;
+}
+
 message UserUpdate {
   string username = 1;
   string firstName = 2;
@@ -48,5 +53,5 @@ message Response {
 service Profile {
     rpc UserGet (CurrentUserID) returns (Response) {}
     rpc AvatarGet (CurrentUserUsername) returns (Response) {}
-    rpc Update (UserUpdate) returns (Response) {}
+    rpc Update (UserUpdateReq) returns (Response) {}
 }

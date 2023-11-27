@@ -247,44 +247,37 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		return nil, err
 	}
 
-	// Выполнение первого запроса
 	rowsFormInfo, err := tx.Query(ctx, formInfoQuery, formInfoArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_results failed to execute form info query: %e", err)
 	}
 
-	// Обработка результатов первого запроса
 	formResults, err := r.formResultsFromRows(ctx, rowsFormInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	// Если результатов нет, возвращаем nil
 	if len(formResults) == 0 {
 		return nil, nil
 	}
 
-	// Выполнение второго запроса
 	rowsFormPassageInfo, err := tx.Query(ctx, formPassageInfoQuery, formPassageInfoArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_results failed to execute form passage info query: %e", err)
 	}
 
-	// Обработка результатов второго запроса
 	formPassageResults, err := r.formPassageResultsFromRows(ctx, rowsFormPassageInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	// Объединение результатов двух запросов
 	for _, formPassageResult := range formPassageResults {
-		formResult := formResults[0] // Поскольку у нас только один результат первого запроса, мы его берем
+		formResult := formResults[0]
 		for _, formCount := range countFormResults {
 			if formCount.ID == formResult.ID {
 				formResult.NumberOfPassagesForm = formCount.NumberOfPassagesForm
 			}
 		}
-		// Поиск вопроса в результатах формы, к которому привязан результат прохождения
 		for _, questionResult := range formResult.Questions {
 			if questionResult.ID == formPassageResult.QuestionID {
 				for _, questionCount := range countQuestionResults {
@@ -304,13 +297,8 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 					questionResult.Answers = append(questionResult.Answers, &model.AnswerResult{
 						Text:                formPassageResult.AnswerText,
 						SelectedTimesAnswer: 1,
-						// Добавьте другие поля ответа, если они есть
 					})
 				}
-
-				//ToDO добавляем проверку на существование вопроса и тогда либо +1 либо далее(либо можно через типы)
-				// Добавление ответа в соответствующий вопрос
-
 			}
 		}
 		if !formResult.Anonymous {
@@ -326,13 +314,10 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 					ID:        formPassageResult.UserID,
 					FirstName: formPassageResult.FirstName,
 					Username:  formPassageResult.Username,
-					// Добавьте другие поля ответа, если они есть
 				})
 			}
 		}
 	}
-
-	// Завершение транзакции
 	return formResults[0], nil
 }
 
@@ -385,12 +370,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 		}
 
 		if questionExists {
-			//existingQuestion.NumberOfPassagesQuestion++
 			for _, existingAnswer := range existingQuestion.Answers {
-				// if existingAnswer.Text == info.answerResult.Text {
-				// 	existingAnswer.SelectedTimesAnswer++
-				// 	break
-				// } else {
 				if existingAnswer == existingQuestion.Answers[len(existingQuestion.Answers)-1] {
 					if existingAnswer.Text != "" {
 						existingQuestion.Answers = append(existingQuestion.Answers, info.answerResult)
@@ -398,10 +378,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 							answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
 						}
 						answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
-
 					}
-
-					//	}
 				}
 			}
 		} else {
@@ -434,70 +411,11 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 			questionResult.Answers = answersByQuestionID[questionResult.ID]
 		}
 
-		// participants, err := r.getParticipantsForForm(ctx, formResult.ID)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// if !formResult.Anonymous {
-		// 	formResult.Participants = participants
-		// }
-
 		formResults = append(formResults, formResult)
 	}
 
 	return formResults, nil
 }
-
-// getParticipantsForForm извлекает информацию о участниках (UserGet) для данной формы.
-// Она строит SQL-запрос для выбора уникальных участников, которые ответили на вопросы в форме.
-// Результат представляет собой слайс структурированных model.UserGet.
-// func (r *formDatabaseRepository) getParticipantsForForm(ctx context.Context, formID int64) ([]*model.UserGet, error) {
-// 	query, args, err := r.builder.
-// 		Select("u.id", "MAX(u.username) as username", "MAX(u.first_name) as first_name", "MAX(u.last_name) as last_name", "MAX(u.email) as email").
-// 		From(fmt.Sprintf("%s.passage_answer as pa", r.db.GetSchema())).
-// 		Join(fmt.Sprintf("%s.user as u ON pa.user_id = u.id", r.db.GetSchema())).
-// 		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
-// 		Where(squirrel.Eq{"q.form_id": formID}).
-// 		GroupBy("u.id").
-// 		ToSql()
-
-// 	if err != nil {
-// 		return nil, fmt.Errorf("form_repository getParticipantsForForm failed to build query: %v", err)
-// 	}
-
-// 	tx, err := r.db.Begin(ctx)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("form_repository form_results failed to begin transaction: %e", err)
-// 	}
-
-// 	defer func() {
-// 		switch err {
-// 		case nil:
-// 			err = tx.Commit(ctx)
-// 		default:
-// 			_ = tx.Rollback(ctx)
-// 		}
-// 	}()
-
-// 	rows, err := tx.Query(ctx, query, args...)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("form_repository form_results failed to execute query: %e", err)
-// 	}
-
-// 	defer rows.Close()
-
-// 	participants := make([]*model.UserGet, 0)
-
-// 	for rows.Next() {
-// 		var participant model.UserGet
-// 		if err := rows.Scan(&participant.ID, &participant.Username, &participant.FirstName, &participant.LastName, &participant.Email); err != nil {
-// 			return nil, fmt.Errorf("form_repository getParticipantsForForm failed to scan row: %v", err)
-// 		}
-// 		participants = append(participants, &participant)
-// 	}
-
-// 	return participants, nil
-// }
 
 func (r *formDatabaseRepository) formPassageResultsFromRows(ctx context.Context, rows pgx.Rows) ([]*model.FormPassageResult, error) {
 	defer func() {

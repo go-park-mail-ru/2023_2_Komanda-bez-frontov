@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"go-form-hub/internal/model"
-	"go-form-hub/internal/services/user"
 	"go-form-hub/microservices/user/profile"
 
 	"github.com/go-playground/validator/v10"
@@ -13,38 +12,38 @@ import (
 
 const defaultAvatar = ""
 
-type ProfileController struct {
+type Controller struct {
 	profile.UnimplementedProfileServer
 
-	service   user.Service
+	service   Service
 	validator *validator.Validate
 }
 
-func NewProfileController(userService user.Service, v *validator.Validate) *ProfileController {
-	return &ProfileController{
+func NewController(userService Service, v *validator.Validate) *Controller {
+	return &Controller{
 		service:   userService,
 		validator: v,
 	}
 }
 
-func (pm *ProfileController) UserGet(ctx context.Context, userID *profile.CurrentUserID) (*profile.Response, error) {
+func (pm *Controller) UserGet(ctx context.Context, userID *profile.CurrentUserID) (*profile.Response, error) {
 	result, err := pm.service.UserGet(ctx, userID.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	user := result.Body.(*model.UserGet)
-	if user.Avatar == nil {
+	userGet := result.Body.(*model.UserGet)
+	if userGet.Avatar == nil {
 		empty := defaultAvatar
-		user.Avatar = &empty
+		userGet.Avatar = &empty
 	}
 	userMsg := &profile.User{
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Username:  user.Username,
-		Id:        user.ID,
-		Avatar:    *user.Avatar,
+		Email:     userGet.Email,
+		FirstName: userGet.FirstName,
+		LastName:  userGet.LastName,
+		Username:  userGet.Username,
+		Id:        userGet.ID,
+		Avatar:    *userGet.Avatar,
 	}
 	body, err := anypb.New(userMsg)
 	if err != nil {
@@ -58,20 +57,20 @@ func (pm *ProfileController) UserGet(ctx context.Context, userID *profile.Curren
 
 	return response, nil
 }
-func (pm *ProfileController) AvatarGet(ctx context.Context, userID *profile.CurrentUserUsername) (*profile.Response, error) {
+func (pm *Controller) AvatarGet(ctx context.Context, userID *profile.CurrentUserUsername) (*profile.Response, error) {
 	result, err := pm.service.UserGetAvatar(ctx, userID.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	user := result.Body.(*model.UserAvatarGet)
-	if user.Avatar == nil {
+	userGet := result.Body.(*model.UserAvatarGet)
+	if userGet.Avatar == nil {
 		empty := defaultAvatar
-		user.Avatar = &empty
+		userGet.Avatar = &empty
 	}
 	userMsg := &profile.UserAvatar{
-		Username: user.Username,
-		Avatar:   *user.Avatar,
+		Username: userGet.Username,
+		Avatar:   *userGet.Avatar,
 	}
 	body, err := anypb.New(userMsg)
 	if err != nil {
@@ -85,7 +84,7 @@ func (pm *ProfileController) AvatarGet(ctx context.Context, userID *profile.Curr
 
 	return response, nil
 }
-func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.UserUpdateReq) (*profile.Response, error) {
+func (pm *Controller) Update(ctx context.Context, userUpdate *profile.UserUpdateReq) (*profile.Response, error) {
 	userModelUpdate := &model.UserUpdate{
 		Username:    userUpdate.Update.Username,
 		FirstName:   userUpdate.Update.FirstName,
@@ -109,18 +108,18 @@ func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.Use
 		return nil, err
 	}
 
-	user := result.Body.(*model.UserGet)
-	if user.Avatar == nil {
+	userGet := result.Body.(*model.UserGet)
+	if userGet.Avatar == nil {
 		empty := defaultAvatar
-		user.Avatar = &empty
+		userGet.Avatar = &empty
 	}
 	userMsg := &profile.User{
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Username:  user.Username,
-		Id:        user.ID,
-		Avatar:    *user.Avatar,
+		Email:     userGet.Email,
+		FirstName: userGet.FirstName,
+		LastName:  userGet.LastName,
+		Username:  userGet.Username,
+		Id:        userGet.ID,
+		Avatar:    *userGet.Avatar,
 	}
 	body, err := anypb.New(userMsg)
 	if err != nil {

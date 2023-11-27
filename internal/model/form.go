@@ -2,11 +2,13 @@ package model
 
 import "time"
 
+const AnonUserID = 0
+
 type Form struct {
 	ID        *int64      `json:"id"`
 	Title     string      `json:"title" validate:"required"`
 	Description  *string   `json:"description"`
-	Anonymous bool		  `json:"anonymous"`
+	Anonymous bool        `json:"anonymous"`
 	Author    *UserGet    `json:"author"`
 	CreatedAt time.Time   `json:"created_at"`
 	Questions []*Question `json:"questions" validate:"required"`
@@ -26,4 +28,14 @@ type FormList struct {
 type FormTitleList struct {
 	CollectionResponse
 	FormTitles []*FormTitle `json:"forms" validate:"required"`
+}
+
+type FormPassage struct {
+	FormID         *int64           `json:"form_id" validate:"required"`
+	PassageAnswers []*PassageAnswer `json:"passage_answers" validate:"required"`
+}
+
+type PassageAnswer struct {
+	QuestionID *int64 `json:"question_id" validate:"required"`
+	Text       string `json:"answer_text"`
 }

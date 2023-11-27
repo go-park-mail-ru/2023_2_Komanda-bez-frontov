@@ -4,5 +4,5 @@ CREATE TABLE nofronts.question (
     type INTEGER NOT NULL CHECK (type IN (1, 2, 3)),
     title VARCHAR NOT NULL,
     text TEXT,
-    shuffle BOOLEAN NOT NULL DEFAULT FALSE
+    required BOOLEAN NOT NULL DEFAULT FALSE
 );

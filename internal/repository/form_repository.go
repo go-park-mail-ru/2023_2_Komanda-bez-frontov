@@ -378,13 +378,10 @@ func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.Fo
 
 			questionsByFormID[info.formResult.ID] = append(questionsByFormID[info.formResult.ID], info.questionResult)
 			if info.answerResult.Text != "" {
-
 				if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
 					answersByQuestionID[info.questionResult.ID] = make([]*model.AnswerResult, 0)
 				}
-
 				answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
-
 			}
 		}
 	}

@@ -14,8 +14,8 @@ import (
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/form"
-	"go-form-hub/internal/services/user"
 	"go-form-hub/microservices/auth/session"
+	"go-form-hub/microservices/user/profile"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
@@ -70,7 +70,7 @@ func main() {
 		return
 	}
 
-	grcpConn, err := grpc.Dial(
+	authGrpcConn, err := grpc.Dial(
 		"127.0.0.1:8081",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -78,9 +78,21 @@ func main() {
 		log.Error().Msgf("cant connect to grpc: %s", err)
 		return
 	}
-	defer grcpConn.Close()
+	defer authGrpcConn.Close()
 
-	sessManager := session.NewAuthCheckerClient(grcpConn)
+	sessController := session.NewAuthCheckerClient(authGrpcConn)
+
+	userGrpcConn, err := grpc.Dial(
+		"127.0.0.1:8082",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Error().Msgf("cant connect to grpc: %s", err)
+		return
+	}
+	defer userGrpcConn.Close()
+
+	userController := profile.NewProfileClient(userGrpcConn)
 
 	validate := validator.New()
 
@@ -90,12 +102,11 @@ func main() {
 	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
 
 	formService := form.NewFormService(formRepository, questionRepository, validate)
-	userService := user.NewUserService(userRepository, cfg, validate)
 
 	responseEncoder := api.NewResponseEncoder()
 	formRouter := api.NewFormAPIController(formService, validate, responseEncoder)
-	authRouter := api.NewAuthAPIController(sessManager, validate, cfg.CookieExpiration, responseEncoder)
-	userRouter := api.NewUserAPIController(userService, validate, responseEncoder)
+	authRouter := api.NewAuthAPIController(sessController, validate, cfg.CookieExpiration, responseEncoder)
+	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
 	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)

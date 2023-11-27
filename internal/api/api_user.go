@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"go-form-hub/internal/model"
-	"go-form-hub/internal/services/user"
+	"go-form-hub/microservices/user/profile"
 
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
@@ -15,12 +15,12 @@ import (
 )
 
 type UserAPIController struct {
-	service         user.Service
+	service         profile.ProfileClient
 	validator       *validator.Validate
 	responseEncoder ResponseEncoder
 }
 
-func NewUserAPIController(service user.Service, v *validator.Validate, responseEncoder ResponseEncoder) Router {
+func NewUserAPIController(service profile.ProfileClient, v *validator.Validate, responseEncoder ResponseEncoder) Router {
 	return &UserAPIController{
 		service:         service,
 		validator:       v,
@@ -57,14 +57,33 @@ func (c *UserAPIController) Routes() []Route {
 func (c *UserAPIController) ProfileGet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+	userID := &profile.CurrentUserID{
+		Id: currentUser.ID,
+	}
 
-	result, err := c.service.UserGet(ctx, currentUser.ID)
+	result, err := c.service.UserGet(ctx, userID)
 	if err != nil {
 		log.Error().Msgf("api_user profile_get err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 	}
 
-	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	var user *profile.User
+	err = result.Body.UnmarshalTo(user)
+	if err != nil {
+		log.Error().Msgf("couldnt parse response: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	modelUser := &model.UserGet{
+		ID:        user.Id,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Avatar:    &user.Avatar,
+		Username:  user.Username,
+	}
+	c.responseEncoder.EncodeJSONResponse(ctx, modelUser, int(result.Code), w)
 }
 
 func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
@@ -88,14 +107,41 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	result, err := c.service.UserUpdate(ctx, &updatedUser)
+	userUpdate := profile.UserUpdate{
+		Avatar:      *updatedUser.Avatar,
+		Username:    updatedUser.Username,
+		FirstName:   updatedUser.FirstName,
+		LastName:    updatedUser.LastName,
+		Password:    updatedUser.Password,
+		NewPassword: updatedUser.NewPassword,
+		Email:       updatedUser.Email,
+	}
+
+	result, err := c.service.Update(ctx, &userUpdate)
 	if err != nil {
 		log.Error().Msgf("user_api user_update error: %v", err)
-		c.responseEncoder.HandleError(ctx, w, err, result)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	var user *profile.User
+	err = result.Body.UnmarshalTo(user)
+	if err != nil {
+		log.Error().Msgf("couldnt parse response: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	modelUser := &model.UserGet{
+		ID:        user.Id,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Avatar:    &user.Avatar,
+		Username:  user.Username,
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, modelUser, int(result.Code), w)
 }
 
 func (c *UserAPIController) UserAvatarGet(w http.ResponseWriter, r *http.Request) {
@@ -107,13 +153,31 @@ func (c *UserAPIController) UserAvatarGet(w http.ResponseWriter, r *http.Request
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
+	usernameMsg := &profile.CurrentUserUsername{
+		Username: username,
+	}
 
-	result, err := c.service.UserGetAvatar(ctx, username)
+	result, err := c.service.AvatarGet(ctx, usernameMsg)
 	if err != nil {
 		log.Error().Msgf("user_api user_avatar_get error: %v", err)
-		c.responseEncoder.HandleError(ctx, w, err, result)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	var avatar *profile.UserAvatar
+	err = result.Body.UnmarshalTo(avatar)
+	if err != nil {
+		log.Error().Msgf("couldnt parse response: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	avatarGet := &model.UserAvatarGet{
+		Username: avatar.Username,
+		Avatar:   &avatar.Avatar,
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, avatarGet, int(result.Code), w)
 }
+
+//TODO: в Handle error завернуть response.code

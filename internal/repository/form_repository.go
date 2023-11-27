@@ -150,10 +150,6 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 	return r.searchTitleFromRows(rows)
 }
 
-// FormResults извлекает результаты формы по ID формы.
-// Эта функция строит SQL-запрос для получения данных, связанных с формой,
-// из базы данных, включая информацию о форме, вопросах, ответах и участниках.
-// Результат представляет собой структурированный model.FormResult.
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {
 	formInfoQuery, formInfoArgs, err := r.builder.
 		Select(selectFieldsFormInfo...).
@@ -163,8 +159,6 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"f.id": id}).
 		ToSql()
-
-	fmt.Println("SQL Query:", formInfoQuery)
 
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_results failed to build form info query: %e", err)
@@ -178,8 +172,6 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"fp.form_id": id}).
 		ToSql()
-
-	fmt.Println("SQL Query:", formPassageInfoQuery)
 
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_passage_results failed to build form passage info query: %e", err)
@@ -232,7 +224,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		return nil, fmt.Errorf("form_repository question_count failed to execute form info query: %e", err)
 	}
 
-	countQuestionResults, err := r.countQuestionFromRows(ctx, countQuestion)
+	countQuestionResults, err := r.countQuestionFromRows(countQuestion)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +234,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		return nil, fmt.Errorf("form_repository form_count failed to execute form info query: %e", err)
 	}
 
-	countFormResults, err := r.countFormFromRows(ctx, countForm)
+	countFormResults, err := r.countFormFromRows(countForm)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +244,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		return nil, fmt.Errorf("form_repository form_results failed to execute form info query: %e", err)
 	}
 
-	formResults, err := r.formResultsFromRows(ctx, rowsFormInfo)
+	formResults, err := r.formResultsFromRows(rowsFormInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +258,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		return nil, fmt.Errorf("form_repository form_results failed to execute form passage info query: %e", err)
 	}
 
-	formPassageResults, err := r.formPassageResultsFromRows(ctx, rowsFormPassageInfo)
+	formPassageResults, err := r.formPassageResultsFromRows(rowsFormPassageInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -321,13 +313,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 	return formResults[0], nil
 }
 
-// formResultsFromRows обрабатывает строки, полученные из результата запроса к базе данных,
-// и создает список структурированных результатов формы.
-// Она заполняет карты для организации вопросов и ответов по ID формы
-// и вычисляет количество прохождений для каждой формы.
-// Кроме того, она извлекает информацию о участниках для каждой формы,
-// вызывая функцию getParticipantsForForm.
-func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows pgx.Rows) ([]*model.FormResult, error) {
+func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.FormResult, error) {
 	defer func() {
 		rows.Close()
 	}()
@@ -417,7 +403,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 	return formResults, nil
 }
 
-func (r *formDatabaseRepository) formPassageResultsFromRows(ctx context.Context, rows pgx.Rows) ([]*model.FormPassageResult, error) {
+func (r *formDatabaseRepository) formPassageResultsFromRows(rows pgx.Rows) ([]*model.FormPassageResult, error) {
 	defer func() {
 		rows.Close()
 	}()
@@ -445,7 +431,7 @@ func (r *formDatabaseRepository) formPassageResultsFromRows(ctx context.Context,
 	return formPassageResults, nil
 }
 
-func (r *formDatabaseRepository) countQuestionFromRows(ctx context.Context, rows pgx.Rows) ([]*model.QuestionResult, error) {
+func (r *formDatabaseRepository) countQuestionFromRows(rows pgx.Rows) ([]*model.QuestionResult, error) {
 	defer func() {
 		rows.Close()
 	}()
@@ -467,7 +453,7 @@ func (r *formDatabaseRepository) countQuestionFromRows(ctx context.Context, rows
 	return countQuestionPassageResults, nil
 }
 
-func (r *formDatabaseRepository) countFormFromRows(ctx context.Context, rows pgx.Rows) ([]*model.FormResult, error) {
+func (r *formDatabaseRepository) countFormFromRows(rows pgx.Rows) ([]*model.FormResult, error) {
 	defer func() {
 		rows.Close()
 	}()

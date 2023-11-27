@@ -63,10 +63,10 @@ var (
 	selectFieldsFormPassageInfo = []string{
 		"fp.id",
 		"ua.id",
-		"ua.username",
-		"ua.first_name",
-		"ua.last_name",
-		"ua.email",
+		"COALESCE(ua.username, '')",
+		"COALESCE(ua.first_name, '')",
+		"COALESCE(ua.last_name, '')",
+		"COALESCE(ua.email, '')",
 		"q.id",
 		"pa.answer_text",
 	}
@@ -167,7 +167,7 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 	formPassageInfoQuery, formPassageInfoArgs, err := r.builder.
 		Select(selectFieldsFormPassageInfo...).
 		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
-		Join(fmt.Sprintf("%s.user as ua ON fp.user_id = ua.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.user as ua ON fp.user_id = ua.id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.form_passage_answer as pa ON fp.id = pa.form_passage_id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"fp.form_id": id}).
@@ -180,7 +180,6 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 	formPassageCount, formPassageArgs, err := r.builder.
 		Select("fp.form_id", "COUNT(DISTINCT fp.id) AS unique_response_count").
 		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
-		Join(fmt.Sprintf("%s.user as ua ON fp.user_id = ua.id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.form_passage_answer as pa ON fp.id = pa.form_passage_id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"fp.form_id": id}).
@@ -194,7 +193,6 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 	questionPassageCount, questionPassageArgs, err := r.builder.
 		Select("q.id", "COUNT(DISTINCT fp.id) AS unique_response_count").
 		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
-		Join(fmt.Sprintf("%s.user as ua ON fp.user_id = ua.id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.form_passage_answer as pa ON fp.id = pa.form_passage_id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"fp.form_id": id}).
@@ -296,14 +294,14 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		if !formResult.Anonymous {
 			userExist := false
 			for _, partisipantsResult := range formResult.Participants {
-				if partisipantsResult.ID == formPassageResult.UserID {
+				if partisipantsResult.ID == formPassageResult.UserID.Int64 {
 					userExist = true
 					break
 				}
 			}
 			if !userExist {
 				formResult.Participants = append(formResult.Participants, &model.UserGet{
-					ID:        formPassageResult.UserID,
+					ID:        formPassageResult.UserID.Int64,
 					FirstName: formPassageResult.FirstName,
 					Username:  formPassageResult.Username,
 				})

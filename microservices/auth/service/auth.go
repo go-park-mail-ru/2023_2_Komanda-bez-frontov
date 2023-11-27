@@ -1,4 +1,4 @@
-package auth
+package session
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"crypto/md5" // nolint:gosec
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,10 +21,15 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
+var (
+	ErrUsernameTaken = errors.New("username taken")
+	ErrEmailTaken    = errors.New("email taken")
+)
+
 type Service interface {
 	AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error)
 	AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error)
-	AuthLogout(ctx context.Context) (*resp.Response, string, error)
+	AuthLogout(ctx context.Context, sessionID string) (*resp.Response, string, error)
 	IsSessionValid(ctx context.Context, sessionID string) (bool, error)
 }
 
@@ -95,7 +101,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	}
 
 	if existing != nil {
-		return resp.NewResponse(http.StatusConflict, nil), "", nil
+		return resp.NewResponse(http.StatusConflict, nil), "", ErrEmailTaken
 	}
 
 	existing, err = s.userRepository.FindByUsername(ctx, user.Username)
@@ -104,7 +110,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	}
 
 	if existing != nil {
-		return resp.NewResponse(http.StatusConflict, nil), "", nil
+		return resp.NewResponse(http.StatusConflict, nil), "", ErrUsernameTaken
 	}
 
 	encPassword, err := s.encryptPassword(user.Password)
@@ -186,19 +192,13 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	}), sessionID, nil
 }
 
-func (s *authService) AuthLogout(ctx context.Context) (*resp.Response, string, error) {
-	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
-	session, err := s.sessionRepository.FindByUserID(ctx, currentUser.ID)
+func (s *authService) AuthLogout(ctx context.Context, sessionID string) (*resp.Response, string, error) {
+	err := s.sessionRepository.Delete(ctx, sessionID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
-	err = s.sessionRepository.Delete(ctx, session.SessionID)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
-	}
-
-	return resp.NewResponse(http.StatusNoContent, nil), session.SessionID, nil
+	return resp.NewResponse(http.StatusNoContent, nil), sessionID, nil
 }
 
 func (s *authService) IsSessionValid(ctx context.Context, sessionID string) (bool, error) {

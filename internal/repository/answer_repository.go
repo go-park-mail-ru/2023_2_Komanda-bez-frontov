@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/model"
@@ -145,4 +146,12 @@ func (r *answerDatabaseRepository) DeleteByQuestionID(ctx context.Context, quest
 	_, err = tx.Exec(ctx, query, args...)
 
 	return err
+}
+
+type PassageAnswer struct {
+	ID         int64     `db:"id"`
+	AnswerText string    `db:"answer_text"`
+	QuestionID int64     `db:"question_id"`
+	UserID     *int64    `db:"user_id"`
+	CreatedAt  time.Time `db:"created_at"`
 }

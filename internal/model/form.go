@@ -2,6 +2,8 @@ package model
 
 import "time"
 
+const AnonUserID = 0
+
 type Form struct {
 	ID          *int64      `json:"id"`
 	Title       string      `json:"title" validate:"required"`
@@ -38,4 +40,14 @@ type FormUpdate struct {
 	Questions        []*Question `json:"questions" validate:"required"`
 	RemovedQuestions []int64     `json:"removed_questions"`
 	RemovedAnswers   []int64     `json:"removed_answers"`
+}
+
+type FormPassage struct {
+	FormID         *int64           `json:"form_id" validate:"required"`
+	PassageAnswers []*PassageAnswer `json:"passage_answers" validate:"required"`
+}
+
+type PassageAnswer struct {
+	QuestionID *int64 `json:"question_id" validate:"required"`
+	Text       string `json:"answer_text"`
 }

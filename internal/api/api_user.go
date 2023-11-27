@@ -60,7 +60,7 @@ func (c *UserAPIController) ProfileGet(w http.ResponseWriter, r *http.Request) {
 
 	result, err := c.service.UserGet(ctx, currentUser.ID)
 	if err != nil {
-		log.Error().Msgf("api_user profile_get err: %e", err)
+		log.Error().Msgf("api_user profile_get err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 	}
 
@@ -76,21 +76,21 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 	}()
 
 	if err != nil {
-		log.Error().Msgf("user_api user_update read_body error: %e", err)
+		log.Error().Msgf("user_api user_update read_body error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	var updatedUser model.UserUpdate
 	if err = json.Unmarshal(requestJSON, &updatedUser); err != nil {
-		log.Error().Msgf("user_api user_update unmarshal error: %e", err)
+		log.Error().Msgf("user_api user_update unmarshal error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	result, err := c.service.UserUpdate(ctx, &updatedUser)
 	if err != nil {
-		log.Error().Msgf("user_api user_update error: %e", err)
+		log.Error().Msgf("user_api user_update error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
@@ -103,14 +103,14 @@ func (c *UserAPIController) UserAvatarGet(w http.ResponseWriter, r *http.Request
 
 	username, err := url.PathUnescape(chi.URLParam(r, "username"))
 	if err != nil {
-		log.Error().Msgf("user_api user_avatar_get unescape error: %e", err)
+		log.Error().Msgf("user_api user_avatar_get unescape error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	result, err := c.service.UserGetAvatar(ctx, username)
 	if err != nil {
-		log.Error().Msgf("user_api user_avatar_get error: %e", err)
+		log.Error().Msgf("user_api user_avatar_get error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}

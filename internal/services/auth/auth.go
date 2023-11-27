@@ -54,7 +54,7 @@ func generateSessionID(username string) string {
 func (s *authService) encryptPassword(pass string) (string, error) {
 	keyBytes, err := hex.DecodeString(s.cfg.EncryptionKey)
 	if err != nil {
-		return "", fmt.Errorf("encrypt_password invalid hex-encoded key: %e", err)
+		return "", fmt.Errorf("encrypt_password invalid hex-encoded key: %v", err)
 	}
 
 	if len(keyBytes) != 32 {

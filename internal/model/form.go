@@ -50,3 +50,14 @@ type PassageAnswer struct {
 	QuestionID *int64 `json:"question_id" validate:"required"`
 	Text       string `json:"answer_text"`
 }
+
+type FormPassageResult struct {
+	FormID                  int64  `json:"form_id"`
+	UserID                  int64  `json:"user_id" db:"user_id"`
+	Username                string `json:"username" db:"username"`
+	FirstName               string `json:"first_name" db:"first_name"`
+	LastName                string `json:"last_name" db:"last_name"`
+	Email                   string `json:"email" db:"email"`
+	QuestionID              int64  `json:"question_id" db:"question_id"`
+	AnswerText              string `json:"answer_text" db:"answer_text"`
+}

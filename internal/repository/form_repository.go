@@ -43,8 +43,8 @@ var (
 )
 
 var (
-	selectFieldsResults = []string{
-		"DISTINCT f.id",
+	selectFieldsFormInfo = []string{
+		"f.id",
 		"f.title",
 		"f.created_at",
 		"f.description",
@@ -54,20 +54,21 @@ var (
 		"u.first_name",
 		"u.last_name",
 		"u.email",
-		"pa.user_id",
-		"u.username",
-		"u.first_name",
-		"u.last_name",
-		"u.email",
 		"q.id",
 		"q.title",
 		"q.text",
 		"q.type",
-		"q.required",
+		"a.answer_text",
+	}
+	selectFieldsFormPassageInfo = []string{
+		"fp.id",
+		"ua.id",
+		"ua.username",
+		"ua.first_name",
+		"ua.last_name",
+		"ua.email",
+		"q.id",
 		"pa.answer_text",
-		"COUNT(DISTINCT q.id) AS NumberOfPassagesForm",
-		"COUNT(DISTINCT CONCAT(pa.user_id, pa.created_at)) AS NumberOfPassagesQuestion",
-		"COUNT(DISTINCT CONCAT(pa.user_id, pa.created_at)) AS SelectedTimesAnswer",
 	}
 )
 
@@ -154,20 +155,63 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 // из базы данных, включая информацию о форме, вопросах, ответах и участниках.
 // Результат представляет собой структурированный model.FormResult.
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {
-	formQuery, args, err := r.builder.
-		Select(selectFieldsResults...).
+	formInfoQuery, formInfoArgs, err := r.builder.
+		Select(selectFieldsFormInfo...).
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
-		LeftJoin(fmt.Sprintf("%s.passage_answer as pa ON q.id = pa.question_id", r.db.GetSchema())).
 		Where(squirrel.Eq{"f.id": id}).
-		GroupBy("f.id, f.title, f.created_at, f.description, f.author_id, u.id, u.username, u.first_name, u.last_name, u.email, q.id, q.title, q.text, q.type, q.required, pa.id, pa.answer_text, pa.user_id").
 		ToSql()
 
-	fmt.Println("SQL Query:", formQuery)
+
+	fmt.Println("SQL Query:", formInfoQuery)
+
 	if err != nil {
-		return nil, fmt.Errorf("form_repository form_results failed to build query: %e", err)
+		return nil, fmt.Errorf("form_repository form_results failed to build form info query: %e", err)
+	}
+
+	formPassageInfoQuery, formPassageInfoArgs, err := r.builder.
+		Select(selectFieldsFormPassageInfo...).
+		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as ua ON fp.user_id = ua.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form_passage_answer as pa ON fp.id = pa.form_passage_id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"fp.form_id": id}).
+		ToSql()
+
+	fmt.Println("SQL Query:", formPassageInfoQuery)
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_passage_results failed to build form passage info query: %e", err)
+	}
+
+	formPassageCount, formPassageArgs, err := r.builder.
+		Select("fp.form_id", "COUNT(DISTINCT fp.id) AS unique_response_count").
+		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as ua ON fp.user_id = ua.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form_passage_answer as pa ON fp.id = pa.form_passage_id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"fp.form_id": id}).
+		GroupBy("fp.form_id").
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository question_count failed to build form passage info query: %e", err)
+	}
+
+	questionPassageCount, questionPassageArgs, err := r.builder.
+		Select("q.id", "COUNT(DISTINCT fp.id) AS unique_response_count").
+		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as ua ON fp.user_id = ua.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form_passage_answer as pa ON fp.id = pa.form_passage_id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"fp.form_id": id}).
+		GroupBy("q.id").
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository question_count failed to build form passage info query: %e", err)
 	}
 
 	tx, err := r.db.Begin(ctx)
@@ -184,20 +228,112 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 		}
 	}()
 
-	rows, err := tx.Query(ctx, formQuery, args...)
+	countQuestion, err := tx.Query(ctx, questionPassageCount, questionPassageArgs...)
 	if err != nil {
-		return nil, fmt.Errorf("form_repository form_results failed to execute query: %e", err)
+		return nil, fmt.Errorf("form_repository question_count failed to execute form info query: %e", err)
 	}
 
-	formResults, err := r.formResultsFromRows(ctx, rows)
+	countQuestionResults, err := r.countQuestionFromRows(ctx, countQuestion)
 	if err != nil {
 		return nil, err
 	}
 
+	countForm, err := tx.Query(ctx, formPassageCount, formPassageArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_count failed to execute form info query: %e", err)
+	}
+
+	countFormResults, err := r.countFormFromRows(ctx, countForm)
+	if err != nil {
+		return nil, err
+	}
+
+	// Выполнение первого запроса
+	rowsFormInfo, err := tx.Query(ctx, formInfoQuery, formInfoArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results failed to execute form info query: %e", err)
+	}
+
+	// Обработка результатов первого запроса
+	formResults, err := r.formResultsFromRows(ctx, rowsFormInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	// Если результатов нет, возвращаем nil
 	if len(formResults) == 0 {
 		return nil, nil
 	}
 
+	// Выполнение второго запроса
+	rowsFormPassageInfo, err := tx.Query(ctx, formPassageInfoQuery, formPassageInfoArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results failed to execute form passage info query: %e", err)
+	}
+
+	// Обработка результатов второго запроса
+	formPassageResults, err := r.formPassageResultsFromRows(ctx, rowsFormPassageInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	// Объединение результатов двух запросов
+	for _, formPassageResult := range formPassageResults {
+		formResult := formResults[0] // Поскольку у нас только один результат первого запроса, мы его берем
+		for _, formCount := range countFormResults{
+			if formCount.ID == formResult.ID {
+				formResult.NumberOfPassagesForm = formCount.NumberOfPassagesForm
+			}
+		}
+		// Поиск вопроса в результатах формы, к которому привязан результат прохождения
+		for _, questionResult := range formResult.Questions {
+			if questionResult.ID == formPassageResult.QuestionID {
+				for _, questionCount := range countQuestionResults{
+					if questionCount.ID == questionResult.ID {
+						questionResult.NumberOfPassagesQuestion = questionCount.NumberOfPassagesQuestion
+					}
+				}
+				answerExist := false
+				for _, answerResult := range questionResult.Answers {
+					if answerResult.Text == formPassageResult.AnswerText {
+						answerResult.SelectedTimesAnswer++
+						answerExist = true
+						break
+					}
+				}
+				if !answerExist {
+					questionResult.Answers = append(questionResult.Answers, &model.AnswerResult{
+						Text: formPassageResult.AnswerText,
+						SelectedTimesAnswer: 1,
+						// Добавьте другие поля ответа, если они есть
+					})
+				}
+				
+				//ToDO добавляем проверку на существование вопроса и тогда либо +1 либо далее(либо можно через типы)
+				// Добавление ответа в соответствующий вопрос
+				
+			}
+		}
+		if !formResult.Anonymous {
+			userExist := false
+			for _, partisipantsResult := range formResult.Participants {
+				if partisipantsResult.ID == formPassageResult.UserID {
+					userExist = true
+					break
+				}
+			}
+			if !userExist {
+				formResult.Participants = append(formResult.Participants, &model.UserGet{
+					ID: formPassageResult.UserID,
+					FirstName: formPassageResult.FirstName,
+					Username: formPassageResult.Username,
+					// Добавьте другие поля ответа, если они есть
+				})
+			}
+		}
+	}
+
+	// Завершение транзакции
 	return formResults[0], nil
 }
 
@@ -250,12 +386,12 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 		}
 
 		if questionExists {
-			existingQuestion.NumberOfPassagesQuestion++
+			//existingQuestion.NumberOfPassagesQuestion++
 			for _, existingAnswer := range existingQuestion.Answers {
-				if existingAnswer.Text == info.answerResult.Text {
-					existingAnswer.SelectedTimesAnswer++
-					break
-				} else {
+				// if existingAnswer.Text == info.answerResult.Text {
+				// 	existingAnswer.SelectedTimesAnswer++
+				// 	break
+				// } else {
 					if existingAnswer == existingQuestion.Answers[len(existingQuestion.Answers)-1] {
 						existingQuestion.Answers = append(existingQuestion.Answers, info.answerResult)
 						if _, ok := answersByQuestionID[info.questionResult.ID]; !ok {
@@ -263,7 +399,7 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 						}
 						answersByQuestionID[info.questionResult.ID] = append(answersByQuestionID[info.questionResult.ID], info.answerResult)
 
-					}
+				//	}
 				}
 			}
 		} else {
@@ -292,15 +428,13 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 			questionResult.Answers = answersByQuestionID[questionResult.ID]
 		}
 
-		participants, err := r.getParticipantsForForm(ctx, formResult.ID)
-		if err != nil {
-			return nil, err
-		}
-		if !formResult.Anonymous {
-			formResult.Participants = participants
-		}
-
-		formResultMap[formResult.ID].NumberOfPassagesForm = len(participants)
+		// participants, err := r.getParticipantsForForm(ctx, formResult.ID)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// if !formResult.Anonymous {
+		// 	formResult.Participants = participants
+		// }
 
 		formResults = append(formResults, formResult)
 	}
@@ -311,59 +445,130 @@ func (r *formDatabaseRepository) formResultsFromRows(ctx context.Context, rows p
 // getParticipantsForForm извлекает информацию о участниках (UserGet) для данной формы.
 // Она строит SQL-запрос для выбора уникальных участников, которые ответили на вопросы в форме.
 // Результат представляет собой слайс структурированных model.UserGet.
-func (r *formDatabaseRepository) getParticipantsForForm(ctx context.Context, formID int64) ([]*model.UserGet, error) {
-	query, args, err := r.builder.
-		Select("u.id", "MAX(u.username) as username", "MAX(u.first_name) as first_name", "MAX(u.last_name) as last_name", "MAX(u.email) as email").
-		From(fmt.Sprintf("%s.passage_answer as pa", r.db.GetSchema())).
-		Join(fmt.Sprintf("%s.user as u ON pa.user_id = u.id", r.db.GetSchema())).
-		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
-		Where(squirrel.Eq{"q.form_id": formID}).
-		GroupBy("u.id").
-		ToSql()
+// func (r *formDatabaseRepository) getParticipantsForForm(ctx context.Context, formID int64) ([]*model.UserGet, error) {
+// 	query, args, err := r.builder.
+// 		Select("u.id", "MAX(u.username) as username", "MAX(u.first_name) as first_name", "MAX(u.last_name) as last_name", "MAX(u.email) as email").
+// 		From(fmt.Sprintf("%s.passage_answer as pa", r.db.GetSchema())).
+// 		Join(fmt.Sprintf("%s.user as u ON pa.user_id = u.id", r.db.GetSchema())).
+// 		Join(fmt.Sprintf("%s.question as q ON pa.question_id = q.id", r.db.GetSchema())).
+// 		Where(squirrel.Eq{"q.form_id": formID}).
+// 		GroupBy("u.id").
+// 		ToSql()
 
-	if err != nil {
-		return nil, fmt.Errorf("form_repository getParticipantsForForm failed to build query: %v", err)
-	}
+// 	if err != nil {
+// 		return nil, fmt.Errorf("form_repository getParticipantsForForm failed to build query: %v", err)
+// 	}
 
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("form_repository form_results failed to begin transaction: %e", err)
-	}
+// 	tx, err := r.db.Begin(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("form_repository form_results failed to begin transaction: %e", err)
+// 	}
 
+// 	defer func() {
+// 		switch err {
+// 		case nil:
+// 			err = tx.Commit(ctx)
+// 		default:
+// 			_ = tx.Rollback(ctx)
+// 		}
+// 	}()
+
+// 	rows, err := tx.Query(ctx, query, args...)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("form_repository form_results failed to execute query: %e", err)
+// 	}
+
+// 	defer rows.Close()
+
+// 	participants := make([]*model.UserGet, 0)
+
+// 	for rows.Next() {
+// 		var participant model.UserGet
+// 		if err := rows.Scan(&participant.ID, &participant.Username, &participant.FirstName, &participant.LastName, &participant.Email); err != nil {
+// 			return nil, fmt.Errorf("form_repository getParticipantsForForm failed to scan row: %v", err)
+// 		}
+// 		participants = append(participants, &participant)
+// 	}
+
+// 	return participants, nil
+// }
+
+func (r *formDatabaseRepository) formPassageResultsFromRows(ctx context.Context, rows pgx.Rows) ([]*model.FormPassageResult, error) {
 	defer func() {
-		switch err {
-		case nil:
-			err = tx.Commit(ctx)
-		default:
-			_ = tx.Rollback(ctx)
-		}
+		rows.Close()
 	}()
 
-	rows, err := tx.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("form_repository form_results failed to execute query: %e", err)
-	}
-
-	defer rows.Close()
-
-	participants := make([]*model.UserGet, 0)
+	formPassageResults := make([]*model.FormPassageResult, 0)
 
 	for rows.Next() {
-		var participant model.UserGet
-		if err := rows.Scan(&participant.ID, &participant.Username, &participant.FirstName, &participant.LastName, &participant.Email); err != nil {
-			return nil, fmt.Errorf("form_repository getParticipantsForForm failed to scan row: %v", err)
+		result := &model.FormPassageResult{}
+		err := rows.Scan(
+			&result.FormID,
+			&result.UserID,
+			&result.Username,
+			&result.FirstName,
+			&result.LastName,
+			&result.Email,
+			&result.QuestionID,
+			&result.AnswerText,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("form_repository formPassageResultsFromRows failed to scan row: %v", err)
 		}
-		participants = append(participants, &participant)
+		formPassageResults = append(formPassageResults, result)
 	}
 
-	return participants, nil
+	return formPassageResults, nil
+}
+
+func (r *formDatabaseRepository) countQuestionFromRows(ctx context.Context, rows pgx.Rows) ([]*model.QuestionResult, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	countQuestionPassageResults := make([]*model.QuestionResult, 0)
+
+	for rows.Next() {
+		result := &model.QuestionResult{}
+		err := rows.Scan(
+			&result.ID,
+			&result.NumberOfPassagesQuestion,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("form_repository countQuestionFromRows failed to scan row: %v", err)
+		}
+		countQuestionPassageResults = append(countQuestionPassageResults, result)
+	}
+
+	return countQuestionPassageResults, nil
+}
+
+func (r *formDatabaseRepository) countFormFromRows(ctx context.Context, rows pgx.Rows) ([]*model.FormResult, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	countFormPassageResults := make([]*model.FormResult, 0)
+
+	for rows.Next() {
+		result := &model.FormResult{}
+		err := rows.Scan(
+			&result.ID,
+			&result.NumberOfPassagesForm,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("form_repository countFormFromRows failed to scan row: %v", err)
+		}
+		countFormPassageResults = append(countFormPassageResults, result)
+	}
+
+	return countFormPassageResults, nil
 }
 
 type formResultsFromRowReturn struct {
 	formResult      *model.FormResult
 	questionResult  *model.QuestionResult
 	answerResult    *model.AnswerResult
-	participantInfo *model.UserGet
 }
 
 // formResultsFromRowReturn представляет структурированные данные,
@@ -374,7 +579,6 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 	questionResult := &model.QuestionResult{}
 	answerResult := &model.AnswerResult{}
 	formResult.Author = &model.UserGet{}
-	participantInfo := &model.UserGet{}
 
 	err := row.Scan(
 		&formResult.ID,
@@ -387,20 +591,11 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		&formResult.Author.FirstName,
 		&formResult.Author.LastName,
 		&formResult.Author.Email,
-		&participantInfo.ID,
-		&participantInfo.Username,
-		&participantInfo.FirstName,
-		&participantInfo.LastName,
-		&participantInfo.Email,
 		&questionResult.ID,
 		&questionResult.Title,
 		&questionResult.Description,
 		&questionResult.Type,
-		&questionResult.Required,
 		&answerResult.Text,
-		&formResult.NumberOfPassagesForm,
-		&questionResult.NumberOfPassagesQuestion,
-		&answerResult.SelectedTimesAnswer,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -409,7 +604,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		return nil, fmt.Errorf("form_repository failed to scan row: %e", err)
 	}
 
-	return &formResultsFromRowReturn{formResult, questionResult, answerResult, participantInfo}, nil
+	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
 }
 
 func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.Form, err error) {

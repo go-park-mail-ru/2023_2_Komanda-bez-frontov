@@ -14,27 +14,43 @@ import (
 
 type Service interface {
 	FormSave(ctx context.Context, form *model.Form) (*resp.Response, error)
-	FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error)
+	FormUpdate(ctx context.Context, id int64, form *model.FormUpdate) (*resp.Response, error)
 	FormList(ctx context.Context) (*resp.Response, error)
 	FormListByUser(ctx context.Context, username string) (*resp.Response, error)
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
 	FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error)
+	FormResults(ctx context.Context, id int64) (*resp.Response, error)
 	FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error)
 }
 
 type formService struct {
 	formRepository     repository.FormRepository
 	questionRepository repository.QuestionRepository
+	answerRepository   repository.AnswerRepository
 	validate           *validator.Validate
 }
 
-func NewFormService(formRepository repository.FormRepository, questionRepository repository.QuestionRepository, validate *validator.Validate) Service {
+func NewFormService(formRepository repository.FormRepository, questionRepository repository.QuestionRepository, answerRepository repository.AnswerRepository, validate *validator.Validate) Service {
 	return &formService{
 		formRepository:     formRepository,
 		validate:           validate,
 		questionRepository: questionRepository,
+		answerRepository:   answerRepository,
 	}
+}
+
+func (s *formService) FormResults(ctx context.Context, formID int64) (*resp.Response, error) {
+	formResults, err := s.formRepository.FormResults(ctx, formID)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if formResults == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	return resp.NewResponse(http.StatusOK, formResults), nil
 }
 
 func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Response, error) {
@@ -94,7 +110,7 @@ func (s *formService) FormPass(ctx context.Context, formPassage *model.FormPassa
 	return resp.NewResponse(http.StatusNoContent, nil), nil
 }
 
-func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form) (*resp.Response, error) {
+func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.FormUpdate) (*resp.Response, error) {
 	if err := s.validate.Struct(form); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err
 	}
@@ -120,20 +136,61 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	formUpdate.ID = &id
-	err = s.questionRepository.DeleteByFormID(ctx, id)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	if len(form.RemovedAnswers) != 0 {
+		err = s.answerRepository.DeleteAllByID(ctx, form.RemovedAnswers)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
 	}
 
-	newQuestions, err := s.questionRepository.BatchInsert(ctx, form.Questions, id)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	if len(form.RemovedQuestions) != 0 {
+		err = s.questionRepository.DeleteAllByID(ctx, form.RemovedQuestions)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
 	}
 
-	formUpdate.Questions = newQuestions
+	for _, question := range form.Questions {
+		if *question.ID == 0 {
+			err := s.questionRepository.Insert(ctx, question, id)
+			if err != nil {
+				return resp.NewResponse(http.StatusInternalServerError, nil), err
+			}
+		} else {
+			if response, err := s.QuestionUpdate(ctx, question); err != nil {
+				return response, err
+			}
+		}
+	}
 
 	return resp.NewResponse(http.StatusOK, formUpdate), nil
+}
+
+func (s *formService) QuestionUpdate(ctx context.Context, question *model.Question) (*resp.Response, error) {
+	err := s.questionRepository.Update(ctx, *question.ID, question)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+	if question.Type == model.InputAnswerType {
+		err := s.answerRepository.DeleteByQuestionID(ctx, *question.ID)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
+	}
+	for _, answer := range question.Answers {
+		if *answer.ID == 0 {
+			err := s.answerRepository.Insert(ctx, *question.ID, answer)
+			if err != nil {
+				return resp.NewResponse(http.StatusInternalServerError, nil), err
+			}
+		} else {
+			err := s.answerRepository.Update(ctx, *answer.ID, answer)
+			if err != nil {
+				return resp.NewResponse(http.StatusInternalServerError, nil), err
+			}
+		}
+	}
+	return resp.NewResponse(http.StatusOK, nil), nil
 }
 
 func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {

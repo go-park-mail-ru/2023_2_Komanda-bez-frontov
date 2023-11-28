@@ -13,9 +13,10 @@ type FormRepository interface {
 	FindAllByUser(ctx context.Context, username string) ([]*model.Form, error)
 	FindByID(ctx context.Context, id int64) (*model.Form, error)
 	Insert(ctx context.Context, form *model.Form, tx pgx.Tx) (*model.Form, error)
-	Update(ctx context.Context, id int64, form *model.Form) (*model.Form, error)
+	Update(ctx context.Context, id int64, form *model.FormUpdate) (*model.FormUpdate, error)
 	Delete(ctx context.Context, id int64) error
 	FormsSearch(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error)
+	FormResults(ctx context.Context, id int64) (*model.FormResult, error)
 	FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userID uint64) error
 	FormPassageCount(ctx context.Context, formID int64) (int64, error)
 }
@@ -39,5 +40,14 @@ type SessionRepository interface {
 
 type QuestionRepository interface {
 	DeleteByFormID(ctx context.Context, formID int64) error
-	BatchInsert(ctx context.Context, questions []*model.Question, formID int64) ([]*model.Question, error)
+	DeleteAllByID(ctx context.Context, ids []int64) error
+	Update(ctx context.Context, id int64, question *model.Question) error
+	Insert(ctx context.Context, questions *model.Question, formID int64) error
+}
+
+type AnswerRepository interface {
+	DeleteAllByID(ctx context.Context, ids []int64) error
+	Update(ctx context.Context, id int64, answer *model.Answer) error
+	Insert(ctx context.Context, questionID int64, answer *model.Answer) error
+	DeleteByQuestionID(ctx context.Context, questionID int64) error
 }

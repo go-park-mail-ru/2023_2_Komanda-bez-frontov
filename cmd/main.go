@@ -100,7 +100,8 @@ func main() {
 	formRepository := repository.NewFormDatabaseRepository(db, builder)
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
-
+	answerRepository := repository.NewAnswerDatabaseRepository(db, builder)
+  
 	formService := form.NewFormService(formRepository, questionRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()

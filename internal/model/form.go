@@ -1,16 +1,20 @@
 package model
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 const AnonUserID = 0
 
 type Form struct {
-	ID        *int64      `json:"id"`
-	Title     string      `json:"title" validate:"required"`
-	Anonymous bool        `json:"anonymous"`
-	Author    *UserGet    `json:"author"`
-	CreatedAt time.Time   `json:"created_at"`
-	Questions []*Question `json:"questions" validate:"required"`
+	ID          *int64      `json:"id"`
+	Title       string      `json:"title" validate:"required"`
+	Description *string     `json:"description"`
+	Anonymous   bool        `json:"anonymous"`
+	Author      *UserGet    `json:"author"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Questions   []*Question `json:"questions" validate:"required"`
 }
 
 type FormTitle struct {
@@ -29,6 +33,30 @@ type FormTitleList struct {
 	FormTitles []*FormTitle `json:"forms" validate:"required"`
 }
 
+type FormUpdate struct {
+	ID               *int64      `json:"id"`
+	Title            string      `json:"title" validate:"required"`
+	Description      *string     `json:"description"`
+	Anonymous        bool        `json:"anonymous"`
+	Author           *UserGet    `json:"author"`
+	CreatedAt        time.Time   `json:"created_at"`
+	Questions        []*Question `json:"questions" validate:"required"`
+	RemovedQuestions []int64     `json:"removed_questions"`
+	RemovedAnswers   []int64     `json:"removed_answers"`
+}
+
+type FormResult struct {
+	ID                   int64             `json:"id"`
+	Title                string            `json:"title"`
+	Description          string            `json:"description"`
+	CreatedAt            time.Time         `json:"created_at"`
+	Author               *UserGet          `json:"author"`
+	NumberOfPassagesForm int               `json:"number_of_passages"`
+	Questions            []*QuestionResult `json:"questions"`
+	Anonymous            bool              `json:"anonymous"`
+	Participants         []*UserGet        `json:"participants,omitempty"`
+}
+
 type FormPassage struct {
 	FormID         *int64           `json:"form_id" validate:"required"`
 	PassageAnswers []*PassageAnswer `json:"passage_answers" validate:"required"`
@@ -37,4 +65,15 @@ type FormPassage struct {
 type PassageAnswer struct {
 	QuestionID *int64 `json:"question_id" validate:"required"`
 	Text       string `json:"answer_text"`
+}
+
+type FormPassageResult struct {
+	FormID     int64         `json:"form_id"`
+	UserID     sql.NullInt64 `json:"user_id" db:"user_id"`
+	Username   string        `json:"username" db:"username"`
+	FirstName  string        `json:"first_name" db:"first_name"`
+	LastName   string        `json:"last_name" db:"last_name"`
+	Email      string        `json:"email" db:"email"`
+	QuestionID int64         `json:"question_id" db:"question_id"`
+	AnswerText string        `json:"answer_text" db:"answer_text"`
 }

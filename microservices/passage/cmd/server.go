@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const defaultPort = ":8082"
+const defaultPort = ":8083"
 
 func main() {
 	log.Info().Msg("Starting microservice...")

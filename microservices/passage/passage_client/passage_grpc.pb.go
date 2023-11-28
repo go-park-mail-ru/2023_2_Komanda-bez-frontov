@@ -97,5 +97,5 @@ var FormPassage_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "session.proto",
+	Metadata: "passage.proto",
 }

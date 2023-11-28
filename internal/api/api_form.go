@@ -10,7 +10,6 @@ import (
 
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/services/form"
-	serviceresponse "go-form-hub/internal/services/service_response"
 	passage "go-form-hub/microservices/passage/passage_client"
 
 	"github.com/go-chi/chi/v5"
@@ -162,7 +161,7 @@ func (c *FormAPIController) FormPass(w http.ResponseWriter, r *http.Request) {
 	result, err := c.passageService.Pass(ctx, passageMsg)
 	if err != nil {
 		log.Error().Msgf("form_api form_pass error: %v", err)
-		c.responseEncoder.HandleError(ctx, w, err, &serviceresponse.Response{StatusCode: int(result.Code)})
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 

@@ -1,4 +1,4 @@
-package form
+package usecase
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"go-form-hub/internal/model"
 )
 
-type PassageValidator struct {
+type passageValidator struct {
 	questionMap       map[int64]*model.Question
 	foundAnswerMap    map[int64]bool
 	foundQuestionsMap map[int64]bool
@@ -21,7 +21,7 @@ var (
 	ErrDuplicateAnswer            = errors.New("duplicate answer to multiple answer question")
 )
 
-func (v *PassageValidator) ValidateFormPassage(formPassage *model.FormPassage, form *model.Form) error {
+func (v *passageValidator) validateFormPassage(formPassage *model.FormPassage, form *model.Form) error {
 	v.questionMap = questionMapFromArray(form.Questions)
 	v.foundQuestionsMap = make(map[int64]bool)
 	v.foundAnswerMap = make(map[int64]bool)
@@ -43,7 +43,7 @@ func (v *PassageValidator) ValidateFormPassage(formPassage *model.FormPassage, f
 	return nil
 }
 
-func (v *PassageValidator) validatePassageAnswer(passageAnswer *model.PassageAnswer) error {
+func (v *passageValidator) validatePassageAnswer(passageAnswer *model.PassageAnswer) error {
 	question, found := v.questionMap[*passageAnswer.QuestionID]
 	if !found {
 		return ErrQuestionDoesntExist

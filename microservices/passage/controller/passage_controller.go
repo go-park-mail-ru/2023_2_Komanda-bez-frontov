@@ -26,9 +26,9 @@ func NewPassageController(passageUsecase usecase.FormPassageUseCase, v *validato
 
 func (controller *PassageController) Pass(ctx context.Context, passageMsg *passage.Passage) (*passage.ResultCode, error) {
 	passageAnswers := make([]*model.PassageAnswer, 0)
-	for _, answerMsg := range passageMsg.Answers {
+	for i, answerMsg := range passageMsg.Answers {
 		passageAnswers = append(passageAnswers, &model.PassageAnswer{
-			QuestionID: &answerMsg.QuestionID,
+			QuestionID: &passageMsg.Answers[i].QuestionID,
 			Text:       answerMsg.Text,
 		})
 	}

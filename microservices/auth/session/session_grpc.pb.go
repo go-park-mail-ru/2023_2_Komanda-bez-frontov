@@ -18,8 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthCheckerClient interface {
-	Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*Session, error)
-	Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*Session, error)
+	Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*SessionInfo, error)
+	Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*SessionInfo, error)
 	Check(ctx context.Context, in *Session, opts ...grpc.CallOption) (*CheckResult, error)
 	Delete(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Nothing, error)
 }
@@ -32,8 +32,8 @@ func NewAuthCheckerClient(cc grpc.ClientConnInterface) AuthCheckerClient {
 	return &authCheckerClient{cc}
 }
 
-func (c *authCheckerClient) Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*Session, error) {
-	out := new(Session)
+func (c *authCheckerClient) Login(ctx context.Context, in *UserLogin, opts ...grpc.CallOption) (*SessionInfo, error) {
+	out := new(SessionInfo)
 	err := c.cc.Invoke(ctx, "/session.AuthChecker/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -41,8 +41,8 @@ func (c *authCheckerClient) Login(ctx context.Context, in *UserLogin, opts ...gr
 	return out, nil
 }
 
-func (c *authCheckerClient) Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*Session, error) {
-	out := new(Session)
+func (c *authCheckerClient) Signup(ctx context.Context, in *UserSignup, opts ...grpc.CallOption) (*SessionInfo, error) {
+	out := new(SessionInfo)
 	err := c.cc.Invoke(ctx, "/session.AuthChecker/Signup", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -72,8 +72,8 @@ func (c *authCheckerClient) Delete(ctx context.Context, in *Session, opts ...grp
 // All implementations must embed UnimplementedAuthCheckerServer
 // for forward compatibility
 type AuthCheckerServer interface {
-	Login(context.Context, *UserLogin) (*Session, error)
-	Signup(context.Context, *UserSignup) (*Session, error)
+	Login(context.Context, *UserLogin) (*SessionInfo, error)
+	Signup(context.Context, *UserSignup) (*SessionInfo, error)
 	Check(context.Context, *Session) (*CheckResult, error)
 	Delete(context.Context, *Session) (*Nothing, error)
 	mustEmbedUnimplementedAuthCheckerServer()
@@ -83,10 +83,10 @@ type AuthCheckerServer interface {
 type UnimplementedAuthCheckerServer struct {
 }
 
-func (UnimplementedAuthCheckerServer) Login(context.Context, *UserLogin) (*Session, error) {
+func (UnimplementedAuthCheckerServer) Login(context.Context, *UserLogin) (*SessionInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedAuthCheckerServer) Signup(context.Context, *UserSignup) (*Session, error) {
+func (UnimplementedAuthCheckerServer) Signup(context.Context, *UserSignup) (*SessionInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Signup not implemented")
 }
 func (UnimplementedAuthCheckerServer) Check(context.Context, *Session) (*CheckResult, error) {

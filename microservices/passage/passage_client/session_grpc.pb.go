@@ -18,7 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FormPassageClient interface {
-	Pass(ctx context.Context, in *Passage, opts ...grpc.CallOption) (*Nothing, error)
+	Pass(ctx context.Context, in *Passage, opts ...grpc.CallOption) (*ResultCode, error)
 }
 
 type formPassageClient struct {
@@ -29,8 +29,8 @@ func NewFormPassageClient(cc grpc.ClientConnInterface) FormPassageClient {
 	return &formPassageClient{cc}
 }
 
-func (c *formPassageClient) Pass(ctx context.Context, in *Passage, opts ...grpc.CallOption) (*Nothing, error) {
-	out := new(Nothing)
+func (c *formPassageClient) Pass(ctx context.Context, in *Passage, opts ...grpc.CallOption) (*ResultCode, error) {
+	out := new(ResultCode)
 	err := c.cc.Invoke(ctx, "/passage.FormPassage/Pass", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (c *formPassageClient) Pass(ctx context.Context, in *Passage, opts ...grpc.
 // All implementations must embed UnimplementedFormPassageServer
 // for forward compatibility
 type FormPassageServer interface {
-	Pass(context.Context, *Passage) (*Nothing, error)
+	Pass(context.Context, *Passage) (*ResultCode, error)
 	mustEmbedUnimplementedFormPassageServer()
 }
 
@@ -50,7 +50,7 @@ type FormPassageServer interface {
 type UnimplementedFormPassageServer struct {
 }
 
-func (UnimplementedFormPassageServer) Pass(context.Context, *Passage) (*Nothing, error) {
+func (UnimplementedFormPassageServer) Pass(context.Context, *Passage) (*ResultCode, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Pass not implemented")
 }
 func (UnimplementedFormPassageServer) mustEmbedUnimplementedFormPassageServer() {}

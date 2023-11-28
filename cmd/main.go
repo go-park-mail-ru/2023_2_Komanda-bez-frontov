@@ -15,6 +15,7 @@ import (
 	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/form"
 	"go-form-hub/microservices/auth/session"
+	passage "go-form-hub/microservices/passage/passage_client"
 	"go-form-hub/microservices/user/profile"
 
 	"github.com/Masterminds/squirrel"
@@ -94,6 +95,18 @@ func main() {
 
 	userController := profile.NewProfileClient(userGrpcConn)
 
+	passageGrpcConn, err := grpc.Dial(
+		"127.0.0.1:8083",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Error().Msgf("cant connect to grpc: %s", err)
+		return
+	}
+	defer passageGrpcConn.Close()
+
+	passageController := passage.NewFormPassageClient(passageGrpcConn)
+
 	validate := validator.New()
 
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
@@ -105,7 +118,7 @@ func main() {
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
-	formRouter := api.NewFormAPIController(formService, validate, responseEncoder)
+	formRouter := api.NewFormAPIController(formService, passageController, validate, responseEncoder)
 	authRouter := api.NewAuthAPIController(sessController, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
 

@@ -13,17 +13,20 @@ import (
 )
 
 type Form struct {
-	Title     string    `db:"title"`
-	ID        int64     `db:"id"`
-	AuthorID  int64     `db:"author_id"`
-	CreatedAt time.Time `db:"created_at"`
-	Anonymous bool      `db:"anonymous"`
+	Title       string    `db:"title"`
+	ID          int64     `db:"id"`
+	Description *string   `db:"description"`
+	Anonymous   bool      `db:"anonymous"`
+	AuthorID    int64     `db:"author_id"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 var (
 	selectFields = []string{
 		"f.id",
 		"f.title",
+		"f.description",
+		"f.anonymous",
 		"f.created_at",
 		"f.author_id",
 		"f.anonymous",
@@ -610,8 +613,8 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 
 	formQuery, args, err := r.builder.
 		Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Columns("title", "author_id", "created_at", "anonymous").
-		Values(form.Title, form.Author.ID, form.CreatedAt, form.Anonymous).
+		Columns("title", "author_id", "created_at", "description", "anonymous").
+		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous).
 		Suffix("RETURNING id").
 		ToSql()
 	err = tx.QueryRow(ctx, formQuery, args...).Scan(&form.ID)
@@ -760,9 +763,11 @@ func (r *formDatabaseRepository) FormPassageCount(ctx context.Context, formID in
 	return total, nil
 }
 
-func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.Form) (result *model.Form, err error) {
+func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.FormUpdate) (result *model.FormUpdate, err error) {
 	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("title", form.Title).
+		Set("description", form.Description).
+		Set("anonymous", form.Anonymous).
 		Where(squirrel.Eq{"id": id}).
 		Suffix("RETURNING id, title, created_at").ToSql()
 	if err != nil {
@@ -843,10 +848,11 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 
 		if _, ok := formMap[info.form.ID]; !ok {
 			formMap[info.form.ID] = &model.Form{
-				ID:        &info.form.ID,
-				Title:     info.form.Title,
-				CreatedAt: info.form.CreatedAt,
-				Anonymous: info.form.Anonymous,
+				ID:          &info.form.ID,
+				Title:       info.form.Title,
+				Description: info.form.Description,
+				Anonymous:   info.form.Anonymous,
+				CreatedAt:   info.form.CreatedAt,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,
@@ -954,6 +960,8 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 	err := row.Scan(
 		&form.ID,
 		&form.Title,
+		&form.Description,
+		&form.Anonymous,
 		&form.CreatedAt,
 		&form.AuthorID,
 		&form.Anonymous,

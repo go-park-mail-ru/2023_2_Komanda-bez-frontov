@@ -306,7 +306,7 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var updatedForm model.Form
+	var updatedForm model.FormUpdate
 	if err = json.Unmarshal(requestJSON, &updatedForm); err != nil {
 		log.Error().Msgf("form_api form_update unmarshal error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)

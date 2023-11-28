@@ -17,7 +17,7 @@ type PassageController struct {
 	validator      *validator.Validate
 }
 
-func NewAuthController(passageUsecase usecase.FormPassageUseCase, v *validator.Validate) *PassageController {
+func NewPassageController(passageUsecase usecase.FormPassageUseCase, v *validator.Validate) *PassageController {
 	return &PassageController{
 		passageUseCase: passageUsecase,
 		validator:      v,

@@ -46,7 +46,7 @@ func main() {
 
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	userService := usecase.NewUserUseCase(userRepository, cfg, validate)
-	userController := controller.NewController(userService, validate)
+	userController := controller.NewProfileController(userService, validate)
 
 	lis, err := net.Listen("tcp", defaultPort) // #nosec G102
 	if err != nil {

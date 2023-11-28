@@ -1,4 +1,4 @@
-package profile
+package usecase
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
-type Service interface {
+type UserUseCase interface {
 	UserList(ctx context.Context) (*resp.Response, error)
 	UserUpdate(ctx context.Context, user *model.UserUpdate) (*resp.Response, error)
 	UserGet(ctx context.Context, id int64) (*resp.Response, error)
@@ -31,21 +31,21 @@ var (
 	ErrUserMisalign    = errors.New("current user differs from searched one")
 )
 
-type userService struct {
+type userUseCase struct {
 	userRepository repository.UserRepository
 	cfg            *config.Config
 	validate       *validator.Validate
 }
 
-func NewUserService(userRepository repository.UserRepository, cfg *config.Config, validate *validator.Validate) Service {
-	return &userService{
+func NewUserUseCase(userRepository repository.UserRepository, cfg *config.Config, validate *validator.Validate) *userUseCase {
+	return &userUseCase{
 		userRepository: userRepository,
 		cfg:            cfg,
 		validate:       validate,
 	}
 }
 
-func (s *userService) encryptPassword(pass string) (string, error) {
+func (s *userUseCase) encryptPassword(pass string) (string, error) {
 	keyBytes, err := hex.DecodeString(s.cfg.EncryptionKey)
 	if err != nil {
 		return "", fmt.Errorf("encrypt_password invalid hex-encoded key: %v", err)
@@ -77,7 +77,7 @@ func (s *userService) encryptPassword(pass string) (string, error) {
 	return hex.EncodeToString(nonce) + hex.EncodeToString(ciphertext), nil
 }
 
-func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
+func (s *userUseCase) UserList(ctx context.Context) (*resp.Response, error) {
 	var response model.UserList
 	response.Users = make([]*model.UserGet, 0)
 
@@ -101,7 +101,7 @@ func (s *userService) UserList(ctx context.Context) (*resp.Response, error) {
 	return resp.NewResponse(http.StatusOK, response), nil
 }
 
-func (s *userService) UserGet(ctx context.Context, id int64) (*resp.Response, error) {
+func (s *userUseCase) UserGet(ctx context.Context, id int64) (*resp.Response, error) {
 	user, err := s.userRepository.FindByID(ctx, id)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
@@ -121,7 +121,7 @@ func (s *userService) UserGet(ctx context.Context, id int64) (*resp.Response, er
 	}), nil
 }
 
-func (s *userService) UserGetAvatar(ctx context.Context, username string) (*resp.Response, error) {
+func (s *userUseCase) UserGetAvatar(ctx context.Context, username string) (*resp.Response, error) {
 	user, err := s.userRepository.FindByUsername(ctx, username)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
@@ -137,7 +137,7 @@ func (s *userService) UserGetAvatar(ctx context.Context, username string) (*resp
 	}), nil
 }
 
-func (s *userService) UserUpdate(ctx context.Context, user *model.UserUpdate) (*resp.Response, error) {
+func (s *userUseCase) UserUpdate(ctx context.Context, user *model.UserUpdate) (*resp.Response, error) {
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 	if err := s.validate.Struct(user); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), err

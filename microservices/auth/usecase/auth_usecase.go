@@ -1,4 +1,4 @@
-package session
+package usecase
 
 import (
 	"context"
@@ -26,22 +26,22 @@ var (
 	ErrEmailTaken    = errors.New("email taken")
 )
 
-type Service interface {
+type AuthUseCase interface {
 	AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error)
 	AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error)
 	AuthLogout(ctx context.Context, sessionID string) (*resp.Response, string, error)
 	IsSessionValid(ctx context.Context, sessionID string) (bool, error)
 }
 
-type authService struct {
+type authUseCase struct {
 	userRepository    repository.UserRepository
 	sessionRepository repository.SessionRepository
 	cfg               *config.Config
 	validate          *validator.Validate
 }
 
-func NewAuthService(userRepository repository.UserRepository, sessionRepository repository.SessionRepository, cfg *config.Config, validate *validator.Validate) Service {
-	return &authService{
+func NewAuthUseCase(userRepository repository.UserRepository, sessionRepository repository.SessionRepository, cfg *config.Config, validate *validator.Validate) AuthUseCase {
+	return &authUseCase{
 		userRepository:    userRepository,
 		sessionRepository: sessionRepository,
 		cfg:               cfg,
@@ -57,7 +57,7 @@ func generateSessionID(username string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (s *authService) encryptPassword(pass string) (string, error) {
+func (s *authUseCase) encryptPassword(pass string) (string, error) {
 	keyBytes, err := hex.DecodeString(s.cfg.EncryptionKey)
 	if err != nil {
 		return "", fmt.Errorf("encrypt_password invalid hex-encoded key: %v", err)
@@ -90,7 +90,7 @@ func (s *authService) encryptPassword(pass string) (string, error) {
 	return hex.EncodeToString(nonce) + hex.EncodeToString(ciphertext), nil
 }
 
-func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error) {
+func (s *authUseCase) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*resp.Response, string, error) {
 	if err := s.validate.Struct(user); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), "", err
 	}
@@ -149,7 +149,7 @@ func (s *authService) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 	}), sessionID, nil
 }
 
-func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error) {
+func (s *authUseCase) AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error) {
 	if err := s.validate.Struct(user); err != nil {
 		return resp.NewResponse(http.StatusBadRequest, nil), "", err
 	}
@@ -192,7 +192,7 @@ func (s *authService) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	}), sessionID, nil
 }
 
-func (s *authService) AuthLogout(ctx context.Context, sessionID string) (*resp.Response, string, error) {
+func (s *authUseCase) AuthLogout(ctx context.Context, sessionID string) (*resp.Response, string, error) {
 	err := s.sessionRepository.Delete(ctx, sessionID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
@@ -201,7 +201,7 @@ func (s *authService) AuthLogout(ctx context.Context, sessionID string) (*resp.R
 	return resp.NewResponse(http.StatusNoContent, nil), sessionID, nil
 }
 
-func (s *authService) IsSessionValid(ctx context.Context, sessionID string) (bool, error) {
+func (s *authUseCase) IsSessionValid(ctx context.Context, sessionID string) (bool, error) {
 	sessionInDB, err := s.sessionRepository.FindByID(ctx, sessionID)
 	if err != nil {
 		return false, err

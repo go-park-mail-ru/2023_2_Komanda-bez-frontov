@@ -10,8 +10,9 @@ import (
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
-	service "go-form-hub/microservices/auth/service"
+	"go-form-hub/microservices/auth/controller"
 	"go-form-hub/microservices/auth/session"
+	"go-form-hub/microservices/auth/usecase"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
@@ -45,8 +46,8 @@ func main() {
 
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
-	authService := service.NewAuthService(userRepository, sessionRepository, cfg, validate)
-	authController := service.NewAuthController(authService, validate)
+	authService := usecase.NewAuthUseCase(userRepository, sessionRepository, cfg, validate)
+	authController := controller.NewAuthController(authService, validate)
 
 	lis, err := net.Listen("tcp", defaultPort) // #nosec G102
 	if err != nil {

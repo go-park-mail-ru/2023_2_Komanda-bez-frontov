@@ -10,8 +10,9 @@ import (
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
+	"go-form-hub/microservices/user/controller"
 	"go-form-hub/microservices/user/profile"
-	service "go-form-hub/microservices/user/service"
+	"go-form-hub/microservices/user/usecase"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
@@ -44,8 +45,8 @@ func main() {
 	validate := validator.New()
 
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
-	userService := service.NewUserService(userRepository, cfg, validate)
-	userController := service.NewController(userService, validate)
+	userService := usecase.NewUserUseCase(userRepository, cfg, validate)
+	userController := controller.NewController(userService, validate)
 
 	lis, err := net.Listen("tcp", defaultPort) // #nosec G102
 	if err != nil {

@@ -1,10 +1,11 @@
-package session
+package controller
 
 import (
 	"context"
 
 	"go-form-hub/internal/model"
 	"go-form-hub/microservices/auth/session"
+	"go-form-hub/microservices/auth/usecase"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
@@ -15,13 +16,13 @@ import (
 type AuthController struct {
 	session.UnimplementedAuthCheckerServer
 
-	authService Service
+	authService usecase.AuthUseCase
 	validator   *validator.Validate
 }
 
-func NewAuthController(authService Service, v *validator.Validate) *AuthController {
+func NewAuthController(authUsecase usecase.AuthUseCase, v *validator.Validate) *AuthController {
 	return &AuthController{
-		authService: authService,
+		authService: authUsecase,
 		validator:   v,
 	}
 }

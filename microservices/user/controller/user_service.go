@@ -1,10 +1,11 @@
-package profile
+package controller
 
 import (
 	"context"
 
 	"go-form-hub/internal/model"
 	"go-form-hub/microservices/user/profile"
+	"go-form-hub/microservices/user/usecase"
 
 	"github.com/go-playground/validator/v10"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -15,11 +16,11 @@ const defaultAvatar = ""
 type Controller struct {
 	profile.UnimplementedProfileServer
 
-	service   Service
+	service   usecase.UserUseCase
 	validator *validator.Validate
 }
 
-func NewController(userService Service, v *validator.Validate) *Controller {
+func NewController(userService usecase.UserUseCase, v *validator.Validate) *Controller {
 	return &Controller{
 		service:   userService,
 		validator: v,

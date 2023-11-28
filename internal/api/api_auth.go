@@ -99,7 +99,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := c.authService.Login(ctx, user)
+	sessionInfo, err := c.authService.Login(ctx, user)
 	if err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
@@ -108,19 +108,19 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	cookie := &http.Cookie{
 		Name:     "session_id",
 		HttpOnly: true,
-		Value:    session.Session,
+		Value:    sessionInfo.Session,
 		Expires:  time.Now().Add(c.cookieExpiration),
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
 
 	curUser := model.UserGet{
-		ID:        session.CurrentUser.Id,
-		FirstName: session.CurrentUser.FirstName,
-		LastName:  session.CurrentUser.LastName,
-		Email:     session.CurrentUser.Email,
-		Username:  session.CurrentUser.Username,
-		Avatar:    &session.CurrentUser.Avatar,
+		ID:        sessionInfo.CurrentUser.Id,
+		FirstName: sessionInfo.CurrentUser.FirstName,
+		LastName:  sessionInfo.CurrentUser.LastName,
+		Email:     sessionInfo.CurrentUser.Email,
+		Username:  sessionInfo.CurrentUser.Username,
+		Avatar:    &sessionInfo.CurrentUser.Avatar,
 	}
 
 	c.responseEncoder.EncodeJSONResponse(ctx, curUser, http.StatusOK, w)
@@ -174,7 +174,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 		Email:     user.Email,
 	}
 
-	session, err := c.authService.Signup(ctx, userMsg)
+	sessionInfo, err := c.authService.Signup(ctx, userMsg)
 	if err != nil {
 		log.Error().Msgf("api_auth sugnip err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
@@ -183,19 +183,19 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	cookie := &http.Cookie{
 		Name:     "session_id",
-		Value:    session.Session,
+		Value:    sessionInfo.Session,
 		Expires:  time.Now().Add(c.cookieExpiration),
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
 
 	curUser := model.UserGet{
-		ID:        session.CurrentUser.Id,
-		FirstName: session.CurrentUser.FirstName,
-		LastName:  session.CurrentUser.LastName,
-		Email:     session.CurrentUser.Email,
-		Username:  session.CurrentUser.Username,
-		Avatar:    &session.CurrentUser.Avatar,
+		ID:        sessionInfo.CurrentUser.Id,
+		FirstName: sessionInfo.CurrentUser.FirstName,
+		LastName:  sessionInfo.CurrentUser.LastName,
+		Email:     sessionInfo.CurrentUser.Email,
+		Username:  sessionInfo.CurrentUser.Username,
+		Avatar:    &sessionInfo.CurrentUser.Avatar,
 	}
 
 	c.responseEncoder.EncodeJSONResponse(ctx, curUser, http.StatusOK, w)

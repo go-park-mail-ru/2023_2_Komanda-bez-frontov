@@ -37,7 +37,7 @@ type userUseCase struct {
 	validate       *validator.Validate
 }
 
-func NewUserUseCase(userRepository repository.UserRepository, cfg *config.Config, validate *validator.Validate) *userUseCase {
+func NewUserUseCase(userRepository repository.UserRepository, cfg *config.Config, validate *validator.Validate) UserUseCase {
 	return &userUseCase{
 		userRepository: userRepository,
 		cfg:            cfg,

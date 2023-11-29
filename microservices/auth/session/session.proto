@@ -6,11 +6,26 @@ option go_package = "./;session";
 package session;
 
 message Session {
-    string session = 1;
+  string session = 1;
+}
+
+message SessionInfo {
+  string session = 1;
+  User currentUser = 2;
+}
+
+message User {
+  string username = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string password = 4;
+  string email = 5;
+  string avatar = 6;
+  int64 id = 7;
 }
 
 message CheckResult {
-    bool valid = 1;
+  bool valid = 1;
 }
 
 message UserLogin {
@@ -32,8 +47,8 @@ message Nothing {
 
 // grpc-сервис проверки авторизации
 service AuthChecker {
-    rpc Login (UserLogin) returns (Session) {}
-    rpc Signup (UserSignup) returns (Session) {}
+    rpc Login (UserLogin) returns (SessionInfo) {}
+    rpc Signup (UserSignup) returns (SessionInfo) {}
     rpc Check (Session) returns (CheckResult) {}
     rpc Delete (Session) returns (Nothing) {}
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"go-form-hub/internal/model"
 	resp "go-form-hub/internal/services/service_response"
 	"go-form-hub/microservices/auth/session"
 
@@ -98,7 +99,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := c.authService.Login(ctx, user)
+	sessionInfo, err := c.authService.Login(ctx, user)
 	if err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
@@ -106,13 +107,23 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 
 	cookie := &http.Cookie{
 		Name:     "session_id",
-		Value:    sessionID.Session,
+		HttpOnly: true,
+		Value:    sessionInfo.Session,
 		Expires:  time.Now().Add(c.cookieExpiration),
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
 
-	c.responseEncoder.EncodeJSONResponse(ctx, nil, http.StatusOK, w)
+	curUser := model.UserGet{
+		ID:        sessionInfo.CurrentUser.Id,
+		FirstName: sessionInfo.CurrentUser.FirstName,
+		LastName:  sessionInfo.CurrentUser.LastName,
+		Email:     sessionInfo.CurrentUser.Email,
+		Username:  sessionInfo.CurrentUser.Username,
+		Avatar:    &sessionInfo.CurrentUser.Avatar,
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, curUser, http.StatusOK, w)
 }
 
 // nolint:dupl
@@ -145,14 +156,25 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user *session.UserSignup
+	var user model.UserSignUp
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
 		log.Error().Msgf("api_auth unmarshal err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
+	if user.Avatar == nil {
+		user.Avatar = new(string)
+	}
 
-	sessionID, err := c.authService.Signup(ctx, user)
+	userMsg := &session.UserSignup{
+		Username:  user.Username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Password:  user.Password,
+		Email:     user.Email,
+	}
+
+	sessionInfo, err := c.authService.Signup(ctx, userMsg)
 	if err != nil {
 		log.Error().Msgf("api_auth sugnip err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
@@ -161,13 +183,22 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	cookie := &http.Cookie{
 		Name:     "session_id",
-		Value:    sessionID.Session,
+		Value:    sessionInfo.Session,
 		Expires:  time.Now().Add(c.cookieExpiration),
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
 
-	c.responseEncoder.EncodeJSONResponse(ctx, nil, http.StatusOK, w)
+	curUser := model.UserGet{
+		ID:        sessionInfo.CurrentUser.Id,
+		FirstName: sessionInfo.CurrentUser.FirstName,
+		LastName:  sessionInfo.CurrentUser.LastName,
+		Email:     sessionInfo.CurrentUser.Email,
+		Username:  sessionInfo.CurrentUser.Username,
+		Avatar:    &sessionInfo.CurrentUser.Avatar,
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, curUser, http.StatusOK, w)
 }
 
 func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {

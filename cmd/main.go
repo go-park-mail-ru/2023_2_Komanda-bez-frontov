@@ -118,7 +118,7 @@ func main() {
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
-  
+
 	formRouter := api.NewFormAPIController(formService, passageController, validate, responseEncoder)
 	authRouter := api.NewAuthAPIController(sessController, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)

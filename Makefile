@@ -14,6 +14,7 @@ build:
 run:
 	go run ./microservices/user/cmd/server.go &
 	go run ./microservices/auth/cmd/server.go &
+	go run ./microservices/passage/cmd/server.go &
 	go run ./cmd/main.go &
 
 .PHONY: kill
@@ -21,6 +22,7 @@ kill:
 	fuser -k 8080/tcp
 	fuser -k 8081/tcp
 	fuser -k 8082/tcp
+	fuser -k 8083/tcp
 
 .PHONY: test
 test:

@@ -10,6 +10,7 @@ import (
 
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/services/form"
+	passage "go-form-hub/microservices/passage/passage_client"
 
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
@@ -18,13 +19,15 @@ import (
 
 type FormAPIController struct {
 	service         form.Service
+	passageService  passage.FormPassageClient
 	validator       *validator.Validate
 	responseEncoder ResponseEncoder
 }
 
-func NewFormAPIController(service form.Service, v *validator.Validate, responseEncoder ResponseEncoder) Router {
+func NewFormAPIController(service form.Service, passageService passage.FormPassageClient, v *validator.Validate, responseEncoder ResponseEncoder) Router {
 	return &FormAPIController{
 		service:         service,
+		passageService:  passageService,
 		validator:       v,
 		responseEncoder: responseEncoder,
 	}
@@ -141,14 +144,28 @@ func (c *FormAPIController) FormPass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := c.service.FormPass(ctx, &formPassage)
+	answersMsg := make([]*passage.PassageAnswer, 0)
+	for _, passageAnswer := range formPassage.PassageAnswers {
+		answersMsg = append(answersMsg, &passage.PassageAnswer{
+			Text:       passageAnswer.Text,
+			QuestionID: *passageAnswer.QuestionID,
+		})
+	}
+
+	passageMsg := &passage.Passage{
+		UserID:  ctx.Value(model.ContextCurrentUser).(*model.UserGet).ID,
+		FormID:  *formPassage.FormID,
+		Answers: answersMsg,
+	}
+
+	result, err := c.passageService.Pass(ctx, passageMsg)
 	if err != nil {
 		log.Error().Msgf("form_api form_pass error: %v", err)
-		c.responseEncoder.HandleError(ctx, w, err, result)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, nil, int(result.Code), w)
 }
 
 func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {

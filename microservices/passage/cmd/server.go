@@ -10,9 +10,9 @@ import (
 	"go-form-hub/internal/config"
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
-	"go-form-hub/microservices/user/controller"
-	"go-form-hub/microservices/user/profile"
-	"go-form-hub/microservices/user/usecase"
+	"go-form-hub/microservices/passage/controller"
+	passage "go-form-hub/microservices/passage/passage_client"
+	"go-form-hub/microservices/passage/usecase"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const defaultPort = ":8082"
+const defaultPort = ":8083"
 
 func main() {
 	log.Info().Msg("Starting microservice...")
@@ -44,9 +44,9 @@ func main() {
 
 	validate := validator.New()
 
-	userRepository := repository.NewUserDatabaseRepository(db, builder)
-	userService := usecase.NewUserUseCase(userRepository, cfg, validate)
-	userController := controller.NewProfileController(userService, validate)
+	formRepository := repository.NewFormDatabaseRepository(db, builder)
+	passageService := usecase.NewformPasageUseCase(formRepository, validate)
+	passageController := controller.NewPassageController(passageService, validate)
 
 	lis, err := net.Listen("tcp", defaultPort) // #nosec G102
 	if err != nil {
@@ -56,7 +56,7 @@ func main() {
 
 	server := grpc.NewServer()
 
-	profile.RegisterProfileServer(server, userController)
+	passage.RegisterFormPassageServer(server, passageController)
 	err = server.Serve(lis)
 	if err != nil {
 		log.Error().Msgf("failed to serve port: %v", err)

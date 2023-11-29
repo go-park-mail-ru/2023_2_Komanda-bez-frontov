@@ -16,13 +16,13 @@ import (
 type AuthController struct {
 	session.UnimplementedAuthCheckerServer
 
-	authService usecase.AuthUseCase
+	authUseCase usecase.AuthUseCase
 	validator   *validator.Validate
 }
 
 func NewAuthController(authUsecase usecase.AuthUseCase, v *validator.Validate) *AuthController {
 	return &AuthController{
-		authService: authUsecase,
+		authUseCase: authUsecase,
 		validator:   v,
 	}
 }
@@ -33,7 +33,7 @@ func (m *AuthController) Login(ctx context.Context, userLogin *session.UserLogin
 		Password: userLogin.Password,
 	}
 
-	response, sessionID, err := m.authService.AuthLogin(ctx, &user)
+	response, sessionID, err := m.authUseCase.AuthLogin(ctx, &user)
 	if err != nil {
 		log.Error().Msgf("error logging in: %v", err)
 		return nil, status.Errorf(codes.NotFound, err.Error())
@@ -70,7 +70,7 @@ func (m *AuthController) Signup(ctx context.Context, userSignup *session.UserSig
 		Username:  userSignup.Username,
 	}
 
-	response, sessionID, err := m.authService.AuthSignUp(ctx, &user)
+	response, sessionID, err := m.authUseCase.AuthSignUp(ctx, &user)
 	if err != nil {
 		log.Error().Msgf("error signing up: %v", err)
 		return nil, status.Errorf(codes.Canceled, err.Error())
@@ -99,7 +99,7 @@ func (m *AuthController) Signup(ctx context.Context, userSignup *session.UserSig
 }
 
 func (m *AuthController) Check(ctx context.Context, sessionID *session.Session) (*session.CheckResult, error) {
-	valid, err := m.authService.IsSessionValid(ctx, sessionID.Session)
+	valid, err := m.authUseCase.IsSessionValid(ctx, sessionID.Session)
 	if err != nil {
 		log.Error().Msgf("error finding session: %v", err)
 		return nil, status.Errorf(codes.NotFound, err.Error())
@@ -113,7 +113,7 @@ func (m *AuthController) Check(ctx context.Context, sessionID *session.Session) 
 }
 
 func (m *AuthController) Delete(ctx context.Context, sessionID *session.Session) (*session.Nothing, error) {
-	_, _, err := m.authService.AuthLogout(ctx, sessionID.Session)
+	_, _, err := m.authUseCase.AuthLogout(ctx, sessionID.Session)
 	if err != nil {
 		log.Error().Msgf("error logging in: %v", err)
 		return nil, err

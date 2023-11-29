@@ -13,22 +13,22 @@ import (
 
 const defaultAvatar = ""
 
-type Controller struct {
+type ProfileController struct {
 	profile.UnimplementedProfileServer
 
-	service   usecase.UserUseCase
+	usecase   usecase.UserUseCase
 	validator *validator.Validate
 }
 
-func NewController(userService usecase.UserUseCase, v *validator.Validate) *Controller {
-	return &Controller{
-		service:   userService,
+func NewProfileController(userService usecase.UserUseCase, v *validator.Validate) *ProfileController {
+	return &ProfileController{
+		usecase:   userService,
 		validator: v,
 	}
 }
 
-func (pm *Controller) UserGet(ctx context.Context, userID *profile.CurrentUserID) (*profile.Response, error) {
-	result, err := pm.service.UserGet(ctx, userID.Id)
+func (pm *ProfileController) UserGet(ctx context.Context, userID *profile.CurrentUserID) (*profile.Response, error) {
+	result, err := pm.usecase.UserGet(ctx, userID.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func (pm *Controller) UserGet(ctx context.Context, userID *profile.CurrentUserID
 
 	return response, nil
 }
-func (pm *Controller) AvatarGet(ctx context.Context, userID *profile.CurrentUserUsername) (*profile.Response, error) {
-	result, err := pm.service.UserGetAvatar(ctx, userID.Username)
+func (pm *ProfileController) AvatarGet(ctx context.Context, userID *profile.CurrentUserUsername) (*profile.Response, error) {
+	result, err := pm.usecase.UserGetAvatar(ctx, userID.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (pm *Controller) AvatarGet(ctx context.Context, userID *profile.CurrentUser
 
 	return response, nil
 }
-func (pm *Controller) Update(ctx context.Context, userUpdate *profile.UserUpdateReq) (*profile.Response, error) {
+func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.UserUpdateReq) (*profile.Response, error) {
 	userModelUpdate := &model.UserUpdate{
 		Username:    userUpdate.Update.Username,
 		FirstName:   userUpdate.Update.FirstName,
@@ -104,7 +104,7 @@ func (pm *Controller) Update(ctx context.Context, userUpdate *profile.UserUpdate
 		Email:     userUpdate.CurrentUser.Email,
 	})
 
-	result, err := pm.service.UserUpdate(ctx, userModelUpdate)
+	result, err := pm.usecase.UserUpdate(ctx, userModelUpdate)
 	if err != nil {
 		return nil, err
 	}

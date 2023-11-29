@@ -148,7 +148,7 @@ func (s *userUseCase) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	if existing.ID != currentUser.ID {
+	if existing != nil && existing.ID != currentUser.ID {
 		return resp.NewResponse(http.StatusConflict, nil), ErrUserMisalign
 	}
 
@@ -157,7 +157,7 @@ func (s *userUseCase) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	if existing.ID != currentUser.ID {
+	if existing != nil && existing.ID != currentUser.ID {
 		return resp.NewResponse(http.StatusConflict, nil), ErrUserMisalign
 	}
 

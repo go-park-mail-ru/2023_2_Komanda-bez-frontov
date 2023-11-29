@@ -152,8 +152,13 @@ func (c *FormAPIController) FormPass(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	currentUser, ok := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+	if !ok {
+		currentUser = &model.UserGet{ID: model.AnonUserID}
+	}
+
 	passageMsg := &passage.Passage{
-		UserID:  ctx.Value(model.ContextCurrentUser).(*model.UserGet).ID,
+		UserID:  currentUser.ID,
 		FormID:  *formPassage.FormID,
 		Answers: answersMsg,
 	}

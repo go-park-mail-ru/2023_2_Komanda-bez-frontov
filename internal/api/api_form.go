@@ -152,6 +152,7 @@ func (c *FormAPIController) FormPass(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+
 	currentUser, ok := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 	if !ok {
 		currentUser = &model.UserGet{ID: model.AnonUserID}

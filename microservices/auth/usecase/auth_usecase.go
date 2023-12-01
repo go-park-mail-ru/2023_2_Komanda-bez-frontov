@@ -22,8 +22,9 @@ import (
 )
 
 var (
-	ErrUsernameTaken = errors.New("username taken")
-	ErrEmailTaken    = errors.New("email taken")
+	ErrUsernameTaken    = errors.New("username taken")
+	ErrEmailTaken       = errors.New("email taken")
+	ErrWrongCredentials = errors.New("login credentials are wrong")
 )
 
 type AuthUseCase interface {
@@ -160,7 +161,7 @@ func (s *authUseCase) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 	}
 
 	if existing == nil {
-		return resp.NewResponse(http.StatusUnauthorized, nil), "", nil
+		return resp.NewResponse(http.StatusUnauthorized, nil), "", ErrWrongCredentials
 	}
 
 	encPassword, err := s.encryptPassword(user.Password)
@@ -182,7 +183,6 @@ func (s *authUseCase) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
-	fmt.Println(existing)
 	return resp.NewResponse(http.StatusOK, &model.UserGet{
 		ID:        existing.ID,
 		FirstName: existing.FirstName,

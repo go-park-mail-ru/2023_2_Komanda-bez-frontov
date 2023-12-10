@@ -24,6 +24,7 @@ func CSRFMiddleware(tokenParser *HashToken, responseEncoder ResponseEncoder) fun
 			}
 			if !flag {
 				next.ServeHTTP(w, r)
+				return
 			}
 
 			session, err := r.Cookie(sessionCookieName)
@@ -33,8 +34,13 @@ func CSRFMiddleware(tokenParser *HashToken, responseEncoder ResponseEncoder) fun
 			}
 
 			csrfToken := r.Header.Get("X-CSRF-Token")
-			tokenParser.Check(session.Value, csrfToken)
+			valid, err := tokenParser.Check(session.Value, csrfToken)
 			if err != nil {
+				responseEncoder.HandleError(ctx, w, fmt.Errorf("CSRF error"), &resp.Response{StatusCode: http.StatusInternalServerError})
+				return
+			}
+
+			if !valid {
 				responseEncoder.HandleError(ctx, w, fmt.Errorf("CSRF not passed"), &resp.Response{StatusCode: http.StatusUnauthorized})
 				return
 			}

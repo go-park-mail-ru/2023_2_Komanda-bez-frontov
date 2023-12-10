@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const sepSymbol = "#"
+
 type HashToken struct {
 	Secret []byte
 }
@@ -22,12 +24,12 @@ func (tk *HashToken) Create(session string, tokenExpTime int64) (string, error) 
 	h := hmac.New(sha256.New, []byte(tk.Secret))
 	data := fmt.Sprintf("%s:%d", session, tokenExpTime)
 	h.Write([]byte(data))
-	token := hex.EncodeToString(h.Sum(nil)) + ":" + strconv.FormatInt(tokenExpTime, 10)
+	token := hex.EncodeToString(h.Sum(nil)) + sepSymbol + strconv.FormatInt(tokenExpTime, 10)
 	return token, nil
 }
 
 func (tk *HashToken) Check(session string, inputToken string) (bool, error) {
-	tokenData := strings.Split(inputToken, ":")
+	tokenData := strings.Split(inputToken, sepSymbol)
 	if len(tokenData) != 2 {
 		return false, fmt.Errorf("bad token data")
 	}

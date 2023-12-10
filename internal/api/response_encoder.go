@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	resp "go-form-hub/internal/services/service_response"
+
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type ResponseEncoder interface {
@@ -31,9 +33,12 @@ func (r *responseEncoder) EncodeJSONResponse(ctx context.Context, i interface{},
 	}
 	w.WriteHeader(status)
 
+	user := r.getCurrentUserFromCtx(ctx)
+	user.Sanitize(bluemonday.UGCPolicy())
+
 	result := model.BasicResponse{
 		Data:        i,
-		CurrentUser: r.getCurrentUserFromCtx(ctx),
+		CurrentUser: user,
 	}
 	_ = json.NewEncoder(w).Encode(result)
 }

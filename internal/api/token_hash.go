@@ -21,14 +21,14 @@ func NewHMACHashToken(secret string) *HashToken {
 }
 
 func (tk *HashToken) Create(session string, tokenExpTime int64) (string, error) {
-	h := hmac.New(sha256.New, []byte(tk.Secret))
+	h := hmac.New(sha256.New, tk.Secret)
 	data := fmt.Sprintf("%s:%d", session, tokenExpTime)
 	h.Write([]byte(data))
 	token := hex.EncodeToString(h.Sum(nil)) + sepSymbol + strconv.FormatInt(tokenExpTime, 10)
 	return token, nil
 }
 
-func (tk *HashToken) Check(session string, inputToken string) (bool, error) {
+func (tk *HashToken) Check(session, inputToken string) (bool, error) {
 	tokenData := strings.Split(inputToken, sepSymbol)
 	if len(tokenData) != 2 {
 		return false, fmt.Errorf("bad token data")
@@ -43,7 +43,7 @@ func (tk *HashToken) Check(session string, inputToken string) (bool, error) {
 		return false, fmt.Errorf("token expired")
 	}
 
-	h := hmac.New(sha256.New, []byte(tk.Secret))
+	h := hmac.New(sha256.New, tk.Secret)
 	data := fmt.Sprintf("%s:%d", session, tokenExp)
 	h.Write([]byte(data))
 	expectedMAC := h.Sum(nil)

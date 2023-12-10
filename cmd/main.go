@@ -108,8 +108,7 @@ func main() {
 	passageController := passage.NewFormPassageClient(passageGrpcConn)
 
 	validate := validator.New()
-	secret := "abc"
-	tokenParser := api.NewHMACHashToken(secret)
+	tokenParser := api.NewHMACHashToken(cfg.Secret)
 
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	formRepository := repository.NewFormDatabaseRepository(db, builder)

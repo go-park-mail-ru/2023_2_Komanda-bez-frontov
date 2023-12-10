@@ -17,6 +17,7 @@ import (
 	resp "go-form-hub/internal/services/service_response"
 
 	validator "github.com/go-playground/validator/v10"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type UserUseCase interface {
@@ -35,13 +36,16 @@ type userUseCase struct {
 	userRepository repository.UserRepository
 	cfg            *config.Config
 	validate       *validator.Validate
+	sanitizer      *bluemonday.Policy
 }
 
 func NewUserUseCase(userRepository repository.UserRepository, cfg *config.Config, validate *validator.Validate) UserUseCase {
+	sanitizer := bluemonday.UGCPolicy()
 	return &userUseCase{
 		userRepository: userRepository,
 		cfg:            cfg,
 		validate:       validate,
+		sanitizer:      sanitizer,
 	}
 }
 
@@ -98,6 +102,7 @@ func (s *userUseCase) UserList(ctx context.Context) (*resp.Response, error) {
 	}
 
 	response.Count = len(users)
+	response.Sanitize(s.sanitizer)
 	return resp.NewResponse(http.StatusOK, response), nil
 }
 
@@ -111,14 +116,17 @@ func (s *userUseCase) UserGet(ctx context.Context, id int64) (*resp.Response, er
 		return resp.NewResponse(http.StatusNotFound, nil), ErrCouldntFindUser
 	}
 
-	return resp.NewResponse(http.StatusOK, &model.UserGet{
+	modelUser := &model.UserGet{
 		ID:        user.ID,
 		Username:  user.Username,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Avatar:    user.Avatar,
-	}), nil
+	}
+
+	modelUser.Sanitize(s.sanitizer)
+	return resp.NewResponse(http.StatusOK, modelUser), nil
 }
 
 func (s *userUseCase) UserGetAvatar(ctx context.Context, username string) (*resp.Response, error) {
@@ -131,10 +139,13 @@ func (s *userUseCase) UserGetAvatar(ctx context.Context, username string) (*resp
 		return resp.NewResponse(http.StatusNotFound, nil), ErrCouldntFindUser
 	}
 
-	return resp.NewResponse(http.StatusOK, &model.UserAvatarGet{
+	userAvatar := &model.UserAvatarGet{
 		Username: user.Username,
 		Avatar:   user.Avatar,
-	}), nil
+	}
+
+	userAvatar.Sanitize(s.sanitizer)
+	return resp.NewResponse(http.StatusOK, userAvatar), nil
 }
 
 func (s *userUseCase) UserUpdate(ctx context.Context, user *model.UserUpdate) (*resp.Response, error) {
@@ -201,12 +212,15 @@ func (s *userUseCase) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
-	return resp.NewResponse(http.StatusOK, &model.UserGet{
+	userResponse := &model.UserGet{
 		ID:        currentUser.ID,
 		Username:  user.Username,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Avatar:    user.Avatar,
-	}), nil
+	}
+	userResponse.Sanitize(s.sanitizer)
+
+	return resp.NewResponse(http.StatusOK, userResponse), nil
 }

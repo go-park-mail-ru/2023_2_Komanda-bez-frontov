@@ -1,5 +1,9 @@
 package model
 
+import (
+	"github.com/microcosm-cc/bluemonday"
+)
+
 type ContextCurrentUserType string
 
 const ContextCurrentUser = ContextCurrentUserType("current_user")
@@ -27,6 +31,13 @@ type UserGet struct {
 	Avatar    *string `json:"avatar,omitempty"`
 }
 
+func (user *UserGet) Sanitize(sanitizer *bluemonday.Policy) {
+	user.Username = sanitizer.Sanitize(user.Username)
+	user.FirstName = sanitizer.Sanitize(user.FirstName)
+	user.LastName = sanitizer.Sanitize(user.LastName)
+	user.Email = sanitizer.Sanitize(user.Email)
+}
+
 type UserUpdate struct {
 	Username    string  `json:"username" validate:"required,alphanum"`
 	FirstName   string  `json:"first_name,omitempty"`
@@ -42,7 +53,17 @@ type UserAvatarGet struct {
 	Avatar   *string `json:"avatar" validate:"required"`
 }
 
+func (user *UserAvatarGet) Sanitize(sanitizer *bluemonday.Policy) {
+	user.Username = sanitizer.Sanitize(user.Username)
+}
+
 type UserList struct {
 	CollectionResponse
 	Users []*UserGet `json:"users" validate:"required"`
+}
+
+func (users *UserList) Sanitize(sanitizer *bluemonday.Policy) {
+	for _, user := range users.Users {
+		user.Sanitize(sanitizer)
+	}
 }

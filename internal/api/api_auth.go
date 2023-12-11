@@ -95,13 +95,13 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user *session.UserLogin
+	var user session.UserLogin
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	sessionInfo, err := c.authService.Login(ctx, user)
+	sessionInfo, err := c.authService.Login(ctx, &user)
 	if err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return

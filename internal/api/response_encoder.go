@@ -34,8 +34,9 @@ func (r *responseEncoder) EncodeJSONResponse(ctx context.Context, i interface{},
 	w.WriteHeader(status)
 
 	user := r.getCurrentUserFromCtx(ctx)
-	user.Sanitize(bluemonday.UGCPolicy())
-
+	if user != nil {
+		user.Sanitize(bluemonday.UGCPolicy())
+	}
 	result := model.BasicResponse{
 		Data:        i,
 		CurrentUser: user,

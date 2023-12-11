@@ -42,7 +42,7 @@ func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware, csrfMi
 		AllowedOrigins:   []string{cfg.AllowedOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
+		ExposedHeaders:   []string{"Link", "X-Csrf-Token"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))

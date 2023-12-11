@@ -130,6 +130,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, csrfCookie)
+	w.Header().Add("X-CSRF-Token", csrfToken)
 
 	curUser := model.UserGet{
 		ID:        sessionInfo.CurrentUser.Id,
@@ -220,6 +221,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, csrfCookie)
+	w.Header().Add("X-CSRF-Token", csrfToken)
 
 	curUser := model.UserGet{
 		ID:        sessionInfo.CurrentUser.Id,

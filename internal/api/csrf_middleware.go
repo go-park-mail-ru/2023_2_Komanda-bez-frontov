@@ -45,6 +45,7 @@ func CSRFMiddleware(tokenParser *HashToken, responseEncoder ResponseEncoder) fun
 				return
 			}
 
+			w.Header().Add("X-CSRF-Token", csrfToken)
 			next.ServeHTTP(w, r)
 		})
 	}

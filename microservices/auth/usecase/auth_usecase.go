@@ -19,6 +19,7 @@ import (
 	resp "go-form-hub/internal/services/service_response"
 
 	validator "github.com/go-playground/validator/v10"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 var (
@@ -38,14 +39,17 @@ type authUseCase struct {
 	userRepository    repository.UserRepository
 	sessionRepository repository.SessionRepository
 	cfg               *config.Config
+	sanitizer         *bluemonday.Policy
 	validate          *validator.Validate
 }
 
 func NewAuthUseCase(userRepository repository.UserRepository, sessionRepository repository.SessionRepository, cfg *config.Config, validate *validator.Validate) AuthUseCase {
+	sanitizer := bluemonday.UGCPolicy()
 	return &authUseCase{
 		userRepository:    userRepository,
 		sessionRepository: sessionRepository,
 		cfg:               cfg,
+		sanitizer:         sanitizer,
 		validate:          validate,
 	}
 }
@@ -141,13 +145,16 @@ func (s *authUseCase) AuthSignUp(ctx context.Context, user *model.UserSignUp) (*
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
-	return resp.NewResponse(http.StatusOK, &model.UserGet{
+	userRepsonse := &model.UserGet{
 		ID:        id,
 		Username:  user.Username,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
-	}), sessionID, nil
+	}
+
+	userRepsonse.Sanitize(s.sanitizer)
+	return resp.NewResponse(http.StatusOK, userRepsonse), sessionID, nil
 }
 
 func (s *authUseCase) AuthLogin(ctx context.Context, user *model.UserLogin) (*resp.Response, string, error) {
@@ -183,13 +190,16 @@ func (s *authUseCase) AuthLogin(ctx context.Context, user *model.UserLogin) (*re
 		return resp.NewResponse(http.StatusInternalServerError, nil), "", err
 	}
 
-	return resp.NewResponse(http.StatusOK, &model.UserGet{
+	userResponse := &model.UserGet{
 		ID:        existing.ID,
 		FirstName: existing.FirstName,
 		LastName:  existing.LastName,
 		Username:  existing.Username,
 		Email:     existing.Email,
-	}), sessionID, nil
+	}
+
+	userResponse.Sanitize(s.sanitizer)
+	return resp.NewResponse(http.StatusOK, userResponse), sessionID, nil
 }
 
 func (s *authUseCase) AuthLogout(ctx context.Context, sessionID string) (*resp.Response, string, error) {

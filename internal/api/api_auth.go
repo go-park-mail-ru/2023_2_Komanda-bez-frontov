@@ -20,14 +20,16 @@ type AuthAPIController struct {
 	validator        *validator.Validate
 	cookieExpiration time.Duration
 	responseEncoder  ResponseEncoder
+	tokenParser      *HashToken
 }
 
-func NewAuthAPIController(authService session.AuthCheckerClient, v *validator.Validate, cookieExpiration time.Duration, responseEncoder ResponseEncoder) Router {
+func NewAuthAPIController(tokenParser *HashToken, authService session.AuthCheckerClient, v *validator.Validate, cookieExpiration time.Duration, responseEncoder ResponseEncoder) Router {
 	return &AuthAPIController{
 		authService:      authService,
 		validator:        v,
 		cookieExpiration: cookieExpiration,
 		responseEncoder:  responseEncoder,
+		tokenParser:      tokenParser,
 	}
 }
 
@@ -93,13 +95,13 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user *session.UserLogin
+	var user session.UserLogin
 	if err = json.Unmarshal(requestJSON, &user); err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	sessionInfo, err := c.authService.Login(ctx, user)
+	sessionInfo, err := c.authService.Login(ctx, &user)
 	if err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
@@ -113,6 +115,22 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
+
+	csrfToken, err := c.tokenParser.Create(sessionInfo.Session, int64(c.cookieExpiration))
+	if err != nil {
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	csrfCookie := &http.Cookie{
+		Name:     csrfCookieName,
+		HttpOnly: true,
+		Value:    csrfToken,
+		Expires:  time.Now().Add(c.cookieExpiration),
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, csrfCookie)
+	w.Header().Add("X-CSRF-Token", csrfToken)
 
 	curUser := model.UserGet{
 		ID:        sessionInfo.CurrentUser.Id,
@@ -188,6 +206,22 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
+
+	csrfToken, err := c.tokenParser.Create(sessionInfo.Session, int64(c.cookieExpiration))
+	if err != nil {
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	csrfCookie := &http.Cookie{
+		Name:     csrfCookieName,
+		HttpOnly: true,
+		Value:    csrfToken,
+		Expires:  time.Now().Add(c.cookieExpiration),
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, csrfCookie)
+	w.Header().Add("X-CSRF-Token", csrfToken)
 
 	curUser := model.UserGet{
 		ID:        sessionInfo.CurrentUser.Id,

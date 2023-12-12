@@ -108,6 +108,7 @@ func main() {
 	passageController := passage.NewFormPassageClient(passageGrpcConn)
 
 	validate := validator.New()
+	tokenParser := api.NewHMACHashToken(cfg.Secret)
 
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	formRepository := repository.NewFormDatabaseRepository(db, builder)
@@ -120,13 +121,14 @@ func main() {
 	responseEncoder := api.NewResponseEncoder()
 
 	formRouter := api.NewFormAPIController(formService, passageController, validate, responseEncoder)
-	authRouter := api.NewAuthAPIController(sessController, validate, cfg.CookieExpiration, responseEncoder)
+	authRouter := api.NewAuthAPIController(tokenParser, sessController, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
 	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
+	csrfMiddleware := api.CSRFMiddleware(tokenParser, responseEncoder)
 
-	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, formRouter, authRouter, userRouter)
+	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {

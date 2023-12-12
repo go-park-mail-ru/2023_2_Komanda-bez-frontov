@@ -33,7 +33,7 @@ type Router interface {
 //
 // The function returns a new `chi.Router` that has all the routes from the provided routers
 // added to it.
-func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
+func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware, csrfMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
@@ -42,7 +42,7 @@ func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware func(ht
 		AllowedOrigins:   []string{cfg.AllowedOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
+		ExposedHeaders:   []string{"Link", "X-Csrf-Token"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
@@ -51,6 +51,7 @@ func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware func(ht
 		for _, route := range api.Routes() {
 			handler := route.Handler
 			if route.AuthRequired {
+				handler = csrfMiddleware(handler)
 				handler = authMiddleware(handler)
 			} else {
 				handler = currentUserMiddleware(handler)

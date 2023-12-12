@@ -1,5 +1,7 @@
 package model
 
+import "github.com/microcosm-cc/bluemonday"
+
 const (
 	SingleAnswerType   = 1
 	MultipleAnswerType = 2
@@ -23,4 +25,22 @@ type QuestionResult struct {
 	Required                 bool            `json:"required"`
 	NumberOfPassagesQuestion int             `json:"number_of_passages"`
 	Answers                  []*AnswerResult `json:"answers"`
+}
+
+func (question *Question) Sanitize(sanitizer *bluemonday.Policy) {
+	question.Title = sanitizer.Sanitize(question.Title)
+	if question.Description != nil {
+		*question.Description = sanitizer.Sanitize(*question.Description)
+	}
+	for _, answer := range question.Answers {
+		answer.Sanitize(sanitizer)
+	}
+}
+
+func (question *QuestionResult) Sanitize(sanitizer *bluemonday.Policy) {
+	question.Title = sanitizer.Sanitize(question.Title)
+	question.Description = sanitizer.Sanitize(question.Description)
+	for _, answer := range question.Answers {
+		answer.Sanitize(sanitizer)
+	}
 }

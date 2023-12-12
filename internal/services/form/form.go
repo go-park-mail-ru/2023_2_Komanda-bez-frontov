@@ -10,6 +10,7 @@ import (
 	resp "go-form-hub/internal/services/service_response"
 
 	validator "github.com/go-playground/validator/v10"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type Service interface {
@@ -27,14 +28,17 @@ type formService struct {
 	formRepository     repository.FormRepository
 	questionRepository repository.QuestionRepository
 	answerRepository   repository.AnswerRepository
+	sanitizer          *bluemonday.Policy
 	validate           *validator.Validate
 }
 
 func NewFormService(formRepository repository.FormRepository, questionRepository repository.QuestionRepository, answerRepository repository.AnswerRepository, validate *validator.Validate) Service {
+	sanitizer := bluemonday.UGCPolicy()
 	return &formService{
 		formRepository:     formRepository,
 		validate:           validate,
 		questionRepository: questionRepository,
+		sanitizer:          sanitizer,
 		answerRepository:   answerRepository,
 	}
 }
@@ -48,6 +52,7 @@ func (s *formService) FormResults(ctx context.Context, formID int64) (*resp.Resp
 	if formResults == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
+	formResults.Sanitize(s.sanitizer)
 
 	return resp.NewResponse(http.StatusOK, formResults), nil
 }
@@ -65,6 +70,8 @@ func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Res
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
+
+	result.Sanitize(s.sanitizer)
 
 	return resp.NewResponse(http.StatusOK, result), nil
 }
@@ -122,6 +129,8 @@ func (s *formService) FormUpdate(ctx context.Context, id int64, form *model.Form
 		}
 	}
 
+	formUpdate.Sanitize(s.sanitizer)
+
 	return resp.NewResponse(http.StatusOK, formUpdate), nil
 }
 
@@ -163,6 +172,8 @@ func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {
 
 	response.Count = len(forms)
 	response.Forms = forms
+
+	response.Sanitize(s.sanitizer)
 	return resp.NewResponse(http.StatusOK, response), nil
 }
 
@@ -177,6 +188,8 @@ func (s *formService) FormListByUser(ctx context.Context, username string) (*res
 
 	response.Count = len(forms)
 	response.Forms = forms
+
+	response.Sanitize(s.sanitizer)
 	return resp.NewResponse(http.StatusOK, response), nil
 }
 
@@ -212,6 +225,7 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 	if form == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
+	form.Sanitize(s.sanitizer)
 
 	return resp.NewResponse(http.StatusOK, form), nil
 }
@@ -226,6 +240,8 @@ func (s *formService) FormSearch(ctx context.Context, title string, userID uint)
 		FormTitles: forms,
 	}
 	formTitleList.Count = len(forms)
+
+	formTitleList.Sanitize(s.sanitizer)
 
 	return resp.NewResponse(http.StatusOK, formTitleList), nil
 }

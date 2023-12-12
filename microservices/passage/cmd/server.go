@@ -54,7 +54,10 @@ func main() {
 		return
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.MaxRecvMsgSize(1024*1024*16),
+		grpc.MaxSendMsgSize(1024*1024*16),
+	)
 
 	passage.RegisterFormPassageServer(server, passageController)
 	err = server.Serve(lis)

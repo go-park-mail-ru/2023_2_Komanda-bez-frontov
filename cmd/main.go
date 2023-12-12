@@ -74,6 +74,10 @@ func main() {
 	authGrpcConn, err := grpc.Dial(
 		"127.0.0.1:8081",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(1024*1024*16),
+			grpc.MaxCallSendMsgSize(1024*1024*16),
+		),
 	)
 	if err != nil {
 		log.Error().Msgf("cant connect to grpc: %s", err)
@@ -86,6 +90,10 @@ func main() {
 	userGrpcConn, err := grpc.Dial(
 		"127.0.0.1:8082",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(1024*1024*16),
+			grpc.MaxCallSendMsgSize(1024*1024*16),
+		),
 	)
 	if err != nil {
 		log.Error().Msgf("cant connect to grpc: %s", err)
@@ -98,6 +106,10 @@ func main() {
 	passageGrpcConn, err := grpc.Dial(
 		"127.0.0.1:8083",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(1024*1024*16),
+			grpc.MaxCallSendMsgSize(1024*1024*16),
+		),
 	)
 	if err != nil {
 		log.Error().Msgf("cant connect to grpc: %s", err)

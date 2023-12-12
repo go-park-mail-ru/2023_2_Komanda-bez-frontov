@@ -54,7 +54,10 @@ func main() {
 		return
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.MaxRecvMsgSize(1024*1024*16),
+		grpc.MaxSendMsgSize(1024*1024*16),
+	)
 
 	profile.RegisterProfileServer(server, userController)
 	err = server.Serve(lis)

@@ -60,18 +60,17 @@ func (s *formService) FormResults(ctx context.Context, formID int64) (*resp.Resp
 }
 
 func (s *formService) FormResultsExelCsv(ctx context.Context, formID int64) ([]byte, error) {
-    FormResultsExelCsv, err := s.formRepository.FormResultsExelCsv(ctx, formID)
-    if err != nil {
-        return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
-    }
+	FormResultsExelCsv, err := s.formRepository.FormResultsExelCsv(ctx, formID)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
+	}
 
-    if FormResultsExelCsv == nil {
-        return nil, fmt.Errorf("form_repository form_results_exel returned nil result")
-    }
+	if FormResultsExelCsv == nil {
+		return nil, fmt.Errorf("form_repository form_results_exel returned nil result")
+	}
 
-    return FormResultsExelCsv, nil
+	return FormResultsExelCsv, nil
 }
-
 
 func (s *formService) FormSave(ctx context.Context, form *model.Form) (*resp.Response, error) {
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)

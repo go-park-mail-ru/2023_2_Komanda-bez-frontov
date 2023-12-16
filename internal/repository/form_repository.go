@@ -156,40 +156,40 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 }
 
 func (r *formDatabaseRepository) FormResultsExelCsv(ctx context.Context, id int64) ([]byte, error) {
-    form, err := r.FormResults(ctx, id)
-    if err != nil {
-        return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
-    }
+	form, err := r.FormResults(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
+	}
 
-    var buf bytes.Buffer
-    writer := csv.NewWriter(&buf)
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
 
-    formRow := []string{
-        form.Title,
-    }
+	formRow := []string{
+		form.Title,
+	}
 
-    for _, question := range form.Questions {
-        questionRow := []string{
-            question.Title,
-            fmt.Sprint(question.NumberOfPassagesQuestion),
-        }
+	for _, question := range form.Questions {
+		questionRow := []string{
+			question.Title,
+			fmt.Sprint(question.NumberOfPassagesQuestion),
+		}
 
-        for _, answer := range question.Answers {
-            answerRow := []string{
-                answer.Text,
-                fmt.Sprint(answer.SelectedTimesAnswer),
-            }
+		for _, answer := range question.Answers {
+			answerRow := []string{
+				answer.Text,
+				fmt.Sprint(answer.SelectedTimesAnswer),
+			}
 
-            questionRow = append(questionRow, answerRow...)
-        }
+			questionRow = append(questionRow, answerRow...)
+		}
 
-        formRow = append(formRow, questionRow...)
-    }
+		formRow = append(formRow, questionRow...)
+	}
 
-    writer.Write(formRow)
-    writer.Flush()
+	writer.Write(formRow)
+	writer.Flush()
 
-    return buf.Bytes(), nil
+	return buf.Bytes(), nil
 }
 
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {

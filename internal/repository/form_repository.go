@@ -927,6 +927,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 		for _, question := range form.Questions {
 			question.Answers = answersByQuestionID[*question.ID]
 		}
+
 		forms = append(forms, form)
 	}
 

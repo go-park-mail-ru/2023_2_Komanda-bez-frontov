@@ -10,14 +10,15 @@ import (
 const AnonUserID = 0
 
 type Form struct {
-	ID          *int64      `json:"id"`
-	Title       string      `json:"title" validate:"required"`
-	Description *string     `json:"description"`
-	Anonymous   bool        `json:"anonymous"`
-	PassageMax  int         `json:"passage_max"`
-	Author      *UserGet    `json:"author"`
-	CreatedAt   time.Time   `json:"created_at"`
-	Questions   []*Question `json:"questions" validate:"required"`
+	ID                  *int64      `json:"id"`
+	Title               string      `json:"title" validate:"required"`
+	Description         *string     `json:"description"`
+	Anonymous           bool        `json:"anonymous"`
+	PassageMax          int         `json:"passage_max"`
+	CurrentPassageTotal int         `json:"cur_passage_total"`
+	Author              *UserGet    `json:"author"`
+	CreatedAt           time.Time   `json:"created_at"`
+	Questions           []*Question `json:"questions" validate:"required"`
 }
 
 func (form *Form) Sanitize(sanitizer *bluemonday.Policy) {

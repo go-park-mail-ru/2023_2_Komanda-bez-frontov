@@ -17,6 +17,7 @@ type Form struct {
 	ID          int64     `db:"id"`
 	Description *string   `db:"description"`
 	Anonymous   bool      `db:"anonymous"`
+	PassageMax  int64     `db:"passage_max"`
 	AuthorID    int64     `db:"author_id"`
 	CreatedAt   time.Time `db:"created_at"`
 }
@@ -26,10 +27,10 @@ var (
 		"f.id",
 		"f.title",
 		"f.description",
-		"f.anonymous",
 		"f.created_at",
 		"f.author_id",
 		"f.anonymous",
+		"f.passage_max",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -52,6 +53,7 @@ var (
 		"f.created_at",
 		"COALESCE(f.description, '')",
 		"f.anonymous",
+		"f.passage_max",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -494,6 +496,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		&formResult.CreatedAt,
 		&formResult.Description,
 		&formResult.Anonymous,
+		&formResult.PassageMax,
 		&formResult.Author.ID,
 		&formResult.Author.Username,
 		&formResult.Author.FirstName,
@@ -613,8 +616,8 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 
 	formQuery, args, err := r.builder.
 		Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Columns("title", "author_id", "created_at", "description", "anonymous").
-		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous).
+		Columns("title", "author_id", "created_at", "description", "anonymous", "passage_max").
+		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous, form.PassageMax).
 		Suffix("RETURNING id").
 		ToSql()
 	err = tx.QueryRow(ctx, formQuery, args...).Scan(&form.ID)
@@ -768,6 +771,7 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *mod
 		Set("title", form.Title).
 		Set("description", form.Description).
 		Set("anonymous", form.Anonymous).
+		Set("passage_max", form.PassageMax).
 		Where(squirrel.Eq{"id": id}).
 		Suffix("RETURNING id, title, created_at").ToSql()
 	if err != nil {
@@ -852,6 +856,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				Title:       info.form.Title,
 				Description: info.form.Description,
 				Anonymous:   info.form.Anonymous,
+				PassageMax:  int(info.form.PassageMax),
 				CreatedAt:   info.form.CreatedAt,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
@@ -961,10 +966,10 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&form.ID,
 		&form.Title,
 		&form.Description,
-		&form.Anonymous,
 		&form.CreatedAt,
 		&form.AuthorID,
 		&form.Anonymous,
+		&form.PassageMax,
 		&author.ID,
 		&author.Username,
 		&author.FirstName,

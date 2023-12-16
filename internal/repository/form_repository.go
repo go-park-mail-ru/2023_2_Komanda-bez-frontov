@@ -766,6 +766,36 @@ func (r *formDatabaseRepository) FormPassageCount(ctx context.Context, formID in
 	return total, nil
 }
 
+func (r *formDatabaseRepository) UserFormPassageCount(ctx context.Context, formID int64, userID int64) (int64, error) {
+	var err error
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("form_facade insert failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	formPassageQuery := fmt.Sprintf(`select count(*)
+	from %s.form_passage
+	where form_id = $1 and user_id = $2`, r.db.GetSchema())
+
+	var total int64
+	err = tx.QueryRow(ctx, formPassageQuery, formID, userID).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
 func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.FormUpdate) (result *model.FormUpdate, err error) {
 	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("title", form.Title).

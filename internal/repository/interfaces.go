@@ -19,6 +19,7 @@ type FormRepository interface {
 	FormResults(ctx context.Context, id int64) (*model.FormResult, error)
 	FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userID uint64) error
 	FormPassageCount(ctx context.Context, formID int64) (int64, error)
+	UserFormPassageCount(ctx context.Context, formID int64, userID int64) (int64, error)
 }
 
 type UserRepository interface {

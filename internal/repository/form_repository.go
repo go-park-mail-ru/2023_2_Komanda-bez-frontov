@@ -766,7 +766,7 @@ func (r *formDatabaseRepository) FormPassageCount(ctx context.Context, formID in
 	return total, nil
 }
 
-func (r *formDatabaseRepository) UserFormPassageCount(ctx context.Context, formID int64, userID int64) (int64, error) {
+func (r *formDatabaseRepository) UserFormPassageCount(ctx context.Context, formID, userID int64) (int64, error) {
 	var err error
 
 	tx, err := r.db.Begin(ctx)

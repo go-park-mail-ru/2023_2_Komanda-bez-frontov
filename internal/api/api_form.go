@@ -342,10 +342,10 @@ func (c *FormAPIController) FormResultsCsv(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 	_, err = w.Write(result)
-    if err != nil {
-        http.Error(w, "Failed to write response", http.StatusInternalServerError)
-        return
-    }
+	if err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (c *FormAPIController) FormResultsExel(w http.ResponseWriter, r *http.Request) {
@@ -377,10 +377,10 @@ func (c *FormAPIController) FormResultsExel(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 	_, err = w.Write(result)
-    if err != nil {
-        http.Error(w, "Failed to write response", http.StatusInternalServerError)
-        return
-    }
+	if err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {

@@ -14,25 +14,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-
-    - name: cleanup
-      run: rm -rf ~/.ssh
-
-    - name: Setup Go
-      uses: actions/setup-go@v4
+      - name: executing remote ssh commands using ssh key
+      uses: appleboy/ssh-action@v1.0.0
       with:
-        go-version: '1.21.x'
-
-    - name: install ssh keys
-    # check this thread to understand why its needed:
-    # https://stackoverflow.com/a/70447517
-      run: |
-        install -m 600 -D /dev/null ~/.ssh/id_rsa
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
-    - name: connect and pull
-      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && sudo git checkout Jarozin-patch-1 && sudo git pull && make kill && 	make deploy && exit"
-
-    - name: cleanup
-      run: rm -rf ~/.ssh
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /root/back/2023_2_Komanda-bez-frontov
+          git checkout Jarozin-patch-1
+          git pull
+          make run

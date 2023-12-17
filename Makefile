@@ -26,10 +26,10 @@ kill:
 
 .PHONY: deploy
 deploy:
-	nohup /usr/local/go/bin/go run ./microservices/user/cmd/server.go > user_log.txt &
-	nohup /usr/local/go/bin/go run ./microservices/auth/cmd/server.go > auth_log.txt &
-	nohup /usr/local/go/bin/go run ./microservices/passage/cmd/server.go > passage_log.txt &
-	nohup /usr/local/go/bin/go run ./cmd/main.go > main_log.txt &
+	(/usr/local/go/bin/go run ./microservices/user/cmd/server.go &)
+	(/usr/local/go/bin/go run ./microservices/auth/cmd/server.go &)
+	(/usr/local/go/bin/go run ./microservices/passage/cmd/server.go &)
+	(/usr/local/go/bin/go run ./cmd/main.go &)
 
 .PHONY: test
 test:

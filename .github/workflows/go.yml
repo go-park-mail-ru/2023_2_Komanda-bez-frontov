@@ -19,6 +19,11 @@ jobs:
     - name: cleanup
       run: rm -rf ~/.ssh
 
+    - name: Setup Go 1.21
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.21
+
     - name: install ssh keys
     # check this thread to understand why its needed:
     # https://stackoverflow.com/a/70447517

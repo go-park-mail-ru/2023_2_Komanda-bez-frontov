@@ -24,7 +24,7 @@ jobs:
       uses: lewagon/wait-on-check-action@master
       with:
         ref: ${{ github.ref }}
-        check-name: 'golangci-lint'
+        check-name: 'lint'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         wait-interval: 25
 

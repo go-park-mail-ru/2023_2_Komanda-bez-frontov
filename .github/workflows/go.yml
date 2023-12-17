@@ -24,7 +24,8 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
     - name: connect and pull
-      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
         cd ${{ secrets.WORK_DIR }}
         sudo git checkout ${{ secrets.MAIN_BRANCH }}
         sudo git pull

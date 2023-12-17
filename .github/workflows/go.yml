@@ -5,7 +5,7 @@ name: Go
 
 on:
   push:
-    branches: [ "main" , "dev"]
+    branches: [ "main" , "dev", "Jarozin-patch-1"]
   pull_request:
 
 jobs:

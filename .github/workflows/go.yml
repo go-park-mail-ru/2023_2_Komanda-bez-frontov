@@ -23,4 +23,4 @@ jobs:
           cd /root/back/2023_2_Komanda-bez-frontov
           git checkout Jarozin-patch-1
           git pull
-          make run
+          make deploy

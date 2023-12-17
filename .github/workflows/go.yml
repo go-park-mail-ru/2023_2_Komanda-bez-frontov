@@ -24,7 +24,7 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
     - name: connect and pull
-      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && sudo git checkout ${{ secrets.MAIN_BRANCH }} && export GOROOT=/usr/local/go && export PATH=$GOROOT/bin:$GOROOT/bin:$PATH && sudo git pull && make kill 2>/dev/null && make run && exit"
+      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && sudo git checkout ${{ secrets.MAIN_BRANCH }} && export GOROOT=/usr/local/go && export PATH=$GOROOT/bin:$GOROOT/bin:$PATH && sudo git pull && make kill 0>/dev/null && make run && exit"
 
     - name: cleanup
       run: rm -rf ~/.ssh

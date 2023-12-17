@@ -26,6 +26,8 @@ kill:
 
 .PHONY: deploy
 deploy:
+	echo $(PATH)
+	command -v go
 	sudo /usr/local/go run ./microservices/user/cmd/server.go & ;
 	sudo /usr/local/go run ./microservices/auth/cmd/server.go & ;
 	sudo /usr/local/go run ./microservices/passage/cmd/server.go & ;

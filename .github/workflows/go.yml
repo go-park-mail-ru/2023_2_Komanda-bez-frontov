@@ -18,7 +18,7 @@ jobs:
         ref: ${{ github.ref }}
         check-name: 'test'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        wait-interval: 10
+        wait-interval: 25
 
     - name: Wait for lint to succeed
       uses: lewagon/wait-on-check-action@master
@@ -26,7 +26,7 @@ jobs:
         ref: ${{ github.ref }}
         check-name: 'golangci-lint'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        wait-interval: 10
+        wait-interval: 25
 
     - name: executing remote ssh commands using ssh key
       uses: appleboy/ssh-action@master

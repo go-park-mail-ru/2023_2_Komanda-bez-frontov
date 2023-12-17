@@ -234,13 +234,13 @@ func fillExcelFile(file *excelize.File, form *model.FormResult) {
 	qcounter := 1
 	row := 4
 	for _, question := range form.Questions {
-		file.SetCellValue("Sheet1", fmt.Sprintf("A%d", row), "Question" + fmt.Sprintf("%d", qcounter))
+		file.SetCellValue("Sheet1", fmt.Sprintf("A%d", row), "Question"+fmt.Sprintf("%d", qcounter))
 		file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), question.Title)
 		qcounter++
 		row++
 		acounter = 1
 		for _, answer := range question.Answers {
-			file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), "Answer" + fmt.Sprintf("%d", acounter))
+			file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), "Answer"+fmt.Sprintf("%d", acounter))
 			file.SetCellValue("Sheet1", fmt.Sprintf("C%d", row), answer.Text)
 			row++
 			acounter++

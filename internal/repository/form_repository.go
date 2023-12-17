@@ -199,7 +199,6 @@ func (r *formDatabaseRepository) FormResultsExel(ctx context.Context, id int64) 
 		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
 	}
 
-	// Логика заполнения Excel файла из формы
 	excelFile, err := generateExcelFile(form)
 	if err != nil {
 		return nil, err
@@ -208,14 +207,11 @@ func (r *formDatabaseRepository) FormResultsExel(ctx context.Context, id int64) 
 	return excelFile, nil
 }
 
-// Вспомогательная функция для генерации Excel файла из формы
 func generateExcelFile(form *model.FormResult) ([]byte, error) {
 	file := excelize.NewFile()
 
-	// Заполнение Excel файла из формы
 	fillExcelFile(file, form)
 
-	// Сохранение файла в буфер
 	buf, err := file.WriteToBuffer()
 	if err != nil {
 		return nil, err
@@ -224,25 +220,19 @@ func generateExcelFile(form *model.FormResult) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Вспомогательная функция для заполнения Excel файла данными из формы
 func fillExcelFile(file *excelize.File, form *model.FormResult) {
-	// Заполнение заголовков
 	file.SetCellValue("Sheet1", "A1", "Form Name")
 	file.SetCellValue("Sheet1", "B1", form.Title)
 
-	// Заполнение описания формы (если есть)
 	file.SetCellValue("Sheet1", "A2", "Description")
 	file.SetCellValue("Sheet1", "B2", form.Description)
 
-	// Заполнение вопросов и ответов
 	row := 4
 	for _, question := range form.Questions {
-		// Заполнение текста вопроса
 		file.SetCellValue("Sheet1", fmt.Sprintf("A%d", row), "Question")
 		file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), question.Title)
 		row++
 
-		// Заполнение текста ответов
 		for _, answer := range question.Answers {
 			file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), "Answer")
 			file.SetCellValue("Sheet1", fmt.Sprintf("C%d", row), answer.Text)

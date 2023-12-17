@@ -25,7 +25,7 @@ kill:
 	fuser -k 8083/tcp || true
 
 .PHONY: deploy
-run:
+deploy:
 	/usr/local/go run ./microservices/user/cmd/server.go &
 	/usr/local/go run ./microservices/auth/cmd/server.go &
 	/usr/local/go run ./microservices/passage/cmd/server.go &

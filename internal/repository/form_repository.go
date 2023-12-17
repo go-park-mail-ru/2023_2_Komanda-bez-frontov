@@ -248,7 +248,6 @@ func fillExcelFile(file *excelize.File, form *model.FormResult) {
 
 		qcounter++
 	}
-
 }
 
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {

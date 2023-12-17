@@ -48,6 +48,7 @@ func StartServer(cfg *config.Config, r http.Handler) (*http.Server, error) {
 }
 
 func main() {
+	a := 5
 	log.Info().Msg("Starting application...")
 	cfg, err := config.NewConfig()
 	if err != nil {

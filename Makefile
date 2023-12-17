@@ -26,12 +26,10 @@ kill:
 
 .PHONY: deploy
 deploy:
-	export GOROOT=/usr/local/go
-	export PATH=$GOROOT/bin:$GOROOT/bin:$PATH
-	sudo /usr/local/go run ./microservices/user/cmd/server.go &
-	sudo /usr/local/go run ./microservices/auth/cmd/server.go &
-	sudo /usr/local/go run ./microservices/passage/cmd/server.go &
-	sudo /usr/local/go run ./cmd/main.go &
+	go run ./microservices/user/cmd/server.go &
+	go run ./microservices/auth/cmd/server.go &
+	go run ./microservices/passage/cmd/server.go &
+	go run ./cmd/main.go &
 
 .PHONY: test
 test:

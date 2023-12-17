@@ -32,7 +32,7 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
     - name: connect and pull
-      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && sudo git checkout Jarozin-patch-1 && sudo git pull && make kill && 	/usr/local/go run ./microservices/user/cmd/server.go & && /usr/local/go run ./microservices/auth/cmd/server.go & && /usr/local/go run ./microservices/passage/cmd/server.go & && /usr/local/go run ./cmd/main.go & && exit"
+      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && sudo git checkout Jarozin-patch-1 && sudo git pull && make kill && 	make run && exit"
 
     - name: cleanup
       run: rm -rf ~/.ssh

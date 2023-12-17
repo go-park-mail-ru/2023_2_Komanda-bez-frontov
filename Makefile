@@ -26,6 +26,8 @@ kill:
 
 .PHONY: deploy
 deploy:
+	export PATH := bin:$(PATH)
+	@echo $(PATH)
 	go run ./microservices/user/cmd/server.go &
 	go run ./microservices/auth/cmd/server.go &
 	go run ./microservices/passage/cmd/server.go &

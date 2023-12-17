@@ -23,16 +23,21 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
     - name: connect and pull
-      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && git checkout ${{ secrets.MAIN_BRANCH }} && git pull"
+      run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-        cache-dependency-path: go.sum
+    - name: Move to directory
+      run: cd ${{ secrets.WORK_DIR }}
+
+    - name: Pull main
+      run: |
+        git checkout ${{ secrets.MAIN_BRANCH }}
+        git pull
 
     - name: Test
       run: go test -v ./...
+
+    - name: Stop old process
+      run: make kill
 
     - name: Deploy
       run: make run

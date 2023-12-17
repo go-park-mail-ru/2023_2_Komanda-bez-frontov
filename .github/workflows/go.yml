@@ -12,6 +12,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v3
 
@@ -25,21 +26,22 @@ jobs:
     - name: connect and pull
       run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
 
-    - name: Move to directory
-      run: cd ${{ secrets.WORK_DIR }}
-
     - name: Pull main
+      working-directory: ${{ secrets.WORK_DIR }}
       run: |
         git checkout ${{ secrets.MAIN_BRANCH }}
         git pull
 
     - name: Test
+      working-directory: ${{ secrets.WORK_DIR }}
       run: go test -v ./...
 
     - name: Stop old process
+      working-directory: ${{ secrets.WORK_DIR }}
       run: make kill
 
     - name: Deploy
+      working-directory: ${{ secrets.WORK_DIR }}
       run: make run
 
     - name: Leave

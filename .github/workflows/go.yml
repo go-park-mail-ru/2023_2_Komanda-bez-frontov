@@ -26,7 +26,7 @@ jobs:
     - name: connect and pull
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
-        cd ${{ secrets.WORK_DIR }}
+        cd ./back/2023_2_Komanda-bez-frontov
         sudo git checkout ${{ secrets.MAIN_BRANCH }}
         sudo git pull
         go test -v ./...

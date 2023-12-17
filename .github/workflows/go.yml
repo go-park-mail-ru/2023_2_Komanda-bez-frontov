@@ -5,7 +5,7 @@ name: go
 
 on:
   push:
-    branches: [ "main" , "dev", "Jarozin-patch-1"]
+    branches: [ "main" , "dev"]
 
 jobs:
   build:
@@ -37,6 +37,6 @@ jobs:
         port: 22
         script: |
           cd /root/back/2023_2_Komanda-bez-frontov
-          git checkout Jarozin-patch-1
+          git checkout dev
           git pull
           make deploy

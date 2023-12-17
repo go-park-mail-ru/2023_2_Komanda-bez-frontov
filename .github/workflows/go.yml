@@ -29,8 +29,8 @@ jobs:
     - name: Pull main
       working-directory: ${{ secrets.WORK_DIR }}
       run: |
-        git checkout ${{ secrets.MAIN_BRANCH }}
-        git pull
+        sudo git checkout ${{ secrets.MAIN_BRANCH }}
+        sudo git pull
 
     - name: Test
       working-directory: ${{ secrets.WORK_DIR }}

@@ -232,12 +232,12 @@ func fillExcelFile(file *excelize.File, form *model.FormResult) {
 
 	row := 4
 	qcounter := 1
-	
+
 	for _, question := range form.Questions {
 		file.SetCellValue("Sheet1", fmt.Sprintf("A%d", row), fmt.Sprintf("Question%d", qcounter))
 		file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), question.Title)
 		row++
-	
+
 		acounter := 1
 		for _, answer := range question.Answers {
 			file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), fmt.Sprintf("Answer%d", acounter))
@@ -245,10 +245,10 @@ func fillExcelFile(file *excelize.File, form *model.FormResult) {
 			row++
 			acounter++
 		}
-	
+
 		qcounter++
 	}
-	
+
 }
 
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {

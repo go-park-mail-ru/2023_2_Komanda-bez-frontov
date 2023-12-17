@@ -92,6 +92,13 @@ func (c *FormAPIController) Routes() []Route {
 			AuthRequired: false,
 		},
 		{
+			Name:         "FormResultsCsv",
+			Method:       http.MethodGet,
+			Path:         "/forms/{id}/results/csv",
+			Handler:      c.FormResultsCsv,
+			AuthRequired: true,
+		},
+		{
 			Name:         "FormResultsExel",
 			Method:       http.MethodGet,
 			Path:         "/forms/{id}/results/excel",
@@ -306,6 +313,41 @@ func (c *FormAPIController) FormResults(w http.ResponseWriter, r *http.Request) 
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
+func (c *FormAPIController) FormResultsCsv(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Error().Msgf("form_api form_result_exel unescape error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("form_api form_result_exel parse_id error: %e", err)
+		log.Error().Msg(err.Error())
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	result, err := c.service.FormResultsCsv(ctx, id)
+	if err != nil {
+		log.Error().Msgf("form_api form_results_exel error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	w.Header().Set("Content-Disposition", "attachment; filename=export.xlsx")
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+	_, err = w.Write(result)
+    if err != nil {
+        http.Error(w, "Failed to write response", http.StatusInternalServerError)
+        return
+    }
+}
+
 func (c *FormAPIController) FormResultsExel(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -324,7 +366,7 @@ func (c *FormAPIController) FormResultsExel(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	result, err := c.service.FormResultsExelCsv(ctx, id)
+	result, err := c.service.FormResultsExel(ctx, id)
 	if err != nil {
 		log.Error().Msgf("form_api form_results_exel error: %e", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
@@ -334,7 +376,11 @@ func (c *FormAPIController) FormResultsExel(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Disposition", "attachment; filename=export.xlsx")
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-	w.Write(result)
+	_, err = w.Write(result)
+    if err != nil {
+        http.Error(w, "Failed to write response", http.StatusInternalServerError)
+        return
+    }
 }
 
 func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {

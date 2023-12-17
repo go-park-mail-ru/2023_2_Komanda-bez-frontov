@@ -23,7 +23,8 @@ type Service interface {
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
 	FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error)
 	FormResults(ctx context.Context, id int64) (*resp.Response, error)
-	FormResultsExelCsv(ctx context.Context, formID int64) ([]byte, error)
+	FormResultsCsv(ctx context.Context, formID int64) ([]byte, error)
+	FormResultsExel(ctx context.Context, formID int64) ([]byte, error)
 }
 
 type formService struct {
@@ -59,8 +60,21 @@ func (s *formService) FormResults(ctx context.Context, formID int64) (*resp.Resp
 	return resp.NewResponse(http.StatusOK, formResults), nil
 }
 
-func (s *formService) FormResultsExelCsv(ctx context.Context, formID int64) ([]byte, error) {
-	FormResultsExelCsv, err := s.formRepository.FormResultsExelCsv(ctx, formID)
+func (s *formService) FormResultsCsv(ctx context.Context, formID int64) ([]byte, error) {
+	FormResultsExelCsv, err := s.formRepository.FormResultsCsv(ctx, formID)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results_csv failed to run FormResults: %e", err)
+	}
+
+	if FormResultsExelCsv == nil {
+		return nil, fmt.Errorf("form_repository form_results_csv returned nil result")
+	}
+
+	return FormResultsExelCsv, nil
+}
+
+func (s *formService) FormResultsExel(ctx context.Context, formID int64) ([]byte, error) {
+	FormResultsExelCsv, err := s.formRepository.FormResultsExel(ctx, formID)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
 	}

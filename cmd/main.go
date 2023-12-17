@@ -3,22 +3,27 @@ package main
 import (
 	"context"
 	"fmt"
-	"go-form-hub/internal/api"
-	"go-form-hub/internal/config"
-	"go-form-hub/internal/database"
-	"go-form-hub/internal/repository"
-	"go-form-hub/internal/services/auth"
-	"go-form-hub/internal/services/form"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"go-form-hub/internal/api"
+	"go-form-hub/internal/config"
+	"go-form-hub/internal/database"
+	"go-form-hub/internal/repository"
+	"go-form-hub/internal/services/form"
+	"go-form-hub/microservices/auth/session"
+	passage "go-form-hub/microservices/passage/passage_client"
+	"go-form-hub/microservices/user/profile"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func StartServer(cfg *config.Config, r http.Handler) (*http.Server, error) {
@@ -66,20 +71,64 @@ func main() {
 		return
 	}
 
+	authGrpcConn, err := grpc.Dial(
+		"127.0.0.1:8081",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Error().Msgf("cant connect to grpc: %s", err)
+		return
+	}
+	defer authGrpcConn.Close()
+
+	sessController := session.NewAuthCheckerClient(authGrpcConn)
+
+	userGrpcConn, err := grpc.Dial(
+		"127.0.0.1:8082",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Error().Msgf("cant connect to grpc: %s", err)
+		return
+	}
+	defer userGrpcConn.Close()
+
+	userController := profile.NewProfileClient(userGrpcConn)
+
+	passageGrpcConn, err := grpc.Dial(
+		"127.0.0.1:8083",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Error().Msgf("cant connect to grpc: %s", err)
+		return
+	}
+	defer passageGrpcConn.Close()
+
+	passageController := passage.NewFormPassageClient(passageGrpcConn)
+
 	validate := validator.New()
+	tokenParser := api.NewHMACHashToken(cfg.Secret)
 
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	formRepository := repository.NewFormDatabaseRepository(db, builder)
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
+	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
+	answerRepository := repository.NewAnswerDatabaseRepository(db, builder)
 
-	formService := form.NewFormService(formRepository, validate)
-	authService := auth.NewAuthService(userRepository, sessionRepository, cfg, validate)
+	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 
-	formRouter := api.NewFormAPIController(formService, validate)
-	authRouter := api.NewAuthAPIController(authService, validate, cfg.CookieExpiration)
+	responseEncoder := api.NewResponseEncoder()
 
-	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
-	r := api.NewRouter(authMiddleware, formRouter, authRouter)
+	formRouter := api.NewFormAPIController(formService, passageController, validate, responseEncoder)
+	authRouter := api.NewAuthAPIController(tokenParser, sessController, validate, cfg.CookieExpiration, responseEncoder)
+	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
+
+	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
+	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
+	csrfMiddleware := api.CSRFMiddleware(tokenParser, responseEncoder)
+
+	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {

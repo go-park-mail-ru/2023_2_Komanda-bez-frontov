@@ -2,17 +2,23 @@ package repository
 
 import (
 	"context"
+
 	"go-form-hub/internal/model"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type FormRepository interface {
-	FindAll(ctx context.Context) ([]*Form, map[int64]*User, error)
-	FindByID(ctx context.Context, id int64) (*Form, *User, error)
-	Insert(ctx context.Context, form *Form) (*int64, error)
-	Update(ctx context.Context, id int64, form *Form) (*Form, error)
+	FindAll(ctx context.Context) ([]*model.Form, error)
+	FindAllByUser(ctx context.Context, username string) ([]*model.Form, error)
+	FindByID(ctx context.Context, id int64) (*model.Form, error)
+	Insert(ctx context.Context, form *model.Form, tx pgx.Tx) (*model.Form, error)
+	Update(ctx context.Context, id int64, form *model.FormUpdate) (*model.FormUpdate, error)
 	Delete(ctx context.Context, id int64) error
-	ToModel(form *Form, author *User) *model.Form
-	FromModel(form *model.Form) *Form
+	FormsSearch(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error)
+	FormResults(ctx context.Context, id int64) (*model.FormResult, error)
+	FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userID uint64) error
+	FormPassageCount(ctx context.Context, formID int64) (int64, error)
 }
 
 type UserRepository interface {
@@ -30,4 +36,18 @@ type SessionRepository interface {
 	FindByUserID(ctx context.Context, userID int64) (*Session, error)
 	Insert(ctx context.Context, session *Session) error
 	Delete(ctx context.Context, sessionID string) error
+}
+
+type QuestionRepository interface {
+	DeleteByFormID(ctx context.Context, formID int64) error
+	DeleteAllByID(ctx context.Context, ids []int64) error
+	Update(ctx context.Context, id int64, question *model.Question) error
+	Insert(ctx context.Context, questions *model.Question, formID int64) error
+}
+
+type AnswerRepository interface {
+	DeleteAllByID(ctx context.Context, ids []int64) error
+	Update(ctx context.Context, id int64, answer *model.Answer) error
+	Insert(ctx context.Context, questionID int64, answer *model.Answer) error
+	DeleteByQuestionID(ctx context.Context, questionID int64) error
 }

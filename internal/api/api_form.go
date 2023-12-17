@@ -3,12 +3,14 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"go-form-hub/internal/model"
-	"go-form-hub/internal/services/form"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"go-form-hub/internal/model"
+	"go-form-hub/internal/services/form"
+	passage "go-form-hub/microservices/passage/passage_client"
 
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
@@ -16,16 +18,18 @@ import (
 )
 
 type FormAPIController struct {
-	service      form.Service
-	errorHandler ErrorHandler
-	validator    *validator.Validate
+	service         form.Service
+	passageService  passage.FormPassageClient
+	validator       *validator.Validate
+	responseEncoder ResponseEncoder
 }
 
-func NewFormAPIController(service form.Service, v *validator.Validate) Router {
+func NewFormAPIController(service form.Service, passageService passage.FormPassageClient, v *validator.Validate, responseEncoder ResponseEncoder) Router {
 	return &FormAPIController{
-		service:      service,
-		errorHandler: HandleError,
-		validator:    v,
+		service:         service,
+		passageService:  passageService,
+		validator:       v,
+		responseEncoder: responseEncoder,
 	}
 }
 
@@ -66,116 +70,250 @@ func (c *FormAPIController) Routes() []Route {
 			Handler:      c.FormUpdate,
 			AuthRequired: true,
 		},
+		{
+			Name:         "FormSearch",
+			Method:       http.MethodGet,
+			Path:         "/forms/search",
+			Handler:      c.FormSearch,
+			AuthRequired: true,
+		},
+		{
+			Name:         "FormResults",
+			Method:       http.MethodGet,
+			Path:         "/forms/{id}/results",
+			Handler:      c.FormResults,
+			AuthRequired: true,
+		},
+		{
+			Name:         "FormPassage",
+			Method:       http.MethodPost,
+			Path:         "/forms/pass",
+			Handler:      c.FormPass,
+			AuthRequired: false,
+		},
 	}
 }
 
 func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
 		_ = r.Body.Close()
 	}()
-
 	if err != nil {
-		log.Error().Msgf("form_api form_save body read error: %e", err)
-		c.errorHandler(w, err, nil)
+		log.Error().Msgf("form_api form_save body read error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	var formSave model.Form
 	if err = json.Unmarshal(requestJSON, &formSave); err != nil {
-		log.Error().Msgf("form_api form_save unmarshal error: %e", err)
-		c.errorHandler(w, err, nil)
+		log.Error().Msgf("form_api form_save unmarshal error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	result, err := c.service.FormSave(r.Context(), &formSave)
 	if err != nil {
-		log.Error().Msgf("form_api form_save error: %e", err)
-		c.errorHandler(w, err, result)
+		log.Error().Msgf("form_api form_save error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormPass(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	requestJSON, err := io.ReadAll(r.Body)
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	if err != nil {
+		log.Error().Msgf("form_api form_pass body read error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	var formPassage model.FormPassage
+	if err = json.Unmarshal(requestJSON, &formPassage); err != nil {
+		log.Error().Msgf("form_api form_passage unmarshal error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	answersMsg := make([]*passage.PassageAnswer, 0)
+	for _, passageAnswer := range formPassage.PassageAnswers {
+		answersMsg = append(answersMsg, &passage.PassageAnswer{
+			Text:       passageAnswer.Text,
+			QuestionID: *passageAnswer.QuestionID,
+		})
+	}
+
+	currentUser, ok := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+	if !ok {
+		currentUser = &model.UserGet{ID: model.AnonUserID}
+	}
+
+	passageMsg := &passage.Passage{
+		UserID:  currentUser.ID,
+		FormID:  *formPassage.FormID,
+		Answers: answersMsg,
+	}
+
+	result, err := c.passageService.Pass(ctx, passageMsg)
+	if err != nil {
+		log.Error().Msgf("form_api form_pass error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, nil, int(result.Code), w)
 }
 
 func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
-	result, err := c.service.FormList(r.Context())
-	if err != nil {
-		log.Error().Msgf("form_api form_list error: %e", err)
-		c.errorHandler(w, err, result)
-		return
-	}
+	ctx := r.Context()
 
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	author := r.URL.Query().Get("author")
+
+	if author != "" {
+		result, err := c.service.FormListByUser(ctx, author)
+		if err != nil {
+			log.Error().Msgf("form_api form_list error: %v", err)
+			c.responseEncoder.HandleError(ctx, w, err, result)
+			return
+		}
+
+		c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	} else {
+		result, err := c.service.FormList(ctx)
+		if err != nil {
+			log.Error().Msgf("form_api form_list error: %v", err)
+			c.responseEncoder.HandleError(ctx, w, err, result)
+			return
+		}
+
+		c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+	}
 }
 
 // nolint:dupl
 func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
 	if err != nil {
-		log.Error().Msgf("form_api form_delete unescape error: %e", err)
-		c.errorHandler(w, err, nil)
+		log.Error().Msgf("form_api form_delete unescape error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		err = fmt.Errorf("form_api form_delete parse_id error: %e", err)
+		err = fmt.Errorf("form_api form_delete parse_id error: %v", err)
 		log.Error().Msg(err.Error())
-		c.errorHandler(w, err, nil)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	result, err := c.service.FormDelete(r.Context(), id)
+	result, err := c.service.FormDelete(ctx, id)
 	if err != nil {
-		log.Error().Msgf("form_api form_delete error: %e", err)
-		c.errorHandler(w, err, result)
+		log.Error().Msgf("form_api form_delete error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
 // nolint:dupl
 func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
 	if err != nil {
-		log.Error().Msgf("form_api form_get unescape error: %e", err)
-		c.errorHandler(w, err, nil)
+		log.Error().Msgf("form_api form_get unescape error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		err = fmt.Errorf("form_api form_get parse_id error: %e", err)
+		err = fmt.Errorf("form_api form_get parse_id error: %v", err)
 		log.Error().Msg(err.Error())
-		c.errorHandler(w, err, nil)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	result, err := c.service.FormGet(r.Context(), id)
+	result, err := c.service.FormGet(ctx, id)
 	if err != nil {
-		log.Error().Msgf("form_api form_get error: %e", err)
-		c.errorHandler(w, err, result)
+		log.Error().Msgf("form_api form_get error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormSearch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+	title := r.URL.Query().Get("title")
+	result, err := c.service.FormSearch(ctx, title, uint(currentUser.ID))
+	if err != nil {
+		log.Error().Msgf("form_api form_search error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormResults(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Error().Msgf("form_api form_result unescape error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("form_api form_result parse_id error: %e", err)
+		log.Error().Msg(err.Error())
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	result, err := c.service.FormResults(ctx, id)
+	if err != nil {
+		log.Error().Msgf("form_api form_results error: %e", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
 func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
 	if err != nil {
-		log.Error().Msgf("form_api form_update unescape error: %e", err)
-		c.errorHandler(w, err, nil)
+		log.Error().Msgf("form_api form_update unescape error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		err = fmt.Errorf("form_api form_update parse_id error: %e", err)
+		err = fmt.Errorf("form_api form_update parse_id error: %v", err)
 		log.Error().Msg(err.Error())
-		c.errorHandler(w, err, nil)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
@@ -185,24 +323,24 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		log.Error().Msgf("form_api form_update read_body error: %e", err)
-		c.errorHandler(w, err, nil)
+		log.Error().Msgf("form_api form_update read_body error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	var updatedForm model.Form
+	var updatedForm model.FormUpdate
 	if err = json.Unmarshal(requestJSON, &updatedForm); err != nil {
-		log.Error().Msgf("form_api form_update unmarshal error: %e", err)
-		c.errorHandler(w, err, nil)
+		log.Error().Msgf("form_api form_update unmarshal error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	result, err := c.service.FormUpdate(r.Context(), id, &updatedForm)
+	result, err := c.service.FormUpdate(ctx, id, &updatedForm)
 	if err != nil {
-		log.Error().Msgf("form_api form_update error: %e", err)
-		c.errorHandler(w, err, result)
+		log.Error().Msgf("form_api form_update error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 
-	EncodeJSONResponse(result.Body, result.StatusCode, w)
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }

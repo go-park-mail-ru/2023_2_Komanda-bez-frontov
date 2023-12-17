@@ -1,0 +1,877 @@
+openapi: 3.0.0
+info:
+  title: Documentation for GoTo api
+  version: 0.0.1
+servers:
+- url: http://localhost:8080
+  description: Dev server
+paths:
+  /api/v1/login:
+    post:
+      summary: Logs in and returns the authentication  cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      security: []    # no authentication
+      responses:
+        '200':
+          description: logged in
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: session_id=abcde12345;
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: bad data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/signup:
+    post:
+      summary: Signs up and returns the authentication cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      security: []    # no authentication
+      responses:
+        '200':
+          description: signed up and logged in
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: session_id=abcde12345;
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: bad data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: name taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/logout:
+    post:
+      summary: Signs up and returns the authentication cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      security: []    # no authentication
+      responses:
+        '204':
+          description: logged out, outdated cookie
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: session_id=abcde12345;
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/is_authorized:
+    get:
+      summary: checks session cookie
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_user:
+                    type: object
+                    $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: bad cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/profile:
+    get:
+      summary: returns current user profile
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          description: not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: bad cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/profile/update:
+    put:
+      summary: updates user profile
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema:
+                $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      schema:
+                        $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: bad cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: bad cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: bad cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/search:
+    get:
+      summary: Search forms based on the logged-in user
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: title
+          schema:
+            type: string
+          required: true
+          description: Title string for searching forms
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormsArrayResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/user/{username}/avatar:
+    get:
+      summary: returns current user avatar
+      security: []    # no authentication
+      parameters:
+        - in: path
+          name: username
+          schema:
+            type: string
+          required: true
+          description: Username string of user
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/UserAvatarResponse'
+        '404':
+          description: bad cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/save:
+    post:
+      summary: saves form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormRequest'
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms:
+    get:
+      summary: get all forms of user
+      security: []    # no authentication
+      parameters:
+        - in: query
+          name: author
+          schema:
+            type: string
+          required: true
+          description: Username string of user
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormsArrayResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/{id}:
+    get:
+      summary: get form by id
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: integer id of a form
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResponse'
+        '404':
+          description: form not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/{id}/delete:
+    delete:
+      summary: delete form by id
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: integer id of a form
+      responses:
+        '200':
+          description: success
+        '403':
+          description: unathaurized to delete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: form not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/{id}/results:
+    get:
+      summary: Get results for a specific form
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the form for which results are requested
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResultResponse'
+        '404':
+          description: form not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/{id}/update:
+    put:
+      summary: update form by id
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: integer id of a form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormRequest'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/FormResponse'
+        '403':
+          description: unathaurized to update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: form not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/forms/pass:
+    post:
+      summary: saves passage answers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormPassageRequest'
+      responses:
+        '204':
+          description: success
+        '400':
+          description: passage contains invalid answers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: unathaurized for unanonymous form
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required:  # List the required properties here
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    SignupRequest:
+      type: object
+      required:  # List the required properties here
+        - email
+        - password
+        - username
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        first_name:
+          type: string
+        username:
+          type: string
+    ErrorResponse:
+      type: object
+    ProfileResponse:
+      type: object
+      required:  # List the required properties here
+        - email
+        - username
+        - first_name
+      properties:
+        email:
+          type: string
+        first_name:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: string
+    UserResponse:
+      type: object
+      required:  # List the required properties here
+        - email
+        - password
+        - username
+        - first_name
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        first_name:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: string
+    UserUpdateRequest:
+      type: object
+      required:  # List the required properties here
+        - email
+        - username
+        - first_name
+        - oldPassword
+      properties:
+        email:
+          type: string
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
+        first_name:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: string
+    UserAvatarResponse:
+      type: object
+      required:
+        - avatar
+        - username
+      properties:
+        username:
+          type: string
+        avatar:
+          type: string
+    ParticipantResponse:
+      type: object
+      required:
+        - user
+        - completion_time
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        completion_time:
+          type: string
+    FormRequest:
+      type: object
+      required:
+        - title
+        - questions
+      properties:
+        title:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionRequest'
+    FormResultResponse:
+      type: object
+      properties:
+        form:
+          $ref: '#/components/schemas/FormResult'
+    FormResult:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - created_at
+        - author
+        - number_of_passages
+        - questions
+        - anonymous
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserResponse'
+        number_of_passages:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionResult'
+        anonymous:
+          type: boolean
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantResponse'
+    QuestionResult:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - type
+        - number_of_passages
+        - answers
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: integer
+        number_of_passages:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerResult'
+    AnswerResult:
+      type: object
+      required:
+        - created_at
+        - text
+        - selected_times
+      properties:
+        created_at:
+          type: string
+        text:
+          type: string
+        selected_times:
+          type: integer
+    FormResponseWithoutQuestions:
+      type: object
+      required:
+        - title
+        - id
+        - created_at
+      properties:
+        title:
+          type: string
+        id:
+          type: integer
+        created_at:
+          type: string
+    FormResponse:
+      type: object
+      required:
+        - title
+        - questions
+        - id
+        - author
+        - created_at
+      properties:
+        title:
+          type: string
+        id:
+          type: integer
+        author:
+           $ref: '#/components/schemas/UserResponse'
+        created_at:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionResponse'
+    AnswersArrayResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerResponse'
+    FormsArrayResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        forms:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormResponseWithoutQuestions'
+    QuestionRequest:
+      type: object
+      required:
+        - title
+        - description
+        - type
+        - answers
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: integer
+          description: 1, 2 or 3
+        required:
+          type: boolean
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerRequest'
+    QuestionResponse:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - type
+        - answers
+        - required
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+        type:
+          type: integer
+          description: 1, 2 or 3
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerResponse'
+    AnswerRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+    AnswerResponse:
+      type: object
+      required:
+        - text
+        - id
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+    PassageAnswerRequest:
+      type: object
+      required:
+        - question_id
+        - answer_text
+      properties:
+        question_id:
+          type: integer
+        answer_text:
+          type: string
+    FormPassageRequest:
+      type: object
+      required:
+        - form_id
+        - passage_answers
+      properties:
+        form_id:
+          type: integer
+        passage_answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PassageAnswerRequest'
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+
+
+security:
+  - cookieAuth: []

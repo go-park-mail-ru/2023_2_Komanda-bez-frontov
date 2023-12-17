@@ -1,8 +1,8 @@
 CREATE TABLE nofronts.question (
     id BIGSERIAL PRIMARY KEY,
-    form_id BIGINT NOT NULL REFERENCES nofronts.form(id),
+    form_id BIGINT NOT NULL REFERENCES nofronts.form(id) ON DELETE CASCADE,
     type INTEGER NOT NULL CHECK (type IN (1, 2, 3)),
     title VARCHAR NOT NULL,
-    text TEXT NOT NULL,
-    shuffle BOOLEAN NOT NULL DEFAULT FALSE
+    text TEXT,
+    required BOOLEAN NOT NULL DEFAULT FALSE
 );

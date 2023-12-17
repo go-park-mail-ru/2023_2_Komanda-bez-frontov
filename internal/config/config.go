@@ -25,6 +25,8 @@ const (
 	defaultDatabaseConnectMaxRetries   = 20
 	defaultDatabaseConnectRetryTimeout = 1 * time.Second
 	defaultAcquireTimeout              = 1 * time.Second
+	defaultAllowedOrigin               = "*"
+	defaultSecret                      = "vasya"
 )
 
 type Config struct {
@@ -34,6 +36,7 @@ type Config struct {
 	DatabaseConnectMaxRetries   int           `env:"DATABASE_CONNECT_MAX_RETRIES" conf:"DATABASE_CONNECT_MAX_RETRIES" json:"DATABASE_CONNECT_MAX_RETRIES"`
 	DatabaseConnectRetryTimeout time.Duration `env:"DATABASE_CONNECT_RETRY_TIMEOUT" conf:"DATABASE_CONNECT_RETRY_TIMEOUT" json:"DATABASE_CONNECT_RETRY_TIMEOUT"`
 	DatabaseAcquireTimeout      time.Duration `env:"DATABASE_ACQUIRE_TIMEOUT" conf:"DATABASE_ACQUIRE_TIMEOUT" json:"DATABASE_ACQUIRE_TIMEOUT"`
+	Secret                      string        `env:"Secret" conf:"Secret" json:"Secret"`
 
 	HTTPPort         string        `env:"HTTP_PORT" conf:"HTTP_PORT" json:"HTTP_PORT"`
 	HTTPReadTimeout  time.Duration `env:"HTTP_READ_TIMEOUT" conf:"HTTP_READ_TIMEOUT" json:"HTTP_READ_TIMEOUT"`
@@ -42,6 +45,7 @@ type Config struct {
 	LogRequests      string        `env:"LOG_REQUESTS" conf:"LOG_REQUESTS" json:"LOG_REQUESTS"`
 	EncryptionKey    string        `env:"ENCRYPTION_KEY" conf:"ENCRYPTION_KEY" json:"ENCRYPTION_KEY"`
 	CookieExpiration time.Duration `env:"COOKIE_EXPIRATION" conf:"COOKIE_EXPIRATION" json:"COOKIE_EXPIRATION"`
+	AllowedOrigin    string        `env:"ALLOWED_ORIGIN" conf:"ALLOWED_ORIGIN" json:"ALLOWED_ORIGIN"`
 }
 
 func NewConfig() (*Config, error) {
@@ -52,11 +56,13 @@ func NewConfig() (*Config, error) {
 		LogLevel:                    defaultLogLevel,
 		LogRequests:                 defaultLogRequests,
 		CookieExpiration:            defaultCookieExpiration,
+		AllowedOrigin:               defaultAllowedOrigin,
 		DatabaseMaxConnections:      defaultDatabaseMaxConnections,
 		DatabaseMigrationsDir:       defaultDatabaseMigrationsDir,
 		DatabaseConnectMaxRetries:   defaultDatabaseConnectMaxRetries,
 		DatabaseConnectRetryTimeout: defaultDatabaseConnectRetryTimeout,
 		DatabaseAcquireTimeout:      defaultAcquireTimeout,
+		Secret:                      defaultSecret,
 	}
 
 	_ = LoadConfigFile(&cfg, "config.conf")
@@ -97,6 +103,7 @@ func LoadConfigFile(cfg *Config, filepath string) error {
 		if len(s) < 2 {
 			continue
 		}
+
 		n := elem.NumField()
 		for i := 0; i < n; i++ {
 			field := typeElem.Field(i)

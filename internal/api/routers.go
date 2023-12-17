@@ -3,12 +3,13 @@ package api
 import (
 	"net/http"
 
+	"go-form-hub/internal/config"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
-// Route struct defines parameters of API endpoint
 type Route struct {
 	Name         string
 	Method       string
@@ -17,7 +18,6 @@ type Route struct {
 	AuthRequired bool
 }
 
-// Router defines a list of routes of API
 type Router interface {
 	Routes() []Route
 }
@@ -33,17 +33,17 @@ type Router interface {
 //
 // The function returns a new `chi.Router` that has all the routes from the provided routers
 // added to it.
-func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
+func NewRouter(cfg *config.Config, authMiddleware, currentUserMiddleware, csrfMiddleware func(http.HandlerFunc) http.HandlerFunc, routers ...Router) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
 	router.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  AllowOriginFunc,
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins:   []string{cfg.AllowedOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
+		ExposedHeaders:   []string{"Link", "X-Csrf-Token"},
+		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
@@ -51,7 +51,10 @@ func NewRouter(authMiddleware func(http.HandlerFunc) http.HandlerFunc, routers .
 		for _, route := range api.Routes() {
 			handler := route.Handler
 			if route.AuthRequired {
+				handler = csrfMiddleware(handler)
 				handler = authMiddleware(handler)
+			} else {
+				handler = currentUserMiddleware(handler)
 			}
 
 			apiPath := "/api/v1" + route.Path

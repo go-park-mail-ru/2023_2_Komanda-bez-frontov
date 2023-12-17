@@ -3,8 +3,9 @@ package repository
 import (
 	"context"
 	"fmt"
-	"go-form-hub/internal/database"
 	"time"
+
+	"go-form-hub/internal/database"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -46,6 +47,7 @@ func (r *sessionRepository) FindByID(ctx context.Context, sessionID string) (ses
 	if err != nil {
 		return nil, fmt.Errorf("session_repository find_by_id failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -76,6 +78,7 @@ func (r *sessionRepository) FindByUserID(ctx context.Context, userID int64) (ses
 	if err != nil {
 		return nil, fmt.Errorf("session_repository find_by_user_id failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -105,6 +108,7 @@ func (r *sessionRepository) Insert(ctx context.Context, session *Session) error 
 	if err != nil {
 		return fmt.Errorf("session_repository insert failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:
@@ -131,6 +135,7 @@ func (r *sessionRepository) Delete(ctx context.Context, sessionID string) error 
 	if err != nil {
 		return fmt.Errorf("session_repository delete failed to begin transaction: %e", err)
 	}
+
 	defer func() {
 		switch err {
 		case nil:

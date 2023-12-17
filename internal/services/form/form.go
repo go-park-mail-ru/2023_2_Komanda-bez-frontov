@@ -170,6 +170,19 @@ func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
 
+	if ctx.Value(model.ContextCurrentUser) != nil {
+		currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+		for _, form := range forms {
+			total, err := s.formRepository.UserFormPassageCount(ctx, *form.ID, currentUser.ID)
+			if err != nil {
+				return resp.NewResponse(http.StatusInternalServerError, nil), nil
+			}
+
+			form.CurrentPassageTotal = int(total)
+		}
+	}
+
 	response.Count = len(forms)
 	response.Forms = forms
 
@@ -224,6 +237,17 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 
 	if form == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	if ctx.Value(model.ContextCurrentUser) != nil {
+		currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+		total, err := s.formRepository.UserFormPassageCount(ctx, *form.ID, currentUser.ID)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), nil
+		}
+
+		form.CurrentPassageTotal = int(total)
 	}
 	form.Sanitize(s.sanitizer)
 

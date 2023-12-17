@@ -19,10 +19,10 @@ run:
 
 .PHONY: kill
 kill:
-	fuser -k 8080/tcp || true
-	fuser -k 8081/tcp || true
-	fuser -k 8082/tcp || true
-	fuser -k 8083/tcp || true
+	-fuser -k 8080/tcp
+	-fuser -k 8081/tcp
+	-fuser -k 8082/tcp
+	-fuser -k 8083/tcp
 
 .PHONY: test
 test:

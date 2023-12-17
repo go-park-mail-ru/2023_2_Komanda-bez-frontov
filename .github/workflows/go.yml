@@ -6,14 +6,13 @@ name: Go
 on:
   push:
     branches: [ "main" , "dev", "Jarozin-patch-1"]
-  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: executing remote ssh commands using ssh key
+    - name: executing remote ssh commands using ssh key
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SSH_HOST }}

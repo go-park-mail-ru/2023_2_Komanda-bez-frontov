@@ -26,10 +26,10 @@ kill:
 
 .PHONY: deploy
 deploy:
-	setsid /usr/local/go/bin/go run ./microservices/user/cmd/server.go &>/dev/null
-	setsid /usr/local/go/bin/go run ./microservices/auth/cmd/server.go &>/dev/null
-	setsid /usr/local/go/bin/go run ./microservices/passage/cmd/server.go &>/dev/null
-	setsid /usr/local/go/bin/go run ./cmd/main.go &>/dev/null
+	nohup /usr/local/go/bin/go run ./microservices/user/cmd/server.go > user.out 2> user.err < /dev/null
+	nohup /usr/local/go/bin/go run ./microservices/auth/cmd/server.go > auth.out 2> auth.err < /dev/null
+	nohup /usr/local/go/bin/go run ./microservices/passage/cmd/server.go > passage.out 2> passage.err < /dev/null
+	nohup /usr/local/go/bin/go run ./cmd/main.go > main.out 2> main.err < /dev/null
 
 .PHONY: test
 test:

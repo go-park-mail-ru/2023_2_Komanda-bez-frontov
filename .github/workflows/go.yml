@@ -25,27 +25,13 @@ jobs:
         ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
     - name: connect and pull
       run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
-
-    - name: Pull main
-      working-directory: ${{ secrets.WORK_DIR }}
-      run: |
+        cd ${{ secrets.WORK_DIR }}
         sudo git checkout ${{ secrets.MAIN_BRANCH }}
         sudo git pull
-
-    - name: Test
-      working-directory: ${{ secrets.WORK_DIR }}
-      run: go test -v ./...
-
-    - name: Stop old process
-      working-directory: ${{ secrets.WORK_DIR }}
-      run: make kill
-
-    - name: Deploy
-      working-directory: ${{ secrets.WORK_DIR }}
-      run: make run
-
-    - name: Leave
-      run: exit
+        go test -v ./...
+        make kill
+        make run
+        exit
 
     - name: cleanup
       run: rm -rf ~/.ssh

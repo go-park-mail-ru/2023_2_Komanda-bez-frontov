@@ -9,7 +9,6 @@ on:
   pull_request:
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
 
@@ -20,6 +19,7 @@ jobs:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
         script: |
           cd /root/back/2023_2_Komanda-bez-frontov
           git checkout Jarozin-patch-1

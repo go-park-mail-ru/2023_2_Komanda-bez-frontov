@@ -187,7 +187,10 @@ func (r *formDatabaseRepository) FormResultsCsv(ctx context.Context, id int64) (
 		formRow = append(formRow, questionRow...)
 	}
 
-	writer.Write(formRow)
+	err = writer.Write(formRow)
+	if err != nil {
+		return nil, fmt.Errorf("error writing to CSV: %e", err)
+	}
 	writer.Flush()
 
 	return buf.Bytes(), nil

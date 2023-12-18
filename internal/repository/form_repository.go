@@ -1,13 +1,16 @@
 package repository
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"time"
 
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/model"
 
+	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 )
@@ -17,6 +20,7 @@ type Form struct {
 	ID          int64     `db:"id"`
 	Description *string   `db:"description"`
 	Anonymous   bool      `db:"anonymous"`
+	PassageMax  int64     `db:"passage_max"`
 	AuthorID    int64     `db:"author_id"`
 	CreatedAt   time.Time `db:"created_at"`
 }
@@ -26,10 +30,10 @@ var (
 		"f.id",
 		"f.title",
 		"f.description",
-		"f.anonymous",
 		"f.created_at",
 		"f.author_id",
 		"f.anonymous",
+		"f.passage_max",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -52,6 +56,7 @@ var (
 		"f.created_at",
 		"COALESCE(f.description, '')",
 		"f.anonymous",
+		"f.passage_max",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -155,6 +160,100 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 	}
 
 	return r.searchTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FormResultsCsv(ctx context.Context, id int64) ([]byte, error) {
+	form, err := r.FormResults(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
+	}
+
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	formRow := []string{
+		form.Title,
+	}
+
+	for _, question := range form.Questions {
+		questionRow := []string{
+			question.Title,
+			fmt.Sprint(question.NumberOfPassagesQuestion),
+		}
+
+		for _, answer := range question.Answers {
+			answerRow := []string{
+				answer.Text,
+				fmt.Sprint(answer.SelectedTimesAnswer),
+			}
+
+			questionRow = append(questionRow, answerRow...)
+		}
+
+		formRow = append(formRow, questionRow...)
+	}
+
+	err = writer.Write(formRow)
+	if err != nil {
+		return nil, fmt.Errorf("error writing to CSV: %e", err)
+	}
+	writer.Flush()
+
+	return buf.Bytes(), nil
+}
+
+func (r *formDatabaseRepository) FormResultsExel(ctx context.Context, id int64) ([]byte, error) {
+	form, err := r.FormResults(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
+	}
+
+	excelFile, err := generateExcelFile(form)
+	if err != nil {
+		return nil, err
+	}
+
+	return excelFile, nil
+}
+
+func generateExcelFile(form *model.FormResult) ([]byte, error) {
+	file := excelize.NewFile()
+
+	fillExcelFile(file, form)
+
+	buf, err := file.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func fillExcelFile(file *excelize.File, form *model.FormResult) {
+	file.SetCellValue("Sheet1", "A1", "Form Name")
+	file.SetCellValue("Sheet1", "B1", form.Title)
+
+	file.SetCellValue("Sheet1", "A2", "Description")
+	file.SetCellValue("Sheet1", "B2", form.Description)
+
+	row := 4
+	qcounter := 1
+
+	for _, question := range form.Questions {
+		file.SetCellValue("Sheet1", fmt.Sprintf("A%d", row), fmt.Sprintf("Question%d", qcounter))
+		file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), question.Title)
+		row++
+
+		acounter := 1
+		for _, answer := range question.Answers {
+			file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), fmt.Sprintf("Answer%d", acounter))
+			file.SetCellValue("Sheet1", fmt.Sprintf("C%d", row), answer.Text)
+			row++
+			acounter++
+		}
+
+		qcounter++
+	}
 }
 
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {
@@ -498,6 +597,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		&formResult.CreatedAt,
 		&formResult.Description,
 		&formResult.Anonymous,
+		&formResult.PassageMax,
 		&formResult.Author.ID,
 		&formResult.Author.Username,
 		&formResult.Author.FirstName,
@@ -617,8 +717,8 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 
 	formQuery, args, err := r.builder.
 		Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Columns("title", "author_id", "created_at", "description", "anonymous").
-		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous).
+		Columns("title", "author_id", "created_at", "description", "anonymous", "passage_max").
+		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous, form.PassageMax).
 		Suffix("RETURNING id").
 		ToSql()
 	err = tx.QueryRow(ctx, formQuery, args...).Scan(&form.ID)
@@ -767,11 +867,42 @@ func (r *formDatabaseRepository) FormPassageCount(ctx context.Context, formID in
 	return total, nil
 }
 
+func (r *formDatabaseRepository) UserFormPassageCount(ctx context.Context, formID, userID int64) (int64, error) {
+	var err error
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("form_facade insert failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	formPassageQuery := fmt.Sprintf(`select count(*)
+	from %s.form_passage
+	where form_id = $1 and user_id = $2`, r.db.GetSchema())
+
+	var total int64
+	err = tx.QueryRow(ctx, formPassageQuery, formID, userID).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
 func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *model.FormUpdate) (result *model.FormUpdate, err error) {
 	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("title", form.Title).
 		Set("description", form.Description).
 		Set("anonymous", form.Anonymous).
+		Set("passage_max", form.PassageMax).
 		Where(squirrel.Eq{"id": id}).
 		Suffix("RETURNING id, title, created_at").ToSql()
 	if err != nil {
@@ -856,6 +987,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				Title:       info.form.Title,
 				Description: info.form.Description,
 				Anonymous:   info.form.Anonymous,
+				PassageMax:  int(info.form.PassageMax),
 				CreatedAt:   info.form.CreatedAt,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
@@ -896,6 +1028,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 		for _, question := range form.Questions {
 			question.Answers = answersByQuestionID[*question.ID]
 		}
+
 		forms = append(forms, form)
 	}
 
@@ -967,10 +1100,10 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&form.ID,
 		&form.Title,
 		&form.Description,
-		&form.Anonymous,
 		&form.CreatedAt,
 		&form.AuthorID,
 		&form.Anonymous,
+		&form.PassageMax,
 		&author.ID,
 		&author.Username,
 		&author.FirstName,

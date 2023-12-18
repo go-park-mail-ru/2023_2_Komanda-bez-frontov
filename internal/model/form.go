@@ -32,17 +32,6 @@ func (form *Form) Sanitize(sanitizer *bluemonday.Policy) {
 	}
 }
 
-func (form *Form) Sanitize(sanitizer *bluemonday.Policy) {
-	form.Title = sanitizer.Sanitize(form.Title)
-	if form.Description != nil {
-		*form.Description = sanitizer.Sanitize(*form.Description)
-	}
-	form.Author.Sanitize(sanitizer)
-	for _, question := range form.Questions {
-		question.Sanitize(sanitizer)
-	}
-}
-
 type FormTitle struct {
 	ID        			 int64     `json:"id" validate:"required" db:"id"`
 	Title     			 string    `json:"title" validate:"required" db:"title"`
@@ -54,19 +43,9 @@ func (form *FormTitle) Sanitize(sanitizer *bluemonday.Policy) {
 	form.Title = sanitizer.Sanitize(form.Title)
 }
 
-func (form *FormTitle) Sanitize(sanitizer *bluemonday.Policy) {
-	form.Title = sanitizer.Sanitize(form.Title)
-}
-
 type FormList struct {
 	CollectionResponse
 	Forms []*FormTitle `json:"forms" validate:"required"`
-}
-
-func (forms *FormList) Sanitize(sanitizer *bluemonday.Policy) {
-	for _, form := range forms.Forms {
-		form.Sanitize(sanitizer)
-	}
 }
 
 func (forms *FormList) Sanitize(sanitizer *bluemonday.Policy) {

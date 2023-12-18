@@ -1,13 +1,16 @@
 package repository
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"time"
 
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/model"
 
+	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 )
@@ -153,6 +156,100 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 	}
 
 	return r.searchTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FormResultsCsv(ctx context.Context, id int64) ([]byte, error) {
+	form, err := r.FormResults(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
+	}
+
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	formRow := []string{
+		form.Title,
+	}
+
+	for _, question := range form.Questions {
+		questionRow := []string{
+			question.Title,
+			fmt.Sprint(question.NumberOfPassagesQuestion),
+		}
+
+		for _, answer := range question.Answers {
+			answerRow := []string{
+				answer.Text,
+				fmt.Sprint(answer.SelectedTimesAnswer),
+			}
+
+			questionRow = append(questionRow, answerRow...)
+		}
+
+		formRow = append(formRow, questionRow...)
+	}
+
+	err = writer.Write(formRow)
+	if err != nil {
+		return nil, fmt.Errorf("error writing to CSV: %e", err)
+	}
+	writer.Flush()
+
+	return buf.Bytes(), nil
+}
+
+func (r *formDatabaseRepository) FormResultsExel(ctx context.Context, id int64) ([]byte, error) {
+	form, err := r.FormResults(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_results_exel failed to run FormResults: %e", err)
+	}
+
+	excelFile, err := generateExcelFile(form)
+	if err != nil {
+		return nil, err
+	}
+
+	return excelFile, nil
+}
+
+func generateExcelFile(form *model.FormResult) ([]byte, error) {
+	file := excelize.NewFile()
+
+	fillExcelFile(file, form)
+
+	buf, err := file.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func fillExcelFile(file *excelize.File, form *model.FormResult) {
+	file.SetCellValue("Sheet1", "A1", "Form Name")
+	file.SetCellValue("Sheet1", "B1", form.Title)
+
+	file.SetCellValue("Sheet1", "A2", "Description")
+	file.SetCellValue("Sheet1", "B2", form.Description)
+
+	row := 4
+	qcounter := 1
+
+	for _, question := range form.Questions {
+		file.SetCellValue("Sheet1", fmt.Sprintf("A%d", row), fmt.Sprintf("Question%d", qcounter))
+		file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), question.Title)
+		row++
+
+		acounter := 1
+		for _, answer := range question.Answers {
+			file.SetCellValue("Sheet1", fmt.Sprintf("B%d", row), fmt.Sprintf("Answer%d", acounter))
+			file.SetCellValue("Sheet1", fmt.Sprintf("C%d", row), answer.Text)
+			row++
+			acounter++
+		}
+
+		qcounter++
+	}
 }
 
 func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (formResult *model.FormResult, err error) {

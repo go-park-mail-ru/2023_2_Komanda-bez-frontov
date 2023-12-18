@@ -33,9 +33,9 @@ func (form *Form) Sanitize(sanitizer *bluemonday.Policy) {
 }
 
 type FormTitle struct {
-	ID        			 int64     `json:"id" validate:"required" db:"id"`
-	Title     			 string    `json:"title" validate:"required" db:"title"`
-	CreatedAt 			 time.Time `json:"created_at" validate:"required" db:"created_at"`
+	ID                   int64     `json:"id" validate:"required" db:"id"`
+	Title                string    `json:"title" validate:"required" db:"title"`
+	CreatedAt            time.Time `json:"created_at" validate:"required" db:"created_at"`
 	NumberOfPassagesForm int       `json:"number_of_passages" db:"number_of_passages"`
 }
 

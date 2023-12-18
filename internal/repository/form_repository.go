@@ -1053,9 +1053,9 @@ func (r *formDatabaseRepository) searchTitleFromRows(rows pgx.Rows) ([]*model.Fo
 		}
 
 		formTitleArray = append(formTitleArray, &model.FormTitle{
-			ID:        form.ID,
-			Title:     form.Title,
-			CreatedAt: form.CreatedAt,
+			ID:                   form.ID,
+			Title:                form.Title,
+			CreatedAt:            form.CreatedAt,
 			NumberOfPassagesForm: form.NumberOfPassagesForm,
 		})
 	}

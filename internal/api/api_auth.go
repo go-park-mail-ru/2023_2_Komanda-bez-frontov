@@ -258,7 +258,11 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 func (c *AuthAPIController) IsAuthorized(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	cookieSession, err := r.Cookie("session_id")
-	
+	if err != nil {
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
 	csrfToken, err := c.tokenParser.Create(cookieSession.Value, int64(c.cookieExpiration))
 	if err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)

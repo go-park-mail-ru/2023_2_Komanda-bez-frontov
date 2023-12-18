@@ -134,6 +134,7 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 	FROM %s.form
 	WHERE author_id = $2::integer
 	order by sim desc, created_at) as res
+	where sim > 0
 	LIMIT $3::integer`, r.db.GetSchema())
 
 	tx, err := r.db.Begin(ctx)

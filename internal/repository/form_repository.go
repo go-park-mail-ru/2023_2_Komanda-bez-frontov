@@ -87,13 +87,12 @@ func NewFormDatabaseRepository(db database.ConnPool, builder squirrel.StatementB
 	}
 }
 
-func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.Form, err error) {
-	query, _, err := r.builder.
-		Select(selectFields...).
+func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.FormTitle, err error) {
+	query, args, err := r.builder.
+		Select("id, title, created_at, count(fp.id) as number_of_passages").
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
-		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
-		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
-		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.form_passage as fp ON fp.form_id = f.id", r.db.GetSchema())).
+		GroupBy("f.id").
 		ToSql()
 
 	if err != nil {
@@ -114,22 +113,27 @@ func (r *formDatabaseRepository) FindAll(ctx context.Context) (forms []*model.Fo
 		}
 	}()
 
-	rows, err := tx.Query(ctx, query)
+	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
 	}
 
-	return r.fromRows(rows)
+	return r.searchTitleFromRows(rows)
 }
 
 func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error) {
 	const limit = 5
-	query := fmt.Sprintf(`select id, title, created_at
-	FROM (select title, id, created_at, similarity(title, $1::text) as sim
-	FROM %s.form
-	WHERE author_id = $2::integer
-	order by sim desc, created_at) as res
-	LIMIT $3::integer`, r.db.GetSchema())
+	query := fmt.Sprintf(`SELECT id, title, created_at, number_of_passages
+		FROM (
+		  SELECT f.title as title, f.id as id, f.created_at as created_at, COUNT(fp.id) as number_of_passages, similarity(f.title, $1::text) as sim
+		  FROM %s.form as f
+		  LEFT JOIN %s.form_passage  as fp ON fp.form_id = f.id
+		  WHERE f.author_id = $2::integer
+		  GROUP BY f.id
+		  ORDER BY sim DESC, f.created_at
+		) AS res
+		WHERE sim > 0
+		LIMIT $3::integer`, r.db.GetSchema(), r.db.GetSchema())
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -515,14 +519,14 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
 }
 
-func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.Form, err error) {
+func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.FormTitle, err error) {
 	query, args, err := r.builder.
-		Select(selectFields...).
+		Select("f.id, f.title, f.created_at, count(fp.id) as number_of_passages").
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
-		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
-		LeftJoin(fmt.Sprintf("%s.answer as a ON a.question_id = q.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.form_passage as fp ON fp.form_id = f.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"u.username": username}).
+		GroupBy("f.id").
 		ToSql()
 
 	if err != nil {
@@ -548,7 +552,7 @@ func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username str
 		return nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
 	}
 
-	return r.fromRows(rows)
+	return r.searchTitleFromRows(rows)
 }
 
 func (r *formDatabaseRepository) FindByID(ctx context.Context, id int64) (form *model.Form, err error) {
@@ -919,6 +923,7 @@ func (r *formDatabaseRepository) searchTitleFromRows(rows pgx.Rows) ([]*model.Fo
 			ID:        form.ID,
 			Title:     form.Title,
 			CreatedAt: form.CreatedAt,
+			NumberOfPassagesForm: form.NumberOfPassagesForm,
 		})
 	}
 
@@ -932,13 +937,14 @@ type fromRowReturn struct {
 	answer   *Answer
 }
 
-func (r *formDatabaseRepository) formTitleFromRow(row pgx.Row) (*Form, error) {
-	form := &Form{}
+func (r *formDatabaseRepository) formTitleFromRow(row pgx.Row) (*model.FormTitle, error) {
+	form := &model.FormTitle{}
 
 	err := row.Scan(
 		&form.ID,
 		&form.Title,
 		&form.CreatedAt,
+		&form.NumberOfPassagesForm,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,8 +12,8 @@ import (
 	"go-form-hub/microservices/auth/session"
 
 	validator "github.com/go-playground/validator/v10"
-	"github.com/rs/zerolog/log"
 	easyjson "github.com/mailru/easyjson"
+	"github.com/rs/zerolog/log"
 )
 
 type AuthAPIController struct {
@@ -96,7 +97,7 @@ func (c *AuthAPIController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user session.UserLogin
-	if err = easyjson.Unmarshal(requestJSON, &user); err != nil {
+	if err = json.Unmarshal(requestJSON, &user); err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}

@@ -19,6 +19,8 @@ on:
       - master
       - main
       - dev
+    paths-ignore:
+      - 'internal/model/*_easyjson.go'
 
 jobs:
   push_to_registry:

@@ -68,39 +68,8 @@ linters:
     - prealloc
 
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - dupl
-        - gosec
-    - path: internal/model/form_easyjson\.go
-      linters:
-      - bodyclose
-      - depguard
-      - dogsled
-      - errcheck
-      - funlen
-      - goconst
-      - gocritic
-      - gofmt
-      - goimports
-      - gosec
-      - gosimple
-      - govet
-      - ineffassign
-      - interfacer
-      - misspell
-      - nakedret
-      - revive
-      - exportloopref
-      - staticcheck
-      - stylecheck
-      - typecheck
-      - unconvert
-      - unparam
-      - unused
-      - whitespace
-      - prealloc
+  exclude:
+    - easyjson\.go$
 
 
 service:

@@ -13,8 +13,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
-	"github.com/rs/zerolog/log"
 	easyjson "github.com/mailru/easyjson"
+	"github.com/rs/zerolog/log"
 )
 
 type FormAPIController struct {

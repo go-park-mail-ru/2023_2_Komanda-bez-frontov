@@ -73,7 +73,7 @@ issues:
       linters:
         - dupl
         - gosec
-    - path: _easyjson\.go
+    - path: form_easyjson.go
       linters:
         - dupl
         - gosec

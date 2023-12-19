@@ -73,10 +73,35 @@ issues:
       linters:
         - dupl
         - gosec
-    - path: internal/model/form_easyjson.go
+    - path: internal/model/form_easyjson\.go
       linters:
-        - dupl
-        - gosec
+      - bodyclose
+      - depguard
+      - dogsled
+      - errcheck
+      - funlen
+      - goconst
+      - gocritic
+      - gofmt
+      - goimports
+      - gosec
+      - gosimple
+      - govet
+      - ineffassign
+      - interfacer
+      - misspell
+      - nakedret
+      - revive
+      - exportloopref
+      - staticcheck
+      - stylecheck
+      - typecheck
+      - unconvert
+      - unparam
+      - unused
+      - whitespace
+      - prealloc
+
 
 service:
   golangci-lint-version: 1.54.2

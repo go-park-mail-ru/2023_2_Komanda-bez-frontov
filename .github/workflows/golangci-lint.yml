@@ -5,6 +5,8 @@ on:
       - master
       - main
       - dev
+    paths-ignore:
+      - 'internal/model/*_easyjson.go'
   pull_request:
 
 permissions:

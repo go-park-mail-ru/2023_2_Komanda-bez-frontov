@@ -51,6 +51,15 @@ func (s *formPasageUseCase) FormPass(ctx context.Context, formPassage *model.For
 
 		currentUser := value.(*model.UserGet)
 		userID = int(currentUser.ID)
+
+		totalPassages, err := s.formRepository.UserFormPassageCount(ctx, *existingForm.ID, currentUser.ID)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), nil
+		}
+
+		if totalPassages >= int64(existingForm.PassageMax) {
+			return resp.NewResponse(http.StatusBadRequest, nil), nil
+		}
 	}
 
 	var formValidator passageValidator

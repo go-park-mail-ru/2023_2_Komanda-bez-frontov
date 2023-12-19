@@ -10,13 +10,15 @@ import (
 const AnonUserID = 0
 
 type Form struct {
-	ID          *int64      `json:"id"`
-	Title       string      `json:"title" validate:"required"`
-	Description *string     `json:"description"`
-	Anonymous   bool        `json:"anonymous"`
-	Author      *UserGet    `json:"author"`
-	CreatedAt   time.Time   `json:"created_at"`
-	Questions   []*Question `json:"questions" validate:"required"`
+	ID                  *int64      `json:"id"`
+	Title               string      `json:"title" validate:"required"`
+	Description         *string     `json:"description"`
+	Anonymous           bool        `json:"anonymous"`
+	PassageMax          int         `json:"passage_max"`
+	CurrentPassageTotal int         `json:"cur_passage_total"`
+	Author              *UserGet    `json:"author"`
+	CreatedAt           time.Time   `json:"created_at"`
+	Questions           []*Question `json:"questions" validate:"required"`
 }
 
 func (form *Form) Sanitize(sanitizer *bluemonday.Policy) {
@@ -31,9 +33,10 @@ func (form *Form) Sanitize(sanitizer *bluemonday.Policy) {
 }
 
 type FormTitle struct {
-	ID        int64     `json:"id" validate:"required"`
-	Title     string    `json:"title" validate:"required"`
-	CreatedAt time.Time `json:"created_at" validate:"required"`
+	ID                   int64     `json:"id" validate:"required" db:"id"`
+	Title                string    `json:"title" validate:"required" db:"title"`
+	CreatedAt            time.Time `json:"created_at" validate:"required" db:"created_at"`
+	NumberOfPassagesForm int       `json:"number_of_passages" db:"number_of_passages"`
 }
 
 func (form *FormTitle) Sanitize(sanitizer *bluemonday.Policy) {
@@ -42,7 +45,7 @@ func (form *FormTitle) Sanitize(sanitizer *bluemonday.Policy) {
 
 type FormList struct {
 	CollectionResponse
-	Forms []*Form `json:"forms" validate:"required"`
+	Forms []*FormTitle `json:"forms" validate:"required"`
 }
 
 func (forms *FormList) Sanitize(sanitizer *bluemonday.Policy) {
@@ -67,6 +70,7 @@ type FormUpdate struct {
 	Title            string      `json:"title" validate:"required"`
 	Description      *string     `json:"description"`
 	Anonymous        bool        `json:"anonymous"`
+	PassageMax       int         `json:"passage_max"`
 	Author           *UserGet    `json:"author"`
 	CreatedAt        time.Time   `json:"created_at"`
 	Questions        []*Question `json:"questions" validate:"required"`
@@ -91,6 +95,7 @@ type FormResult struct {
 	Description          string            `json:"description"`
 	CreatedAt            time.Time         `json:"created_at"`
 	Author               *UserGet          `json:"author"`
+	PassageMax           int               `json:"passage_max"`
 	NumberOfPassagesForm int               `json:"number_of_passages"`
 	Questions            []*QuestionResult `json:"questions"`
 	Anonymous            bool              `json:"anonymous"`

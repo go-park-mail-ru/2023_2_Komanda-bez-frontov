@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
+	easyjson "github.com/mailru/easyjson"
 )
 
 type FormAPIController struct {
@@ -108,7 +108,7 @@ func (c *FormAPIController) FormSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var formSave model.Form
-	if err = json.Unmarshal(requestJSON, &formSave); err != nil {
+	if err = easyjson.Unmarshal(requestJSON, &formSave); err != nil {
 		log.Error().Msgf("form_api form_save unmarshal error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
@@ -138,7 +138,7 @@ func (c *FormAPIController) FormPass(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var formPassage model.FormPassage
-	if err = json.Unmarshal(requestJSON, &formPassage); err != nil {
+	if err = easyjson.Unmarshal(requestJSON, &formPassage); err != nil {
 		log.Error().Msgf("form_api form_passage unmarshal error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
@@ -329,7 +329,7 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var updatedForm model.FormUpdate
-	if err = json.Unmarshal(requestJSON, &updatedForm); err != nil {
+	if err = easyjson.Unmarshal(requestJSON, &updatedForm); err != nil {
 		log.Error().Msgf("form_api form_update unmarshal error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return

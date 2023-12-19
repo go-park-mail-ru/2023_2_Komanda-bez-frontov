@@ -68,8 +68,15 @@ linters:
     - prealloc
 
 issues:
-  exclude:
-    - easyjson\.go$
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+    - path: ^form_easyjson.go
+      linters:
+        - dupl
+        - gosec
 
 
 service:

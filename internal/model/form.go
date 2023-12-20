@@ -3,29 +3,55 @@ package model
 import (
 	"database/sql"
 	"time"
+
+	"github.com/microcosm-cc/bluemonday"
 )
 
 const AnonUserID = 0
 
 type Form struct {
-	ID          *int64      `json:"id"`
-	Title       string      `json:"title" validate:"required"`
-	Description *string     `json:"description"`
-	Anonymous   bool        `json:"anonymous"`
-	Author      *UserGet    `json:"author"`
-	CreatedAt   time.Time   `json:"created_at"`
-	Questions   []*Question `json:"questions" validate:"required"`
+	ID                  *int64      `json:"id"`
+	Title               string      `json:"title" validate:"required"`
+	Description         *string     `json:"description"`
+	Anonymous           bool        `json:"anonymous"`
+	PassageMax          int         `json:"passage_max"`
+	CurrentPassageTotal int         `json:"cur_passage_total"`
+	Author              *UserGet    `json:"author"`
+	CreatedAt           time.Time   `json:"created_at"`
+	Questions           []*Question `json:"questions" validate:"required"`
+}
+
+func (form *Form) Sanitize(sanitizer *bluemonday.Policy) {
+	form.Title = sanitizer.Sanitize(form.Title)
+	if form.Description != nil {
+		*form.Description = sanitizer.Sanitize(*form.Description)
+	}
+	form.Author.Sanitize(sanitizer)
+	for _, question := range form.Questions {
+		question.Sanitize(sanitizer)
+	}
 }
 
 type FormTitle struct {
-	ID        int64     `json:"id" validate:"required"`
-	Title     string    `json:"title" validate:"required"`
-	CreatedAt time.Time `json:"created_at" validate:"required"`
+	ID                   int64     `json:"id" validate:"required" db:"id"`
+	Title                string    `json:"title" validate:"required" db:"title"`
+	CreatedAt            time.Time `json:"created_at" validate:"required" db:"created_at"`
+	NumberOfPassagesForm int       `json:"number_of_passages" db:"number_of_passages"`
+}
+
+func (form *FormTitle) Sanitize(sanitizer *bluemonday.Policy) {
+	form.Title = sanitizer.Sanitize(form.Title)
 }
 
 type FormList struct {
 	CollectionResponse
-	Forms []*Form `json:"forms" validate:"required"`
+	Forms []*FormTitle `json:"forms" validate:"required"`
+}
+
+func (forms *FormList) Sanitize(sanitizer *bluemonday.Policy) {
+	for _, form := range forms.Forms {
+		form.Sanitize(sanitizer)
+	}
 }
 
 type FormTitleList struct {
@@ -33,16 +59,34 @@ type FormTitleList struct {
 	FormTitles []*FormTitle `json:"forms" validate:"required"`
 }
 
+func (forms *FormTitleList) Sanitize(sanitizer *bluemonday.Policy) {
+	for _, form := range forms.FormTitles {
+		form.Sanitize(sanitizer)
+	}
+}
+
 type FormUpdate struct {
 	ID               *int64      `json:"id"`
 	Title            string      `json:"title" validate:"required"`
 	Description      *string     `json:"description"`
 	Anonymous        bool        `json:"anonymous"`
+	PassageMax       int         `json:"passage_max"`
 	Author           *UserGet    `json:"author"`
 	CreatedAt        time.Time   `json:"created_at"`
 	Questions        []*Question `json:"questions" validate:"required"`
 	RemovedQuestions []int64     `json:"removed_questions"`
 	RemovedAnswers   []int64     `json:"removed_answers"`
+}
+
+func (form *FormUpdate) Sanitize(sanitizer *bluemonday.Policy) {
+	form.Title = sanitizer.Sanitize(form.Title)
+	if form.Description != nil {
+		*form.Description = sanitizer.Sanitize(*form.Description)
+	}
+	form.Author.Sanitize(sanitizer)
+	for _, question := range form.Questions {
+		question.Sanitize(sanitizer)
+	}
 }
 
 type FormResult struct {
@@ -51,10 +95,24 @@ type FormResult struct {
 	Description          string            `json:"description"`
 	CreatedAt            time.Time         `json:"created_at"`
 	Author               *UserGet          `json:"author"`
+	PassageMax           int               `json:"passage_max"`
 	NumberOfPassagesForm int               `json:"number_of_passages"`
 	Questions            []*QuestionResult `json:"questions"`
 	Anonymous            bool              `json:"anonymous"`
 	Participants         []*UserGet        `json:"participants,omitempty"`
+}
+
+func (form *FormResult) Sanitize(sanitizer *bluemonday.Policy) {
+	form.Title = sanitizer.Sanitize(form.Title)
+	form.Description = sanitizer.Sanitize(form.Description)
+	form.Author.Sanitize(sanitizer)
+	for _, question := range form.Questions {
+		question.Sanitize(sanitizer)
+	}
+
+	for _, user := range form.Participants {
+		user.Sanitize(sanitizer)
+	}
 }
 
 type FormPassage struct {

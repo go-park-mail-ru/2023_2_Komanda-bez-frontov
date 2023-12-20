@@ -9,16 +9,19 @@ import (
 )
 
 type FormRepository interface {
-	FindAll(ctx context.Context) ([]*model.Form, error)
-	FindAllByUser(ctx context.Context, username string) ([]*model.Form, error)
+	FindAll(ctx context.Context) ([]*model.FormTitle, error)
+	FindAllByUser(ctx context.Context, username string) ([]*model.FormTitle, error)
 	FindByID(ctx context.Context, id int64) (*model.Form, error)
 	Insert(ctx context.Context, form *model.Form, tx pgx.Tx) (*model.Form, error)
 	Update(ctx context.Context, id int64, form *model.FormUpdate) (*model.FormUpdate, error)
 	Delete(ctx context.Context, id int64) error
 	FormsSearch(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error)
 	FormResults(ctx context.Context, id int64) (*model.FormResult, error)
+	FormResultsCsv(ctx context.Context, id int64) ([]byte, error)
+	FormResultsExel(ctx context.Context, id int64) ([]byte, error)
 	FormPassageSave(ctx context.Context, formPassage *model.FormPassage, userID uint64) error
 	FormPassageCount(ctx context.Context, formID int64) (int64, error)
+	UserFormPassageCount(ctx context.Context, formID int64, userID int64) (int64, error)
 }
 
 type UserRepository interface {

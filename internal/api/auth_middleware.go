@@ -71,10 +71,10 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 
 func createExpiredSessionCookie() *http.Cookie {
 	return &http.Cookie{
-		Name:    sessionCookieName,
+		Name:     sessionCookieName,
 		HttpOnly: true,
-		Value:   "",
-		Expires: time.Unix(0, 0),
-		MaxAge:  -1,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
 	}
 }

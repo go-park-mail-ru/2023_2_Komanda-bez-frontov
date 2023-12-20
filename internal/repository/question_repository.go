@@ -18,6 +18,7 @@ type Question struct {
 	Title    string  `db:"title"`
 	Text     *string `db:"text"`
 	Required bool    `db:"required"`
+	Position int     `db:"position"`
 }
 
 type questionDatabaseRepository struct {
@@ -50,10 +51,10 @@ func (r *questionDatabaseRepository) Insert(ctx context.Context, question *model
 	questionBatch := &pgx.Batch{}
 	questionQuery := r.builder.
 		Insert(fmt.Sprintf("%s.question", r.db.GetSchema())).
-		Columns("title", "text", "type", "required", "form_id").
+		Columns("title", "text", "type", "required", "form_id", "position").
 		Suffix("RETURNING id")
 
-	q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, formID).ToSql()
+	q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, formID, question.Position).ToSql()
 	if err != nil {
 		return err
 	}
@@ -169,6 +170,7 @@ func (r *questionDatabaseRepository) Update(ctx context.Context, id int64, quest
 		Set("text", question.Description).
 		Set("type", question.Type).
 		Set("required", question.Required).
+		Set("position", question.Position).
 		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return fmt.Errorf("question_repository update failed to build query: %e", err)

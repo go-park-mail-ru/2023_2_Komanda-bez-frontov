@@ -246,11 +246,11 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie := &http.Cookie{
-		Name:    "session_id",
+		Name:     "session_id",
 		HttpOnly: true,
-		Value:   "",
-		Expires: time.Unix(0, 0),
-		MaxAge:  -1,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
 	}
 	http.SetCookie(w, cookie)
 

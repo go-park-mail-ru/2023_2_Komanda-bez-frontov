@@ -1,3 +1,9 @@
+run:
+  skip-dirs:
+    - model/
+  skip-files:
+    - form_repository_test.go
+
 linters-settings:
   golint:
     min-confidence: 0

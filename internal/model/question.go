@@ -15,6 +15,7 @@ type Question struct {
 	Type        int       `json:"type" validate:"required,oneof=1 2 3"`
 	Required    bool      `json:"required"`
 	Answers     []*Answer `json:"answers,omitempty"`
+	Position    int       `json:"position" validate:"required"`
 }
 
 type QuestionResult struct {
@@ -25,6 +26,7 @@ type QuestionResult struct {
 	Required                 bool            `json:"required"`
 	NumberOfPassagesQuestion int             `json:"number_of_passages"`
 	Answers                  []*AnswerResult `json:"answers"`
+	Position                 int             `json:"position" validate:"required"`
 }
 
 func (question *Question) Sanitize(sanitizer *bluemonday.Policy) {

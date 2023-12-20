@@ -44,6 +44,7 @@ var (
 		"q.text",
 		"q.type",
 		"q.required",
+		"q.position",
 		"a.id",
 		"a.answer_text",
 	}
@@ -66,6 +67,7 @@ var (
 		"COALESCE(q.title, '')",
 		"q.text",
 		"q.type",
+		"q.position",
 		"COALESCE(a.answer_text, '')",
 	}
 	selectFieldsFormPassageInfo = []string{
@@ -609,6 +611,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		&questionResult.Title,
 		&questionResult.Description,
 		&questionResult.Type,
+		&questionResult.Position,
 		&answerResult.Text,
 	)
 	if err != nil {
@@ -731,11 +734,11 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 	questionBatch := &pgx.Batch{}
 	questionQuery := r.builder.
 		Insert(fmt.Sprintf("%s.question", r.db.GetSchema())).
-		Columns("title", "text", "type", "required", "form_id").
+		Columns("title", "text", "type", "required", "form_id", "position").
 		Suffix("RETURNING id")
 
 	for _, question := range form.Questions {
-		q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, form.ID).ToSql()
+		q, args, err := questionQuery.Values(question.Title, question.Description, question.Type, question.Required, form.ID, question.Position).ToSql()
 		if err != nil {
 			return nil, err
 		}
@@ -1009,6 +1012,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				Description: info.question.Text,
 				Type:        info.question.Type,
 				Required:    info.question.Required,
+				Position:    info.question.Position,
 			})
 			questionWasAppended[info.question.ID] = true
 		}
@@ -1116,6 +1120,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&question.Text,
 		&question.Type,
 		&question.Required,
+		&question.Position,
 		&answer.ID,
 		&answer.AnswerText,
 	)

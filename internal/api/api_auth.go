@@ -12,6 +12,7 @@ import (
 	"go-form-hub/microservices/auth/session"
 
 	validator "github.com/go-playground/validator/v10"
+	easyjson "github.com/mailru/easyjson"
 	"github.com/rs/zerolog/log"
 )
 
@@ -175,7 +176,7 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user model.UserSignUp
-	if err = json.Unmarshal(requestJSON, &user); err != nil {
+	if err = easyjson.Unmarshal(requestJSON, &user); err != nil {
 		log.Error().Msgf("api_auth unmarshal err: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return

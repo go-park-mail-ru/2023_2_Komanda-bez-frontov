@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
+	easyjson "github.com/mailru/easyjson"
 	"github.com/rs/zerolog/log"
 )
 
@@ -102,7 +102,7 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 	}
 
 	var updatedUser model.UserUpdate
-	if err = json.Unmarshal(requestJSON, &updatedUser); err != nil {
+	if err = easyjson.Unmarshal(requestJSON, &updatedUser); err != nil {
 		log.Error().Msgf("user_api user_update unmarshal error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return

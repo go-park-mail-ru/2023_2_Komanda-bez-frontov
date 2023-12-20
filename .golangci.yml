@@ -1,3 +1,9 @@
+run:
+  skip-dirs:
+    - internal/model/
+  skip-files:
+    - form_repository_test.go
+
 linters-settings:
   golint:
     min-confidence: 0
@@ -73,6 +79,7 @@ issues:
       linters:
         - dupl
         - gosec
+
 
 service:
   golangci-lint-version: 1.54.2

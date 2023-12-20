@@ -11,6 +11,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const noLimit = -1
+
 type FormPassageUseCase interface {
 	FormPass(ctx context.Context, formPassage *model.FormPassage) (*resp.Response, error)
 }
@@ -57,7 +59,7 @@ func (s *formPasageUseCase) FormPass(ctx context.Context, formPassage *model.For
 			return resp.NewResponse(http.StatusInternalServerError, nil), nil
 		}
 
-		if totalPassages >= int64(existingForm.PassageMax) {
+		if existingForm.PassageMax != noLimit && totalPassages >= int64(existingForm.PassageMax) {
 			return resp.NewResponse(http.StatusBadRequest, nil), nil
 		}
 	}

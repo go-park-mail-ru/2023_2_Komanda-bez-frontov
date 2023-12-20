@@ -1,6 +1,6 @@
 run:
   skip-dirs:
-    - model/
+    - internal/model/
   skip-files:
     - form_repository_test.go
 

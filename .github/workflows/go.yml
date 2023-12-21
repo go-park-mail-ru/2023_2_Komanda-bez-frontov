@@ -39,4 +39,5 @@ jobs:
           cd /root/back/2023_2_Komanda-bez-frontov
           git checkout ${{ secrets.MAIN_BRANCH }}
           git pull
+          make kill
           make deploy

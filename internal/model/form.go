@@ -17,6 +17,7 @@ type Form struct {
 	PassageMax          int         `json:"passage_max"`
 	CurrentPassageTotal int         `json:"cur_passage_total"`
 	IsArchived 			bool        `json:"is_archived"`
+	ArchiveWhen 		time.Time	`json:"archive_when"`
 	Author              *UserGet    `json:"author"`
 	CreatedAt           time.Time   `json:"created_at"`
 	Questions           []*Question `json:"questions" validate:"required"`
@@ -73,6 +74,7 @@ type FormUpdate struct {
 	Anonymous        bool        `json:"anonymous"`
 	PassageMax       int         `json:"passage_max"`
 	IsArchived 		 bool        `json:"is_archived"`
+	ArchiveWhen 	 time.Time	 `json:"archive_when"`
 	Author           *UserGet    `json:"author"`
 	CreatedAt        time.Time   `json:"created_at"`
 	Questions        []*Question `json:"questions" validate:"required"`

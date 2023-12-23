@@ -22,6 +22,7 @@ type Form struct {
 	Anonymous   bool      `db:"anonymous"`
 	PassageMax  int64     `db:"passage_max"`
 	IsArchived  bool      `db:"is_archived"`
+	ArchiveWhen time.Time `db:"archive_when"`
 	AuthorID    int64     `db:"author_id"`
 	CreatedAt   time.Time `db:"created_at"`
 }
@@ -36,6 +37,7 @@ var (
 		"f.anonymous",
 		"f.passage_max",
 		"f.is_archived",
+		"f.archive_when",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -799,8 +801,8 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 
 	formQuery, args, err := r.builder.
 		Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Columns("title", "author_id", "created_at", "description", "anonymous", "passage_max").
-		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous, form.PassageMax).
+		Columns("title", "author_id", "created_at", "description", "anonymous", "passage_max", "archive_when").
+		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous, form.PassageMax, form.ArchiveWhen).
 		Suffix("RETURNING id").
 		ToSql()
 	err = tx.QueryRow(ctx, formQuery, args...).Scan(&form.ID)
@@ -986,6 +988,7 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *mod
 		Set("anonymous", form.Anonymous).
 		Set("passage_max", form.PassageMax).
 		Set("is_archived", form.IsArchived).
+		Set("archive_when", form.ArchiveWhen).
 		Where(squirrel.Eq{"id": id}).
 		Suffix("RETURNING id, title, created_at").ToSql()
 	if err != nil {
@@ -1103,6 +1106,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				PassageMax:  int(info.form.PassageMax),
 				CreatedAt:   info.form.CreatedAt,
 				IsArchived:  info.form.IsArchived,
+				ArchiveWhen: info.form.ArchiveWhen,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,
@@ -1220,6 +1224,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&form.Anonymous,
 		&form.PassageMax,
 		&form.IsArchived,
+		&form.ArchiveWhen,
 		&author.ID,
 		&author.Username,
 		&author.FirstName,

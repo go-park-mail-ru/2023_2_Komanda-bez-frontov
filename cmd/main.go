@@ -19,8 +19,8 @@ import (
 	"go-form-hub/microservices/user/profile"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/robfig/cron"
 	"github.com/go-playground/validator/v10"
+	"github.com/robfig/cron"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -126,8 +126,8 @@ func main() {
 		fmt.Println("AutoArchive done!")
 	}
 	cron := cron.New()
-    cron.AddFunc("0 0 * * *", autoArchiveMidnight)
-    cron.Start()
+	cron.AddFunc("0 0 * * *", autoArchiveMidnight)
+	cron.Start()
 
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 

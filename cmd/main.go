@@ -125,6 +125,7 @@ func main() {
 		}
 		fmt.Println("AutoArchive done!")
 	}
+	autoArchiveMidnight()
 	cr := cron.New()
 	err = cr.AddFunc("0 0 * * *", autoArchiveMidnight)
 	if err != nil {

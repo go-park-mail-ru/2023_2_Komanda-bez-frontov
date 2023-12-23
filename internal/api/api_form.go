@@ -64,6 +64,13 @@ func (c *FormAPIController) Routes() []Route {
 			AuthRequired: true,
 		},
 		{
+			Name:         "FormArchive",
+			Method:       http.MethodPut,
+			Path:         "/forms/{id}/archive",
+			Handler:      c.FormArchive,
+			AuthRequired: true,
+		},
+		{
 			Name:         "FormUpdate",
 			Method:       http.MethodPut,
 			Path:         "/forms/{id}/update",
@@ -191,9 +198,15 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	author := r.URL.Query().Get("author")
+	var isArchived bool
+	if r.URL.Query().Get("archive") == "true" {
+		isArchived = true
+	} else {
+		isArchived = false
+	}
 
 	if author != "" {
-		result, err := c.service.FormListByUser(ctx, author)
+		result, err := c.service.FormListByUser(ctx, author, isArchived)
 		if err != nil {
 			log.Error().Msgf("form_api form_list error: %v", err)
 			c.responseEncoder.HandleError(ctx, w, err, result)
@@ -243,6 +256,42 @@ func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // nolint:dupl
+func (c *FormAPIController) FormArchive(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Error().Msgf("form_api form_archive unescape error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("form_api form_archive parse_id error: %v", err)
+		log.Error().Msg(err.Error())
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	var archive bool
+	if r.URL.Query().Get("archive") == "true" {
+		archive = true
+	} else {
+		archive = false
+	}
+
+	result, err := c.service.FormArchive(ctx, id, archive)
+	if err != nil {
+		log.Error().Msgf("form_api form_archive error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+// nolint:dupl
 func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -274,9 +323,17 @@ func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+	var isArchived bool
+	if r.URL.Query().Get("archive") == "true" {
+		isArchived = true
+	} else {
+		isArchived = false
+	}
+
+	fmt.Println(isArchived)
 
 	title := r.URL.Query().Get("title")
-	result, err := c.service.FormSearch(ctx, title, uint(currentUser.ID))
+	result, err := c.service.FormSearch(ctx, title, uint(currentUser.ID), isArchived)
 	if err != nil {
 		log.Error().Msgf("form_api form_search error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)

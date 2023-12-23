@@ -18,10 +18,11 @@ type Service interface {
 	FormSave(ctx context.Context, form *model.Form) (*resp.Response, error)
 	FormUpdate(ctx context.Context, id int64, form *model.FormUpdate) (*resp.Response, error)
 	FormList(ctx context.Context) (*resp.Response, error)
-	FormListByUser(ctx context.Context, username string) (*resp.Response, error)
+	FormListByUser(ctx context.Context, username string, isArchived bool) (*resp.Response, error)
 	FormDelete(ctx context.Context, id int64) (*resp.Response, error)
+	FormArchive(ctx context.Context, id int64, archive bool) (*resp.Response, error)
 	FormGet(ctx context.Context, id int64) (*resp.Response, error)
-	FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error)
+	FormSearch(ctx context.Context, title string, userID uint, isArchived bool) (*resp.Response, error)
 	FormResults(ctx context.Context, id int64) (*resp.Response, error)
 	FormResultsCsv(ctx context.Context, formID int64) ([]byte, error)
 	FormResultsExel(ctx context.Context, formID int64) ([]byte, error)
@@ -205,10 +206,20 @@ func (s *formService) FormList(ctx context.Context) (*resp.Response, error) {
 	return resp.NewResponse(http.StatusOK, formList), nil
 }
 
-func (s *formService) FormListByUser(ctx context.Context, username string) (*resp.Response, error) {
-	forms, err := s.formRepository.FindAllByUser(ctx, username)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
+func (s *formService) FormListByUser(ctx context.Context, username string, isArchived bool) (*resp.Response, error) {
+	var forms []*model.FormTitle
+	var err error
+
+	if isArchived {
+		forms, err = s.formRepository.FindAllByUserArchived(ctx, username)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
+	} else {
+		forms, err = s.formRepository.FindAllByUser(ctx, username)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
 	}
 
 	formList := &model.FormList{
@@ -243,6 +254,29 @@ func (s *formService) FormDelete(ctx context.Context, id int64) (*resp.Response,
 	return resp.NewResponse(http.StatusOK, nil), nil
 }
 
+func (s *formService) FormArchive(ctx context.Context, id int64, archive bool) (*resp.Response, error) {
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+	existing, err := s.formRepository.FindByID(ctx, id)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if existing == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	if existing.Author.ID != currentUser.ID {
+		return resp.NewResponse(http.StatusForbidden, nil), nil
+	}
+
+	if err := s.formRepository.Archive(ctx, id, archive); err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	return resp.NewResponse(http.StatusOK, nil), nil
+}
+
 func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, error) {
 	form, err := s.formRepository.FindByID(ctx, id)
 	if err != nil {
@@ -252,10 +286,18 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 	if form == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
+	
+	if form.IsArchived && ctx.Value(model.ContextCurrentUser) == nil {
+		return resp.NewResponse(http.StatusForbidden, nil), nil
+	}
 	form.Sanitize(s.sanitizer)
 
 	if ctx.Value(model.ContextCurrentUser) != nil {
 		currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+		if form.IsArchived && form.Author.ID != currentUser.ID {
+			return resp.NewResponse(http.StatusForbidden, nil), nil
+		}
 
 		total, err := s.formRepository.UserFormPassageCount(ctx, *form.ID, currentUser.ID)
 		if err != nil {
@@ -269,10 +311,20 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 	return resp.NewResponse(http.StatusOK, form), nil
 }
 
-func (s *formService) FormSearch(ctx context.Context, title string, userID uint) (*resp.Response, error) {
-	forms, err := s.formRepository.FormsSearch(ctx, title, userID)
-	if err != nil {
-		return resp.NewResponse(http.StatusInternalServerError, nil), err
+func (s *formService) FormSearch(ctx context.Context, title string, userID uint, isArchived bool) (*resp.Response, error) {
+	var forms []*model.FormTitle
+	var err error
+
+	if isArchived {
+		forms, err = s.formRepository.FormsSearchArchived(ctx, title, userID)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
+	} else {
+		forms, err = s.formRepository.FormsSearch(ctx, title, userID)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
 	}
 
 	formList := &model.FormList{

@@ -21,6 +21,7 @@ type Form struct {
 	Description *string   `db:"description"`
 	Anonymous   bool      `db:"anonymous"`
 	PassageMax  int64     `db:"passage_max"`
+	IsArchived  bool      `db:"is_archived"`
 	AuthorID    int64     `db:"author_id"`
 	CreatedAt   time.Time `db:"created_at"`
 }
@@ -34,6 +35,7 @@ var (
 		"f.author_id",
 		"f.anonymous",
 		"f.passage_max",
+		"f.is_archived",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -58,6 +60,7 @@ var (
 		"COALESCE(f.description, '')",
 		"f.anonymous",
 		"f.passage_max",
+		"f.is_archived",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -135,7 +138,7 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 		  SELECT f.title as title, f.id as id, f.created_at as created_at, COUNT(fp.id) as number_of_passages, similarity(f.title, $1::text) as sim
 		  FROM %s.form as f
 		  LEFT JOIN %s.form_passage  as fp ON fp.form_id = f.id
-		  WHERE f.author_id = $2::integer
+		  WHERE f.author_id = $2::integer and f.is_archived = false
 		  GROUP BY f.id
 		  ORDER BY sim DESC, f.created_at
 		) AS res
@@ -159,6 +162,42 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 	rows, err := tx.Query(ctx, query, title, userID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to execute query: %e", err)
+	}
+
+	return r.searchTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FormsSearchArchived(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error) {
+	const limit = 5
+	query := fmt.Sprintf(`SELECT id, title, created_at, number_of_passages
+		FROM (
+		  SELECT f.title as title, f.id as id, f.created_at as created_at, COUNT(fp.id) as number_of_passages, similarity(f.title, $1::text) as sim
+		  FROM %s.form as f
+		  LEFT JOIN %s.form_passage  as fp ON fp.form_id = f.id
+		  WHERE f.author_id = $2::integer and f.is_archived = true
+		  GROUP BY f.id
+		  ORDER BY sim DESC, f.created_at
+		) AS res
+		WHERE sim > 0
+		LIMIT $3::integer`, r.db.GetSchema(), r.db.GetSchema())
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_search_archived failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, title, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_search_archived failed to execute query: %e", err)
 	}
 
 	return r.searchTitleFromRows(rows)
@@ -446,6 +485,7 @@ func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.Fo
 				Title:                info.formResult.Title,
 				Description:          info.formResult.Description,
 				CreatedAt:            info.formResult.CreatedAt,
+				IsArchived:           info.formResult.IsArchived,
 				Author:               info.formResult.Author,
 				NumberOfPassagesForm: 0,
 				Questions:            []*model.QuestionResult{},
@@ -602,6 +642,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		&formResult.Description,
 		&formResult.Anonymous,
 		&formResult.PassageMax,
+		&formResult.IsArchived,
 		&formResult.Author.ID,
 		&formResult.Author.Username,
 		&formResult.Author.FirstName,
@@ -630,7 +671,7 @@ func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username str
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.form_passage as fp ON fp.form_id = f.id", r.db.GetSchema())).
-		Where(squirrel.Eq{"u.username": username}).
+		Where(squirrel.Eq{"u.username": username, "f.is_archived": false}).
 		GroupBy("f.id").
 		ToSql()
 
@@ -655,6 +696,42 @@ func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username str
 	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
+	}
+
+	return r.searchTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FindAllByUserArchived(ctx context.Context, username string) (forms []*model.FormTitle, err error) {
+	query, args, err := r.builder.
+		Select("f.id, f.title, f.created_at, count(fp.id) as number_of_passages").
+		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.form_passage as fp ON fp.form_id = f.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"u.username": username, "f.is_archived": true}).
+		GroupBy("f.id").
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all_archived failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all_archived failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all_archived failed to execute query: %e", err)
 	}
 
 	return r.searchTitleFromRows(rows)
@@ -908,6 +985,7 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *mod
 		Set("description", form.Description).
 		Set("anonymous", form.Anonymous).
 		Set("passage_max", form.PassageMax).
+		Set("is_archived", form.IsArchived).
 		Where(squirrel.Eq{"id": id}).
 		Suffix("RETURNING id, title, created_at").ToSql()
 	if err != nil {
@@ -965,6 +1043,36 @@ func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err erro
 	return nil
 }
 
+func (r *formDatabaseRepository) Archive(ctx context.Context, id int64, archive bool) (err error) {
+	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
+		Set("is_archived", archive).
+		Where(squirrel.Eq{"id": id}).ToSql()
+	if err != nil {
+		return fmt.Errorf("form_repository archive failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("form_repository archive failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("form_repository archive failed to execute query: %e", err)
+	}
+
+	return nil
+}
+
 func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) {
 	defer func() {
 		rows.Close()
@@ -994,6 +1102,7 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				Anonymous:   info.form.Anonymous,
 				PassageMax:  int(info.form.PassageMax),
 				CreatedAt:   info.form.CreatedAt,
+				IsArchived:  info.form.IsArchived,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,
@@ -1110,6 +1219,7 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&form.AuthorID,
 		&form.Anonymous,
 		&form.PassageMax,
+		&form.IsArchived,
 		&author.ID,
 		&author.Username,
 		&author.FirstName,

@@ -316,11 +316,6 @@ func (s *formService) FormSearch(ctx context.Context, title string, userID uint,
 	var err error
 
 	if isArchived {
-		err = s.formRepository.AutoArchive(ctx)
-		if err != nil {
-			return resp.NewResponse(http.StatusInternalServerError, nil), err
-		}
-		fmt.Println("AutoArchive done!")
 		forms, err = s.formRepository.FormsSearchArchived(ctx, title, userID)
 		if err != nil {
 			return resp.NewResponse(http.StatusInternalServerError, nil), err

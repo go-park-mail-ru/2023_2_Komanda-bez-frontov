@@ -19,6 +19,7 @@ import (
 	"go-form-hub/microservices/user/profile"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/robfig/cron"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -115,6 +116,18 @@ func main() {
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
 	answerRepository := repository.NewAnswerDatabaseRepository(db, builder)
+
+	// AutoArchive every night at 00:00
+	autoArchiveMidnight := func() {
+		err = formRepository.AutoArchive(context.Background())
+		if err != nil {
+			fmt.Println("AutoArchive ended with error")
+		}
+		fmt.Println("AutoArchive done!")
+	}
+	cron := cron.New()
+    cron.AddFunc("0 0 * * *", autoArchiveMidnight)
+    cron.Start()
 
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 

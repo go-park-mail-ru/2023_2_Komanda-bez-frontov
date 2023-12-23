@@ -125,9 +125,12 @@ func main() {
 		}
 		fmt.Println("AutoArchive done!")
 	}
-	cron := cron.New()
-	cron.AddFunc("0 0 * * *", autoArchiveMidnight)
-	cron.Start()
+	cr := cron.New()
+	err = cr.AddFunc("0 0 * * *", autoArchiveMidnight)
+	if err != nil {
+		log.Error().Msgf("cron ended with error: %s", err)
+	}
+	cr.Start()
 
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 

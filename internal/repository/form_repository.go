@@ -16,15 +16,15 @@ import (
 )
 
 type Form struct {
-	Title       string    `db:"title"`
-	ID          int64     `db:"id"`
-	Description *string   `db:"description"`
-	Anonymous   bool      `db:"anonymous"`
-	PassageMax  int64     `db:"passage_max"`
-	IsArchived  bool      `db:"is_archived"`
-	ArchiveWhen time.Time `db:"archive_when"`
-	AuthorID    int64     `db:"author_id"`
-	CreatedAt   time.Time `db:"created_at"`
+	Title       string     `db:"title"`
+	ID          int64      `db:"id"`
+	Description *string    `db:"description"`
+	Anonymous   bool       `db:"anonymous"`
+	PassageMax  int64      `db:"passage_max"`
+	IsArchived  bool       `db:"is_archived"`
+	ArchiveWhen *time.Time `db:"archive_when"`
+	AuthorID    int64      `db:"author_id"`
+	CreatedAt   time.Time  `db:"created_at"`
 }
 
 var (
@@ -1017,6 +1017,38 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *mod
 	return form, nil
 }
 
+func (r *formDatabaseRepository) AutoArchive(ctx context.Context) (err error) {
+	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
+		Set("is_archived", true).
+		Set("archive_when", nil).
+		Where("EXTRACT(DAY FROM (NOW() - archive_when)) >= 0").
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("form_repository auto_archive failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("form_repository auto_archive failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("form_repository auto_archive failed to execute query: %e", err)
+	}
+
+	return nil
+}
+
 func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err error) {
 	query, args, err := r.builder.Delete(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Where(squirrel.Eq{"id": id}).ToSql()
@@ -1049,6 +1081,7 @@ func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err erro
 func (r *formDatabaseRepository) Archive(ctx context.Context, id int64, archive bool) (err error) {
 	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Set("is_archived", archive).
+		Set("archive_when", nil).
 		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return fmt.Errorf("form_repository archive failed to build query: %e", err)

@@ -286,7 +286,7 @@ func (s *formService) FormGet(ctx context.Context, id int64) (*resp.Response, er
 	if form == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
 	}
-	
+
 	if form.IsArchived && ctx.Value(model.ContextCurrentUser) == nil {
 		return resp.NewResponse(http.StatusForbidden, nil), nil
 	}
@@ -316,6 +316,11 @@ func (s *formService) FormSearch(ctx context.Context, title string, userID uint,
 	var err error
 
 	if isArchived {
+		err = s.formRepository.AutoArchive(ctx)
+		if err != nil {
+			return resp.NewResponse(http.StatusInternalServerError, nil), err
+		}
+		fmt.Println("AutoArchive done!")
 		forms, err = s.formRepository.FormsSearchArchived(ctx, title, userID)
 		if err != nil {
 			return resp.NewResponse(http.StatusInternalServerError, nil), err

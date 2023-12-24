@@ -218,7 +218,7 @@ func (s *formService) FormListByUser(ctx context.Context, username string, isArc
 			return resp.NewResponse(http.StatusInternalServerError, nil), err
 		}
 	} else {
-		forms, err = s.formRepository.FindAllByUser(ctx, username)
+		forms, err = s.formRepository.FindAllByUserActive(ctx, username)
 		if err != nil {
 			return resp.NewResponse(http.StatusInternalServerError, nil), err
 		}

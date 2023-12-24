@@ -690,7 +690,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
 }
 
-func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.FormTitle, err error) {
+func (r *formDatabaseRepository) FindAllByUserActive(ctx context.Context, username string) (forms []*model.FormTitle, err error) {
 	query, args, err := r.builder.
 		Select("f.id, f.title, f.created_at, count(fp.id) as number_of_passages").
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).

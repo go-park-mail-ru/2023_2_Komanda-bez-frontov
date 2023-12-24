@@ -82,6 +82,8 @@ var (
 		"COALESCE(ua.first_name, '')",
 		"COALESCE(ua.last_name, '')",
 		"COALESCE(ua.email, '')",
+		"COALESCE(ua.gender, 'U')",
+		"ua.birthday",
 		"q.id",
 		"pa.answer_text",
 	}
@@ -474,11 +476,17 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 				}
 			}
 			if !userExist {
-				formResult.Participants = append(formResult.Participants, &model.UserGet{
+				person := &model.UserGet{
 					ID:        formPassageResult.UserID.Int64,
 					FirstName: formPassageResult.FirstName,
 					Username:  formPassageResult.Username,
-				})
+					Gender:    formPassageResult.Gender,
+				}
+				if formPassageResult.Birthday.Valid {
+					person.Birthday = &formPassageResult.Birthday.String
+				}
+
+				formResult.Participants = append(formResult.Participants, person)
 			}
 		}
 	}
@@ -582,6 +590,7 @@ func (r *formDatabaseRepository) formPassageResultsFromRows(rows pgx.Rows) ([]*m
 
 	for rows.Next() {
 		result := &model.FormPassageResult{}
+
 		err := rows.Scan(
 			&result.FormID,
 			&result.UserID,
@@ -589,9 +598,12 @@ func (r *formDatabaseRepository) formPassageResultsFromRows(rows pgx.Rows) ([]*m
 			&result.FirstName,
 			&result.LastName,
 			&result.Email,
+			&result.Gender,
+			&result.Birthday,
 			&result.QuestionID,
 			&result.AnswerText,
 		)
+
 		if err != nil {
 			return nil, fmt.Errorf("form_repository formPassageResultsFromRows failed to scan row: %v", err)
 		}

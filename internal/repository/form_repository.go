@@ -483,7 +483,8 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 					Gender:    formPassageResult.Gender,
 				}
 				if formPassageResult.Birthday.Valid {
-					person.Birthday = &formPassageResult.Birthday.String
+					value := formPassageResult.Birthday.String
+					person.Birthday = &value
 				}
 
 				formResult.Participants = append(formResult.Participants, person)

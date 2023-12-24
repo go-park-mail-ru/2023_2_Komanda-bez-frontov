@@ -12,7 +12,6 @@ import (
 )
 
 const defaultAvatar = ""
-const defaultBirthday = "-1"
 
 type ProfileController struct {
 	profile.UnimplementedProfileServer

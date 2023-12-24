@@ -140,3 +140,45 @@ type FormPassageResult struct {
 	QuestionID int64         `json:"question_id" db:"question_id"`
 	AnswerText string        `json:"answer_text" db:"answer_text"`
 }
+
+type FormPassageGet struct {
+	ID                  *int64      `json:"id" db:"id"`
+	Title               string      `json:"title" validate:"required" db:"title"`
+	Description         *string     `json:"description" db:"description"`
+	UserID      		int64       `json:"user_id" db:"user_id"`
+	Author              *UserGet    `json:"author"`
+	FinishedAt          time.Time   `json:"finished_at" db:"finished_at"`
+	Questions           []*Question `json:"questions" validate:"required"`
+}
+
+func (form *FormPassageGet) Sanitize(sanitizer *bluemonday.Policy) {
+	form.Title = sanitizer.Sanitize(form.Title)
+	if form.Description != nil {
+		*form.Description = sanitizer.Sanitize(*form.Description)
+	}
+	form.Author.Sanitize(sanitizer)
+	for _, question := range form.Questions {
+		question.Sanitize(sanitizer)
+	}
+}
+
+type FormPassageTitle struct {
+	ID                   int64     `json:"id" validate:"required" db:"id"`
+	Title                string    `json:"title" validate:"required" db:"title"`
+	FinishedAt           time.Time `json:"finished_at" validate:"required" db:"finished_at"`
+}
+
+func (form *FormPassageTitle) Sanitize(sanitizer *bluemonday.Policy) {
+	form.Title = sanitizer.Sanitize(form.Title)
+}
+
+type FormPassageList struct {
+	CollectionResponse
+	Forms []*FormPassageTitle `json:"forms" validate:"required"`
+}
+
+func (forms *FormPassageList) Sanitize(sanitizer *bluemonday.Policy) {
+	for _, form := range forms.Forms {
+		form.Sanitize(sanitizer)
+	}
+}

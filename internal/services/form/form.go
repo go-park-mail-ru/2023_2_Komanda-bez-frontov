@@ -26,6 +26,8 @@ type Service interface {
 	FormResults(ctx context.Context, id int64) (*resp.Response, error)
 	FormResultsCsv(ctx context.Context, formID int64) ([]byte, error)
 	FormResultsExel(ctx context.Context, formID int64) ([]byte, error)
+	FormPassageList(ctx context.Context) (*resp.Response, error)
+	FormPassageGet(ctx context.Context, id int64) (*resp.Response, error)
 }
 
 type formService struct {
@@ -335,4 +337,48 @@ func (s *formService) FormSearch(ctx context.Context, title string, userID uint,
 	formList.Sanitize(s.sanitizer)
 
 	return resp.NewResponse(http.StatusOK, formList), nil
+}
+
+func (s *formService) FormPassageList(ctx context.Context) (*resp.Response, error) {
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+	forms, err := s.formRepository.FindPassagesAll(ctx, currentUser.ID)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	formList := &model.FormPassageList{
+		Forms: forms,
+	}
+	formList.Count = len(forms)
+
+	formList.Sanitize(s.sanitizer)
+	return resp.NewResponse(http.StatusOK, formList), nil
+}
+
+func (s *formService) FormPassageGet(ctx context.Context, id int64) (*resp.Response, error) {
+	form, err := s.formRepository.FindPassageByID(ctx, id)
+	if err != nil {
+		return resp.NewResponse(http.StatusInternalServerError, nil), err
+	}
+
+	if form == nil {
+		return resp.NewResponse(http.StatusNotFound, nil), nil
+	}
+
+	if ctx.Value(model.ContextCurrentUser) == nil {
+		return resp.NewResponse(http.StatusForbidden, nil), nil
+	}
+	form.Sanitize(s.sanitizer)
+
+	if ctx.Value(model.ContextCurrentUser) != nil {
+		currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+		if form.Author.ID != currentUser.ID && form.UserID != currentUser.ID {
+			return resp.NewResponse(http.StatusForbidden, nil), nil
+		}
+	}
+	form.Sanitize(s.sanitizer)
+
+	return resp.NewResponse(http.StatusOK, form), nil
 }

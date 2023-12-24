@@ -121,9 +121,9 @@ func main() {
 	autoArchiveMidnight := func() {
 		err = formRepository.AutoArchive(context.Background())
 		if err != nil {
-			fmt.Println("AutoArchive ended with error")
+			log.Error().Msgf("AutoArchive ended with error")
 		}
-		fmt.Println("AutoArchive done!")
+		log.Info().Msgf("AutoArchive done!")
 	}
 	autoArchiveMidnight()
 	cr := cron.New()

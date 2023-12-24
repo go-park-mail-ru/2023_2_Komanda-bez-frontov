@@ -87,6 +87,29 @@ var (
 	}
 )
 
+var (
+	selectPassageFields = []string{
+		"fp.id",
+		"f.title",
+		"f.description",
+		"fp.user_id",
+		"fp.finished_at",
+		"u.id",
+		"u.username",
+		"u.first_name",
+		"u.last_name",
+		"u.email",
+		"q.id",
+		"q.title",
+		"q.text",
+		"q.type",
+		"q.required",
+		"q.position",
+		"a.id",
+		"a.answer_text",
+	}
+)
+
 type formDatabaseRepository struct {
 	db      database.ConnPool
 	builder squirrel.StatementBuilderType
@@ -1281,4 +1304,250 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 	}
 
 	return &fromRowReturn{form, author, question, answer}, nil
+}
+
+func (r *formDatabaseRepository) FindPassagesAll(ctx context.Context, userID int64) (forms []*model.FormPassageTitle, err error) {
+	query, args, err := r.builder.
+		Select("fp.id, f.title, fp.finished_at").
+		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form as f ON fp.form_id = f.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"fp.user_id": userID}).
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_all failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_all failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_all failed to execute query: %e", err)
+	}
+
+	return r.passageTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FindPassageByID(ctx context.Context, id int64) (form *model.FormPassageGet, err error) {
+	query, args, err := r.builder.
+		Select(selectPassageFields...).
+		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form as f ON fp.form_id = f.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form_passage_answer as a ON a.question_id = q.id AND a.form_passage_id = fp.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"fp.id": id}).
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_by_id failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_by_id failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_by_id failed to execute query: %e", err)
+	}
+
+	forms, err := r.fromPassageRows(rows)
+	if len(forms) == 0 {
+		return nil, nil
+	}
+
+	return forms[0], err
+}
+
+type fromPassageRowReturn struct {
+	form     *model.FormPassageGet
+	author   *User
+	question *Question
+	answer   *Answer
+}
+
+func (r *formDatabaseRepository) fromPassageRow(row pgx.Row) (*fromPassageRowReturn, error) {
+	form := &model.FormPassageGet{}
+	author := &User{}
+	question := &Question{}
+	answer := &Answer{}
+
+	err := row.Scan(
+		&form.ID,
+		&form.Title,
+		&form.Description,
+		&form.UserID,
+		&form.FinishedAt,
+		&author.ID,
+		&author.Username,
+		&author.FirstName,
+		&author.LastName,
+		&author.Email,
+		&question.ID,
+		&question.Title,
+		&question.Text,
+		&question.Type,
+		&question.Required,
+		&question.Position,
+		&answer.ID,
+		&answer.AnswerText,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("form_repository from_passage_row failed to scan row: %e", err)
+	}
+
+	return &fromPassageRowReturn{form, author, question, answer}, nil
+}
+
+func (r *formDatabaseRepository) fromPassageRows(rows pgx.Rows) ([]*model.FormPassageGet, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	formMap := map[int64]*model.FormPassageGet{}
+	questionsByFormID := map[int64][]*model.Question{}
+	answersByQuestionID := map[int64][]*model.Answer{}
+
+	questionWasAppended := map[int64]bool{}
+
+	for rows.Next() {
+		info, err := r.fromPassageRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		if info.form == nil {
+			continue
+		}
+
+		if _, ok := formMap[*info.form.ID]; !ok {
+			formMap[*info.form.ID] = &model.FormPassageGet{
+				ID:          info.form.ID,
+				Title:       info.form.Title,
+				Description: info.form.Description,
+				FinishedAt:  info.form.FinishedAt,
+				UserID:      info.form.UserID,
+				Author: &model.UserGet{
+					ID:        info.author.ID,
+					Username:  info.author.Username,
+					FirstName: info.author.FirstName,
+					LastName:  info.author.LastName,
+					Email:     info.author.Email,
+					Avatar:    info.author.Avatar,
+				},
+			}
+		}
+
+		if _, ok := questionWasAppended[info.question.ID]; !ok {
+			questionsByFormID[*info.form.ID] = append(questionsByFormID[*info.form.ID], &model.Question{
+				ID:          &info.question.ID,
+				Title:       info.question.Title,
+				Description: info.question.Text,
+				Type:        info.question.Type,
+				Required:    info.question.Required,
+				Position:    info.question.Position,
+			})
+			questionWasAppended[info.question.ID] = true
+		}
+
+		if _, ok := answersByQuestionID[info.question.ID]; !ok {
+			answersByQuestionID[info.question.ID] = make([]*model.Answer, 0, 1)
+		}
+
+		answersByQuestionID[info.question.ID] = append(answersByQuestionID[info.question.ID], &model.Answer{
+			ID:   &info.answer.ID,
+			Text: info.answer.AnswerText,
+		})
+	}
+
+	forms := make([]*model.FormPassageGet, 0, len(formMap))
+
+	for _, form := range formMap {
+		form.Questions = questionsByFormID[*form.ID]
+		for _, question := range form.Questions {
+			if _, ok := answersByQuestionID[*question.ID]; ok {
+				question.Answers = answersByQuestionID[*question.ID]
+			} else {
+				question.Answers = nil
+			}
+		}
+
+		forms = append(forms, form)
+	}
+
+	return forms, nil
+}
+
+func (r *formDatabaseRepository) passageTitleFromRows(rows pgx.Rows) ([]*model.FormPassageTitle, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	formTitleArray := make([]*model.FormPassageTitle, 0)
+
+	for rows.Next() {
+		form, err := r.formPassageTitleFromRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		if form == nil {
+			continue
+		}
+
+		formTitleArray = append(formTitleArray, &model.FormPassageTitle{
+			ID:         form.ID,
+			Title:      form.Title,
+			FinishedAt: form.FinishedAt,
+		})
+	}
+
+	return formTitleArray, nil
+}
+
+func (r *formDatabaseRepository) formPassageTitleFromRow(row pgx.Row) (*model.FormPassageTitle, error) {
+	form := &model.FormPassageTitle{}
+
+	err := row.Scan(
+		&form.ID,
+		&form.Title,
+		&form.FinishedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("form_repository form_passage_scan failed to scan row: %e", err)
+	}
+
+	return form, nil
 }

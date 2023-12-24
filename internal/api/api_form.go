@@ -99,6 +99,20 @@ func (c *FormAPIController) Routes() []Route {
 			AuthRequired: false,
 		},
 		{
+			Name:         "FormPassageList",
+			Method:       http.MethodGet,
+			Path:         "/forms/pass/list",
+			Handler:      c.FormPassageList,
+			AuthRequired: true,
+		},
+		{
+			Name:         "FormPassageGet",
+			Method:       http.MethodGet,
+			Path:         "/forms/pass/{id}",
+			Handler:      c.FormPassageGet,
+			AuthRequired: true,
+		},
+		{
 			Name:         "FormResultsCsv",
 			Method:       http.MethodGet,
 			Path:         "/forms/{id}/results/csv",
@@ -462,6 +476,47 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 	result, err := c.service.FormUpdate(ctx, id, &updatedForm)
 	if err != nil {
 		log.Error().Msgf("form_api form_update error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormPassageList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	result, err := c.service.FormPassageList(ctx)
+	if err != nil {
+		log.Error().Msgf("form_api form_passage_list error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormPassageGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Error().Msgf("form_api form_passage_get unescape error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("form_api form_passage_get parse_id error: %v", err)
+		log.Error().Msg(err.Error())
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	result, err := c.service.FormPassageGet(ctx, id)
+	if err != nil {
+		log.Error().Msgf("form_api form_passage_get error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}

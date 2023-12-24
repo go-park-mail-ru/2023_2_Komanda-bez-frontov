@@ -142,13 +142,13 @@ type FormPassageResult struct {
 }
 
 type FormPassageGet struct {
-	ID                  *int64      `json:"id" db:"id"`
-	Title               string      `json:"title" validate:"required" db:"title"`
-	Description         *string     `json:"description" db:"description"`
-	UserID      		int64       `json:"user_id" db:"user_id"`
-	Author              *UserGet    `json:"author"`
-	FinishedAt          time.Time   `json:"finished_at" db:"finished_at"`
-	Questions           []*Question `json:"questions" validate:"required"`
+	ID          *int64      `json:"id" db:"id"`
+	Title       string      `json:"title" validate:"required" db:"title"`
+	Description *string     `json:"description" db:"description"`
+	UserID      int64       `json:"user_id" db:"user_id"`
+	Author      *UserGet    `json:"author"`
+	FinishedAt  time.Time   `json:"finished_at" db:"finished_at"`
+	Questions   []*Question `json:"questions" validate:"required"`
 }
 
 func (form *FormPassageGet) Sanitize(sanitizer *bluemonday.Policy) {
@@ -163,9 +163,9 @@ func (form *FormPassageGet) Sanitize(sanitizer *bluemonday.Policy) {
 }
 
 type FormPassageTitle struct {
-	ID                   int64     `json:"id" validate:"required" db:"id"`
-	Title                string    `json:"title" validate:"required" db:"title"`
-	FinishedAt           time.Time `json:"finished_at" validate:"required" db:"finished_at"`
+	ID         int64     `json:"id" validate:"required" db:"id"`
+	Title      string    `json:"title" validate:"required" db:"title"`
+	FinishedAt time.Time `json:"finished_at" validate:"required" db:"finished_at"`
 }
 
 func (form *FormPassageTitle) Sanitize(sanitizer *bluemonday.Policy) {

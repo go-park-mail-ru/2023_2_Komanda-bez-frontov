@@ -1450,11 +1450,11 @@ func (r *formDatabaseRepository) fromPassageRows(rows pgx.Rows) ([]*model.FormPa
 
 		if _, ok := formMap[*info.form.ID]; !ok {
 			formMap[*info.form.ID] = &model.FormPassageGet{
-				ID:           info.form.ID,
-				Title:        info.form.Title,
-				Description:  info.form.Description,
-				FinishedAt:   info.form.FinishedAt,
-				UserID:		  info.form.UserID,
+				ID:          info.form.ID,
+				Title:       info.form.Title,
+				Description: info.form.Description,
+				FinishedAt:  info.form.FinishedAt,
+				UserID:      info.form.UserID,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,
@@ -1524,9 +1524,9 @@ func (r *formDatabaseRepository) passageTitleFromRows(rows pgx.Rows) ([]*model.F
 		}
 
 		formTitleArray = append(formTitleArray, &model.FormPassageTitle{
-			ID:                   form.ID,
-			Title:                form.Title,
-			FinishedAt:           form.FinishedAt,
+			ID:         form.ID,
+			Title:      form.Title,
+			FinishedAt: form.FinishedAt,
 		})
 	}
 

@@ -33,17 +33,23 @@ func NewMessageAPIController(service message.Service, v *validator.Validate, res
 func (c *MessageAPIController) Routes() []Route {
 	return []Route{
 		{
-			Name:         "MessageSave",
+			Name:         "MessageSend",
 			Method:       http.MethodPost,
-			Path:         "/message/save",
+			Path:         "/message/send",
+			Handler:      c.MessageSave,
+			AuthRequired: true,
+		},
+		{
+			Name:         "MessageSend",
+			Method:       http.MethodPost,
+			Path:         "/message/send",
 			Handler:      c.FormSave,
 			AuthRequired: true,
 		},
-
 	}
 }
 
-func (c *MessageAPIController) createMessage(w http.ResponseWriter, r *http.Request) {
+func (c *MessageAPIController) MessageSave(w http.ResponseWriter, r *http.Request) {
     ctx := r.Context()
 
 	requestJSON, err := io.ReadAll(r.Body)

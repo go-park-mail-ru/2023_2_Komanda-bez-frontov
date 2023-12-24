@@ -198,12 +198,7 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	author := r.URL.Query().Get("author")
-	var isArchived bool
-	if r.URL.Query().Get("archive") == "true" {
-		isArchived = true
-	} else {
-		isArchived = false
-	}
+	isArchived := r.URL.Query().Get("archive") == "true"
 
 	if author != "" {
 		result, err := c.service.FormListByUser(ctx, author, isArchived)
@@ -274,12 +269,7 @@ func (c *FormAPIController) FormArchive(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var archive bool
-	if r.URL.Query().Get("archive") == "true" {
-		archive = true
-	} else {
-		archive = false
-	}
+	archive := r.URL.Query().Get("archive") == "true"
 
 	result, err := c.service.FormArchive(ctx, id, archive)
 	if err != nil {
@@ -323,14 +313,7 @@ func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
-	var isArchived bool
-	if r.URL.Query().Get("archive") == "true" {
-		isArchived = true
-	} else {
-		isArchived = false
-	}
-
-	fmt.Println(isArchived)
+	isArchived := r.URL.Query().Get("archive") == "true"
 
 	title := r.URL.Query().Get("title")
 	result, err := c.service.FormSearch(ctx, title, uint(currentUser.ID), isArchived)

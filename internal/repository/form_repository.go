@@ -1348,7 +1348,7 @@ func (r *formDatabaseRepository) FindPassageByID(ctx context.Context, id int64) 
 		Join(fmt.Sprintf("%s.form as f ON fp.form_id = f.id", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
-		LeftJoin(fmt.Sprintf("%s.form_passage_answer as a ON a.question_id = q.id AND a.form_passage_id = fp.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form_passage_answer as a ON a.question_id = q.id AND a.form_passage_id = fp.id", r.db.GetSchema())).
 		Where(squirrel.Eq{"fp.id": id}).
 		ToSql()
 
@@ -1493,7 +1493,11 @@ func (r *formDatabaseRepository) fromPassageRows(rows pgx.Rows) ([]*model.FormPa
 	for _, form := range formMap {
 		form.Questions = questionsByFormID[*form.ID]
 		for _, question := range form.Questions {
-			question.Answers = answersByQuestionID[*question.ID]
+			if _, ok := answersByQuestionID[*question.ID]; ok {
+				question.Answers = answersByQuestionID[*question.ID]
+			} else {
+				question.Answers = nil
+			}
 		}
 
 		forms = append(forms, form)

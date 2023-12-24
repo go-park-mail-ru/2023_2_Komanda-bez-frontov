@@ -14,6 +14,7 @@ import (
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/form"
+	"go-form-hub/internal/services/message"
 	"go-form-hub/microservices/auth/session"
 	passage "go-form-hub/microservices/passage/passage_client"
 	"go-form-hub/microservices/user/profile"
@@ -116,6 +117,7 @@ func main() {
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
 	answerRepository := repository.NewAnswerDatabaseRepository(db, builder)
+	messageRepository := repository.NewMessageDatabaseRepository(db, builder)
 
 	// AutoArchive every night at 00:00
 	autoArchiveMidnight := func() {
@@ -134,18 +136,20 @@ func main() {
 	cr.Start()
 
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
+	messageService := message.NewMessageService(messageRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
 
 	formRouter := api.NewFormAPIController(formService, passageController, validate, responseEncoder)
 	authRouter := api.NewAuthAPIController(tokenParser, sessController, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
+	messageRouter := api.NewMessageAPIController(messageService, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
 	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
 	csrfMiddleware := api.CSRFMiddleware(tokenParser, responseEncoder)
 
-	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter)
+	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter, messageRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {

@@ -60,3 +60,11 @@ type AnswerRepository interface {
 	Insert(ctx context.Context, questionID int64, answer *model.Answer) error
 	DeleteByQuestionID(ctx context.Context, questionID int64) error
 }
+
+type MessageRepository interface {
+	Insert(ctx context.Context, message *model.MessageSave) error
+	CheckUnreadForUser(ctx context.Context, userID int64) (*model.CheckUnreadMessages, error)
+	GetChatByIDs(ctx context.Context, id1 int64, id2 int64) (*model.Chat, error)
+	GetChatListByUserID(ctx context.Context, userID int64) ([]*model.Chat, error)
+	ReadAllInChat(ctx context.Context, id1 int64, id2 int64) error
+}

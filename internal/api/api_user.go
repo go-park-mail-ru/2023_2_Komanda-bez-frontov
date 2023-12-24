@@ -82,7 +82,14 @@ func (c *UserAPIController) ProfileGet(w http.ResponseWriter, r *http.Request) {
 		Email:     user.Email,
 		Avatar:    &user.Avatar,
 		Username:  user.Username,
+		Birthday:  &user.Birthday,
+		Gender:    user.Gender,
 	}
+
+	if *modelUser.Birthday == "-1" {
+		modelUser.Birthday = nil
+	}
+
 	c.responseEncoder.EncodeJSONResponse(ctx, modelUser, int(result.Code), w)
 }
 
@@ -117,6 +124,10 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 	if updatedUser.Avatar == nil {
 		updatedUser.Avatar = new(string)
 	}
+	if updatedUser.Birthday == nil {
+		newDate := "-1"
+		updatedUser.Birthday = &newDate
+	}
 
 	userUpdate := profile.UserUpdate{
 		Avatar:      *updatedUser.Avatar,
@@ -126,6 +137,8 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 		Password:    updatedUser.Password,
 		NewPassword: updatedUser.NewPassword,
 		Email:       updatedUser.Email,
+		Birthday:    *updatedUser.Birthday,
+		Gender:      updatedUser.Gender,
 	}
 
 	curUserMsg := profile.User{
@@ -163,6 +176,12 @@ func (c *UserAPIController) ProfileUpdate(w http.ResponseWriter, r *http.Request
 		Email:     user.Email,
 		Avatar:    &user.Avatar,
 		Username:  user.Username,
+		Birthday:  &user.Birthday,
+		Gender:    user.Gender,
+	}
+
+	if *modelUser.Birthday == "-1" {
+		modelUser.Birthday = nil
 	}
 
 	c.responseEncoder.EncodeJSONResponse(ctx, modelUser, int(result.Code), w)

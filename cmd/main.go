@@ -20,6 +20,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
+	"github.com/robfig/cron"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -116,6 +117,22 @@ func main() {
 	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
 	answerRepository := repository.NewAnswerDatabaseRepository(db, builder)
 
+	// AutoArchive every night at 00:00
+	autoArchiveMidnight := func() {
+		err = formRepository.AutoArchive(context.Background())
+		if err != nil {
+			fmt.Println("AutoArchive ended with error")
+		}
+		fmt.Println("AutoArchive done!")
+	}
+	autoArchiveMidnight()
+	cr := cron.New()
+	err = cr.AddFunc("0 0 * * *", autoArchiveMidnight)
+	if err != nil {
+		log.Error().Msgf("cron ended with error: %s", err)
+	}
+	cr.Start()
+
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
@@ -142,6 +159,10 @@ func main() {
 	sig := <-interrupt
 
 	log.Info().Msgf("Received system signal: %s, application will be shutdown", sig)
+	defer func() {
+		cr.Stop()
+		log.Info().Msgf("AutoArchive is stopped")
+	}()
 
 	if err := server.Shutdown(context.Background()); err != nil {
 		log.Error().Msgf("failed to gracefully shutdown http server: %e", err)

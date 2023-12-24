@@ -10,12 +10,16 @@ import (
 
 type FormRepository interface {
 	FindAll(ctx context.Context) ([]*model.FormTitle, error)
-	FindAllByUser(ctx context.Context, username string) ([]*model.FormTitle, error)
+	FindAllByUserActive(ctx context.Context, username string) ([]*model.FormTitle, error)
+	FindAllByUserArchived(ctx context.Context, username string) ([]*model.FormTitle, error)
 	FindByID(ctx context.Context, id int64) (*model.Form, error)
 	Insert(ctx context.Context, form *model.Form, tx pgx.Tx) (*model.Form, error)
 	Update(ctx context.Context, id int64, form *model.FormUpdate) (*model.FormUpdate, error)
+	AutoArchive(ctx context.Context) error
 	Delete(ctx context.Context, id int64) error
+	Archive(ctx context.Context, id int64, archive bool) error
 	FormsSearch(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error)
+	FormsSearchArchived(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error)
 	FormResults(ctx context.Context, id int64) (*model.FormResult, error)
 	FormResultsCsv(ctx context.Context, id int64) ([]byte, error)
 	FormResultsExel(ctx context.Context, id int64) ([]byte, error)

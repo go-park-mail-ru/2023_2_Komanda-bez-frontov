@@ -29,6 +29,8 @@ type UserGet struct {
 	Username  string  `json:"username" validate:"required,alphanum"`
 	Email     string  `json:"email,omitempty" validate:"omitempty,email"`
 	Avatar    *string `json:"avatar,omitempty"`
+	Birthday  *string `json:"birthday"`
+	Gender    string  `json:"gender"`
 }
 
 func (user *UserGet) Sanitize(sanitizer *bluemonday.Policy) {
@@ -46,6 +48,8 @@ type UserUpdate struct {
 	NewPassword string  `json:"newPassword,omitempty"`
 	Email       string  `json:"email" validate:"required,email"`
 	Avatar      *string `json:"avatar,omitempty"`
+	Birthday    *string `json:"birthday"`
+	Gender      string  `json:"gender"`
 }
 
 type UserAvatarGet struct {

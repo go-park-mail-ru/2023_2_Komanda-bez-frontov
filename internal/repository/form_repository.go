@@ -16,13 +16,15 @@ import (
 )
 
 type Form struct {
-	Title       string    `db:"title"`
-	ID          int64     `db:"id"`
-	Description *string   `db:"description"`
-	Anonymous   bool      `db:"anonymous"`
-	PassageMax  int64     `db:"passage_max"`
-	AuthorID    int64     `db:"author_id"`
-	CreatedAt   time.Time `db:"created_at"`
+	Title       string     `db:"title"`
+	ID          int64      `db:"id"`
+	Description *string    `db:"description"`
+	Anonymous   bool       `db:"anonymous"`
+	PassageMax  int64      `db:"passage_max"`
+	IsArchived  bool       `db:"is_archived"`
+	ArchiveWhen *time.Time `db:"archive_when"`
+	AuthorID    int64      `db:"author_id"`
+	CreatedAt   time.Time  `db:"created_at"`
 }
 
 var (
@@ -34,6 +36,8 @@ var (
 		"f.author_id",
 		"f.anonymous",
 		"f.passage_max",
+		"f.is_archived",
+		"f.archive_when",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -58,6 +62,7 @@ var (
 		"COALESCE(f.description, '')",
 		"f.anonymous",
 		"f.passage_max",
+		"f.is_archived",
 		"u.id",
 		"u.username",
 		"u.first_name",
@@ -77,8 +82,33 @@ var (
 		"COALESCE(ua.first_name, '')",
 		"COALESCE(ua.last_name, '')",
 		"COALESCE(ua.email, '')",
+		"COALESCE(ua.gender, 'U')",
+		"ua.birthday",
 		"q.id",
 		"pa.answer_text",
+	}
+)
+
+var (
+	selectPassageFields = []string{
+		"fp.id",
+		"f.title",
+		"f.description",
+		"fp.user_id",
+		"fp.finished_at",
+		"u.id",
+		"u.username",
+		"u.first_name",
+		"u.last_name",
+		"u.email",
+		"q.id",
+		"q.title",
+		"q.text",
+		"q.type",
+		"q.required",
+		"q.position",
+		"a.id",
+		"a.answer_text",
 	}
 )
 
@@ -135,7 +165,7 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 		  SELECT f.title as title, f.id as id, f.created_at as created_at, COUNT(fp.id) as number_of_passages, similarity(f.title, $1::text) as sim
 		  FROM %s.form as f
 		  LEFT JOIN %s.form_passage  as fp ON fp.form_id = f.id
-		  WHERE f.author_id = $2::integer
+		  WHERE f.author_id = $2::integer and f.is_archived = false
 		  GROUP BY f.id
 		  ORDER BY sim DESC, f.created_at
 		) AS res
@@ -159,6 +189,42 @@ func (r *formDatabaseRepository) FormsSearch(ctx context.Context, title string, 
 	rows, err := tx.Query(ctx, query, title, userID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository form_search failed to execute query: %e", err)
+	}
+
+	return r.searchTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FormsSearchArchived(ctx context.Context, title string, userID uint) (forms []*model.FormTitle, err error) {
+	const limit = 5
+	query := fmt.Sprintf(`SELECT id, title, created_at, number_of_passages
+		FROM (
+		  SELECT f.title as title, f.id as id, f.created_at as created_at, COUNT(fp.id) as number_of_passages, similarity(f.title, $1::text) as sim
+		  FROM %s.form as f
+		  LEFT JOIN %s.form_passage  as fp ON fp.form_id = f.id
+		  WHERE f.author_id = $2::integer and f.is_archived = true
+		  GROUP BY f.id
+		  ORDER BY sim DESC, f.created_at
+		) AS res
+		WHERE sim > 0
+		LIMIT $3::integer`, r.db.GetSchema(), r.db.GetSchema())
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_search_archived failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, title, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository form_search_archived failed to execute query: %e", err)
 	}
 
 	return r.searchTitleFromRows(rows)
@@ -410,11 +476,18 @@ func (r *formDatabaseRepository) FormResults(ctx context.Context, id int64) (for
 				}
 			}
 			if !userExist {
-				formResult.Participants = append(formResult.Participants, &model.UserGet{
+				person := &model.UserGet{
 					ID:        formPassageResult.UserID.Int64,
 					FirstName: formPassageResult.FirstName,
 					Username:  formPassageResult.Username,
-				})
+					Gender:    formPassageResult.Gender,
+				}
+				if formPassageResult.Birthday.Valid {
+					value := formPassageResult.Birthday.String
+					person.Birthday = &value
+				}
+
+				formResult.Participants = append(formResult.Participants, person)
 			}
 		}
 	}
@@ -446,6 +519,7 @@ func (r *formDatabaseRepository) formResultsFromRows(rows pgx.Rows) ([]*model.Fo
 				Title:                info.formResult.Title,
 				Description:          info.formResult.Description,
 				CreatedAt:            info.formResult.CreatedAt,
+				IsArchived:           info.formResult.IsArchived,
 				Author:               info.formResult.Author,
 				NumberOfPassagesForm: 0,
 				Questions:            []*model.QuestionResult{},
@@ -517,6 +591,7 @@ func (r *formDatabaseRepository) formPassageResultsFromRows(rows pgx.Rows) ([]*m
 
 	for rows.Next() {
 		result := &model.FormPassageResult{}
+
 		err := rows.Scan(
 			&result.FormID,
 			&result.UserID,
@@ -524,9 +599,12 @@ func (r *formDatabaseRepository) formPassageResultsFromRows(rows pgx.Rows) ([]*m
 			&result.FirstName,
 			&result.LastName,
 			&result.Email,
+			&result.Gender,
+			&result.Birthday,
 			&result.QuestionID,
 			&result.AnswerText,
 		)
+
 		if err != nil {
 			return nil, fmt.Errorf("form_repository formPassageResultsFromRows failed to scan row: %v", err)
 		}
@@ -602,6 +680,7 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 		&formResult.Description,
 		&formResult.Anonymous,
 		&formResult.PassageMax,
+		&formResult.IsArchived,
 		&formResult.Author.ID,
 		&formResult.Author.Username,
 		&formResult.Author.FirstName,
@@ -624,13 +703,13 @@ func (r *formDatabaseRepository) formResultsFromRow(row pgx.Row) (*formResultsFr
 	return &formResultsFromRowReturn{formResult, questionResult, answerResult}, nil
 }
 
-func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username string) (forms []*model.FormTitle, err error) {
+func (r *formDatabaseRepository) FindAllByUserActive(ctx context.Context, username string) (forms []*model.FormTitle, err error) {
 	query, args, err := r.builder.
 		Select("f.id, f.title, f.created_at, count(fp.id) as number_of_passages").
 		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
 		LeftJoin(fmt.Sprintf("%s.form_passage as fp ON fp.form_id = f.id", r.db.GetSchema())).
-		Where(squirrel.Eq{"u.username": username}).
+		Where(squirrel.Eq{"u.username": username, "f.is_archived": false}).
 		GroupBy("f.id").
 		ToSql()
 
@@ -655,6 +734,42 @@ func (r *formDatabaseRepository) FindAllByUser(ctx context.Context, username str
 	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("form_repository find_all failed to execute query: %e", err)
+	}
+
+	return r.searchTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FindAllByUserArchived(ctx context.Context, username string) (forms []*model.FormTitle, err error) {
+	query, args, err := r.builder.
+		Select("f.id, f.title, f.created_at, count(fp.id) as number_of_passages").
+		From(fmt.Sprintf("%s.form as f", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.form_passage as fp ON fp.form_id = f.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"u.username": username, "f.is_archived": true}).
+		GroupBy("f.id").
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all_archived failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all_archived failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_all_archived failed to execute query: %e", err)
 	}
 
 	return r.searchTitleFromRows(rows)
@@ -722,8 +837,8 @@ func (r *formDatabaseRepository) Insert(ctx context.Context, form *model.Form, t
 
 	formQuery, args, err := r.builder.
 		Insert(fmt.Sprintf("%s.form", r.db.GetSchema())).
-		Columns("title", "author_id", "created_at", "description", "anonymous", "passage_max").
-		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous, form.PassageMax).
+		Columns("title", "author_id", "created_at", "description", "anonymous", "passage_max", "archive_when").
+		Values(form.Title, form.Author.ID, form.CreatedAt, form.Description, form.Anonymous, form.PassageMax, form.ArchiveWhen).
 		Suffix("RETURNING id").
 		ToSql()
 	err = tx.QueryRow(ctx, formQuery, args...).Scan(&form.ID)
@@ -908,6 +1023,8 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *mod
 		Set("description", form.Description).
 		Set("anonymous", form.Anonymous).
 		Set("passage_max", form.PassageMax).
+		Set("is_archived", form.IsArchived).
+		Set("archive_when", form.ArchiveWhen).
 		Where(squirrel.Eq{"id": id}).
 		Suffix("RETURNING id, title, created_at").ToSql()
 	if err != nil {
@@ -936,6 +1053,38 @@ func (r *formDatabaseRepository) Update(ctx context.Context, id int64, form *mod
 	return form, nil
 }
 
+func (r *formDatabaseRepository) AutoArchive(ctx context.Context) (err error) {
+	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
+		Set("is_archived", true).
+		Set("archive_when", nil).
+		Where("EXTRACT(DAY FROM (NOW() - archive_when)) >= 0").
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("form_repository auto_archive failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("form_repository auto_archive failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("form_repository auto_archive failed to execute query: %e", err)
+	}
+
+	return nil
+}
+
 func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err error) {
 	query, args, err := r.builder.Delete(fmt.Sprintf("%s.form", r.db.GetSchema())).
 		Where(squirrel.Eq{"id": id}).ToSql()
@@ -960,6 +1109,37 @@ func (r *formDatabaseRepository) Delete(ctx context.Context, id int64) (err erro
 	_, err = tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("form_repository delete failed to execute query: %e", err)
+	}
+
+	return nil
+}
+
+func (r *formDatabaseRepository) Archive(ctx context.Context, id int64, archive bool) (err error) {
+	query, args, err := r.builder.Update(fmt.Sprintf("%s.form", r.db.GetSchema())).
+		Set("is_archived", archive).
+		Set("archive_when", nil).
+		Where(squirrel.Eq{"id": id}).ToSql()
+	if err != nil {
+		return fmt.Errorf("form_repository archive failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("form_repository archive failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("form_repository archive failed to execute query: %e", err)
 	}
 
 	return nil
@@ -994,6 +1174,8 @@ func (r *formDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Form, error) 
 				Anonymous:   info.form.Anonymous,
 				PassageMax:  int(info.form.PassageMax),
 				CreatedAt:   info.form.CreatedAt,
+				IsArchived:  info.form.IsArchived,
+				ArchiveWhen: info.form.ArchiveWhen,
 				Author: &model.UserGet{
 					ID:        info.author.ID,
 					Username:  info.author.Username,
@@ -1110,6 +1292,8 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 		&form.AuthorID,
 		&form.Anonymous,
 		&form.PassageMax,
+		&form.IsArchived,
+		&form.ArchiveWhen,
 		&author.ID,
 		&author.Username,
 		&author.FirstName,
@@ -1133,4 +1317,250 @@ func (r *formDatabaseRepository) fromRow(row pgx.Row) (*fromRowReturn, error) {
 	}
 
 	return &fromRowReturn{form, author, question, answer}, nil
+}
+
+func (r *formDatabaseRepository) FindPassagesAll(ctx context.Context, userID int64) (forms []*model.FormPassageTitle, err error) {
+	query, args, err := r.builder.
+		Select("fp.id, f.title, fp.finished_at").
+		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form as f ON fp.form_id = f.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"fp.user_id": userID}).
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_all failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_all failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_all failed to execute query: %e", err)
+	}
+
+	return r.passageTitleFromRows(rows)
+}
+
+func (r *formDatabaseRepository) FindPassageByID(ctx context.Context, id int64) (form *model.FormPassageGet, err error) {
+	query, args, err := r.builder.
+		Select(selectPassageFields...).
+		From(fmt.Sprintf("%s.form_passage as fp", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form as f ON fp.form_id = f.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.user as u ON f.author_id = u.id", r.db.GetSchema())).
+		LeftJoin(fmt.Sprintf("%s.question as q ON q.form_id = f.id", r.db.GetSchema())).
+		Join(fmt.Sprintf("%s.form_passage_answer as a ON a.question_id = q.id AND a.form_passage_id = fp.id", r.db.GetSchema())).
+		Where(squirrel.Eq{"fp.id": id}).
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_by_id failed to build query: %e", err)
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_by_id failed to begin transaction: %e", err)
+	}
+
+	defer func() {
+		switch err {
+		case nil:
+			err = tx.Commit(ctx)
+		default:
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("form_repository find_passage_by_id failed to execute query: %e", err)
+	}
+
+	forms, err := r.fromPassageRows(rows)
+	if len(forms) == 0 {
+		return nil, nil
+	}
+
+	return forms[0], err
+}
+
+type fromPassageRowReturn struct {
+	form     *model.FormPassageGet
+	author   *User
+	question *Question
+	answer   *Answer
+}
+
+func (r *formDatabaseRepository) fromPassageRow(row pgx.Row) (*fromPassageRowReturn, error) {
+	form := &model.FormPassageGet{}
+	author := &User{}
+	question := &Question{}
+	answer := &Answer{}
+
+	err := row.Scan(
+		&form.ID,
+		&form.Title,
+		&form.Description,
+		&form.UserID,
+		&form.FinishedAt,
+		&author.ID,
+		&author.Username,
+		&author.FirstName,
+		&author.LastName,
+		&author.Email,
+		&question.ID,
+		&question.Title,
+		&question.Text,
+		&question.Type,
+		&question.Required,
+		&question.Position,
+		&answer.ID,
+		&answer.AnswerText,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("form_repository from_passage_row failed to scan row: %e", err)
+	}
+
+	return &fromPassageRowReturn{form, author, question, answer}, nil
+}
+
+func (r *formDatabaseRepository) fromPassageRows(rows pgx.Rows) ([]*model.FormPassageGet, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	formMap := map[int64]*model.FormPassageGet{}
+	questionsByFormID := map[int64][]*model.Question{}
+	answersByQuestionID := map[int64][]*model.Answer{}
+
+	questionWasAppended := map[int64]bool{}
+
+	for rows.Next() {
+		info, err := r.fromPassageRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		if info.form == nil {
+			continue
+		}
+
+		if _, ok := formMap[*info.form.ID]; !ok {
+			formMap[*info.form.ID] = &model.FormPassageGet{
+				ID:          info.form.ID,
+				Title:       info.form.Title,
+				Description: info.form.Description,
+				FinishedAt:  info.form.FinishedAt,
+				UserID:      info.form.UserID,
+				Author: &model.UserGet{
+					ID:        info.author.ID,
+					Username:  info.author.Username,
+					FirstName: info.author.FirstName,
+					LastName:  info.author.LastName,
+					Email:     info.author.Email,
+					Avatar:    info.author.Avatar,
+				},
+			}
+		}
+
+		if _, ok := questionWasAppended[info.question.ID]; !ok {
+			questionsByFormID[*info.form.ID] = append(questionsByFormID[*info.form.ID], &model.Question{
+				ID:          &info.question.ID,
+				Title:       info.question.Title,
+				Description: info.question.Text,
+				Type:        info.question.Type,
+				Required:    info.question.Required,
+				Position:    info.question.Position,
+			})
+			questionWasAppended[info.question.ID] = true
+		}
+
+		if _, ok := answersByQuestionID[info.question.ID]; !ok {
+			answersByQuestionID[info.question.ID] = make([]*model.Answer, 0, 1)
+		}
+
+		answersByQuestionID[info.question.ID] = append(answersByQuestionID[info.question.ID], &model.Answer{
+			ID:   &info.answer.ID,
+			Text: info.answer.AnswerText,
+		})
+	}
+
+	forms := make([]*model.FormPassageGet, 0, len(formMap))
+
+	for _, form := range formMap {
+		form.Questions = questionsByFormID[*form.ID]
+		for _, question := range form.Questions {
+			if _, ok := answersByQuestionID[*question.ID]; ok {
+				question.Answers = answersByQuestionID[*question.ID]
+			} else {
+				question.Answers = nil
+			}
+		}
+
+		forms = append(forms, form)
+	}
+
+	return forms, nil
+}
+
+func (r *formDatabaseRepository) passageTitleFromRows(rows pgx.Rows) ([]*model.FormPassageTitle, error) {
+	defer func() {
+		rows.Close()
+	}()
+
+	formTitleArray := make([]*model.FormPassageTitle, 0)
+
+	for rows.Next() {
+		form, err := r.formPassageTitleFromRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		if form == nil {
+			continue
+		}
+
+		formTitleArray = append(formTitleArray, &model.FormPassageTitle{
+			ID:         form.ID,
+			Title:      form.Title,
+			FinishedAt: form.FinishedAt,
+		})
+	}
+
+	return formTitleArray, nil
+}
+
+func (r *formDatabaseRepository) formPassageTitleFromRow(row pgx.Row) (*model.FormPassageTitle, error) {
+	form := &model.FormPassageTitle{}
+
+	err := row.Scan(
+		&form.ID,
+		&form.Title,
+		&form.FinishedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("form_repository form_passage_scan failed to scan row: %e", err)
+	}
+
+	return form, nil
 }

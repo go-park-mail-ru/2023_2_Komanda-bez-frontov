@@ -15,12 +15,14 @@ import (
 	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/form"
 	"go-form-hub/internal/services/shortener"
+	"go-form-hub/internal/services/message"
 	"go-form-hub/microservices/auth/session"
 	passage "go-form-hub/microservices/passage/passage_client"
 	"go-form-hub/microservices/user/profile"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
+	"github.com/robfig/cron"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -117,9 +119,27 @@ func main() {
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
 	questionRepository := repository.NewQuestionDatabaseRepository(db, builder)
 	answerRepository := repository.NewAnswerDatabaseRepository(db, builder)
+	messageRepository := repository.NewMessageDatabaseRepository(db, builder)
+
+	// AutoArchive every night at 00:00
+	autoArchiveMidnight := func() {
+		err = formRepository.AutoArchive(context.Background())
+		if err != nil {
+			log.Error().Msgf("AutoArchive ended with error")
+		}
+		log.Info().Msgf("AutoArchive done!")
+	}
+	autoArchiveMidnight()
+	cr := cron.New()
+	err = cr.AddFunc("0 0 * * *", autoArchiveMidnight)
+	if err != nil {
+		log.Error().Msgf("cron ended with error: %s", err)
+	}
+	cr.Start()
 
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
 	shortenerService := shortener.NewShortenerService(shortenerRepository, validate)
+	messageService := message.NewMessageService(messageRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
 
@@ -127,12 +147,14 @@ func main() {
 	authRouter := api.NewAuthAPIController(tokenParser, sessController, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
 	shortenerRouter := api.NewShortenerAPIController(shortenerService, validate, responseEncoder)
+	messageRouter := api.NewMessageAPIController(messageService, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
 	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
 	csrfMiddleware := api.CSRFMiddleware(tokenParser, responseEncoder)
 
 	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter, shortenerRouter)
+	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter, messageRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {
@@ -146,6 +168,10 @@ func main() {
 	sig := <-interrupt
 
 	log.Info().Msgf("Received system signal: %s, application will be shutdown", sig)
+	defer func() {
+		cr.Stop()
+		log.Info().Msgf("AutoArchive is stopped")
+	}()
 
 	if err := server.Shutdown(context.Background()); err != nil {
 		log.Error().Msgf("failed to gracefully shutdown http server: %e", err)

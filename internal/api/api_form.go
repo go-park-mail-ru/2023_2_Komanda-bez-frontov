@@ -64,6 +64,13 @@ func (c *FormAPIController) Routes() []Route {
 			AuthRequired: true,
 		},
 		{
+			Name:         "FormArchive",
+			Method:       http.MethodPut,
+			Path:         "/forms/{id}/archive",
+			Handler:      c.FormArchive,
+			AuthRequired: true,
+		},
+		{
 			Name:         "FormUpdate",
 			Method:       http.MethodPut,
 			Path:         "/forms/{id}/update",
@@ -90,6 +97,20 @@ func (c *FormAPIController) Routes() []Route {
 			Path:         "/forms/pass",
 			Handler:      c.FormPass,
 			AuthRequired: false,
+		},
+		{
+			Name:         "FormPassageList",
+			Method:       http.MethodGet,
+			Path:         "/forms/pass/list",
+			Handler:      c.FormPassageList,
+			AuthRequired: true,
+		},
+		{
+			Name:         "FormPassageGet",
+			Method:       http.MethodGet,
+			Path:         "/forms/pass/{id}",
+			Handler:      c.FormPassageGet,
+			AuthRequired: true,
 		},
 		{
 			Name:         "FormResultsCsv",
@@ -191,9 +212,10 @@ func (c *FormAPIController) FormList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	author := r.URL.Query().Get("author")
+	isArchived := r.URL.Query().Get("archive") == "true"
 
 	if author != "" {
-		result, err := c.service.FormListByUser(ctx, author)
+		result, err := c.service.FormListByUser(ctx, author, isArchived)
 		if err != nil {
 			log.Error().Msgf("form_api form_list error: %v", err)
 			c.responseEncoder.HandleError(ctx, w, err, result)
@@ -243,6 +265,37 @@ func (c *FormAPIController) FormDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // nolint:dupl
+func (c *FormAPIController) FormArchive(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Error().Msgf("form_api form_archive unescape error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("form_api form_archive parse_id error: %v", err)
+		log.Error().Msg(err.Error())
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	archive := r.URL.Query().Get("archive") == "true"
+
+	result, err := c.service.FormArchive(ctx, id, archive)
+	if err != nil {
+		log.Error().Msgf("form_api form_archive error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+// nolint:dupl
 func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -274,9 +327,10 @@ func (c *FormAPIController) FormGet(w http.ResponseWriter, r *http.Request) {
 func (c *FormAPIController) FormSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+	isArchived := r.URL.Query().Get("archive") == "true"
 
 	title := r.URL.Query().Get("title")
-	result, err := c.service.FormSearch(ctx, title, uint(currentUser.ID))
+	result, err := c.service.FormSearch(ctx, title, uint(currentUser.ID), isArchived)
 	if err != nil {
 		log.Error().Msgf("form_api form_search error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
@@ -422,6 +476,47 @@ func (c *FormAPIController) FormUpdate(w http.ResponseWriter, r *http.Request) {
 	result, err := c.service.FormUpdate(ctx, id, &updatedForm)
 	if err != nil {
 		log.Error().Msgf("form_api form_update error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormPassageList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	result, err := c.service.FormPassageList(ctx)
+	if err != nil {
+		log.Error().Msgf("form_api form_passage_list error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+func (c *FormAPIController) FormPassageGet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam, err := url.PathUnescape(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Error().Msgf("form_api form_passage_get unescape error: %v", err)
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("form_api form_passage_get parse_id error: %v", err)
+		log.Error().Msg(err.Error())
+		c.responseEncoder.HandleError(ctx, w, err, nil)
+		return
+	}
+
+	result, err := c.service.FormPassageGet(ctx, id)
+	if err != nil {
+		log.Error().Msgf("form_api form_passage_get error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}

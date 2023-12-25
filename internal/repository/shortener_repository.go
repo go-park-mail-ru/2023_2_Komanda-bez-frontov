@@ -82,7 +82,7 @@ func generateRandomString(length int) (string, error) {
 
 
 func (r *databaseRepository) RedirectHandler(w http.ResponseWriter, req *http.Request) {
-	shortURL := req.URL.Path[len("/redirect/"):]
+	shortURL := req.URL.Path[len("/123"):]
 	if shortURL == "" {
 		http.Error(w, "Short URL not provided", http.StatusBadRequest)
 		return
@@ -94,14 +94,14 @@ func (r *databaseRepository) RedirectHandler(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	http.Redirect(w, req, longURL, http.StatusFound)
+	http.Redirect(w, req, longURL[28:], http.StatusFound)
 }
 
 func (r *databaseRepository) GetLongURL(ctx context.Context, shortURL string) (string, error) {
 	var longURL string
-	query, args, err := r.builder.Select("LongURL").
-		From("ShortURL").
-		Where(squirrel.Eq{"ShortURL": shortURL}).
+	query, args, err := r.builder.Select("long_url").
+		From(fmt.Sprintf("%s.url", r.db.GetSchema())).
+		Where(squirrel.Eq{"short_url": shortURL}).
 		Limit(1).
 		ToSql()
 	if err != nil {

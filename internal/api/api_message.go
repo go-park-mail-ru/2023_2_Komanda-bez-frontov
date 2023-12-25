@@ -122,10 +122,12 @@ func (c *MessageAPIController) MessageSend(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = WebsocketClients[messageSend.ReceiverID].Conn.WriteMessage(websocket.TextMessage, []byte("New Message Received!"))
-	if err != nil {
-		log.Error().Msgf("Websocket send message error: %s", err)
-		return
+	if _, ok := WebsocketClients[messageSend.ReceiverID]; ok {
+		err = WebsocketClients[messageSend.ReceiverID].Conn.WriteMessage(websocket.TextMessage, []byte("New Message Received!"))
+		if err != nil {
+			log.Error().Msgf("Websocket send message error: %s", err)
+			return
+		}
 	}
 
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)

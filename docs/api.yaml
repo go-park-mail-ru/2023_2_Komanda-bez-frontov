@@ -554,7 +554,81 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
+  /api/v1/shorten:
+    post:
+      summary: Shorten a URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                long_url:
+                  type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  short_url:
+                    type: string
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/redirect/{shortURL}:
+    get:
+      summary: Redirect to the original URL
+      parameters:
+        - in: path
+          name: shortURL
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect
+        '404':
+          description: Short URL not found
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/long-url/{shortURL}:
+    get:
+      summary: Get the original long URL
+      parameters:
+        - in: path
+          name: shortURL
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  long_url:
+                    type: string
+        '404':
+          description: Short URL not found
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     LoginRequest:

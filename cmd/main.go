@@ -14,6 +14,7 @@ import (
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/form"
+	"go-form-hub/internal/services/shortener"
 	"go-form-hub/microservices/auth/session"
 	passage "go-form-hub/microservices/passage/passage_client"
 	"go-form-hub/microservices/user/profile"
@@ -110,6 +111,7 @@ func main() {
 	validate := validator.New()
 	tokenParser := api.NewHMACHashToken(cfg.Secret)
 
+	shortenerRepository := repository.NewDatabaseRepository(db, builder)
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	formRepository := repository.NewFormDatabaseRepository(db, builder)
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
@@ -117,18 +119,20 @@ func main() {
 	answerRepository := repository.NewAnswerDatabaseRepository(db, builder)
 
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
+	shortenerService := shortener.NewShortenerService(shortenerRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
 
 	formRouter := api.NewFormAPIController(formService, passageController, validate, responseEncoder)
 	authRouter := api.NewAuthAPIController(tokenParser, sessController, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
+	shortenerRouter := api.NewShortenerAPIController(shortenerService, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
 	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
 	csrfMiddleware := api.CSRFMiddleware(tokenParser, responseEncoder)
 
-	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter)
+	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter, shortenerRouter)
 
 	server, err := StartServer(cfg, r)
 	if err != nil {

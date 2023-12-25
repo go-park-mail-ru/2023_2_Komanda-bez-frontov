@@ -54,3 +54,8 @@ type AnswerRepository interface {
 	Insert(ctx context.Context, questionID int64, answer *model.Answer) error
 	DeleteByQuestionID(ctx context.Context, questionID int64) error
 }
+
+type ShortenerRepository interface {
+	GetLongURL(ctx context.Context, shortURL string) (string, error)
+	Insert(ctx context.Context, url *URLMapping) (string, error)
+}

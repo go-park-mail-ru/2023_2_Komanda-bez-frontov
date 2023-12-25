@@ -153,8 +153,8 @@ func (r *userDatabaseRepository) FindByID(ctx context.Context, id int64) (user *
 
 func (r *userDatabaseRepository) Insert(ctx context.Context, user *User) (int64, error) {
 	query, args, err := r.builder.Insert(r.getTableName()).
-		Columns("username", "first_name", "last_name", "password", "email", "avatar", "gender", "birthday::text").
-		Values(user.Username, user.FirstName, user.LastName, user.Password, user.Email, user.Avatar, user.Gender, user.Birthday).
+		Columns("username", "first_name", "last_name", "password", "email", "avatar", "birthday").
+		Values(user.Username, user.FirstName, user.LastName, user.Password, user.Email, user.Avatar, user.Birthday).
 		Suffix("RETURNING id").ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("user_repository insert failed to build query: %e", err)

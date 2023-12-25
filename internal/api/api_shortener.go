@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -54,6 +55,7 @@ func (c *ShortenerAPIController) Routes() []Route {
 
 func (c *ShortenerAPIController) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	fmt.Println("checker")
 
 	requestJSON, err := io.ReadAll(r.Body)
 	defer func() {
@@ -105,7 +107,7 @@ func (c *ShortenerAPIController) RedirectHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	http.Redirect(w, r, "/api/v1"+longURL[21:], http.StatusFound)
+	http.Redirect(w, r, longURL[21:], http.StatusFound)
 }
 
 func (c *ShortenerAPIController) GetLongURL(w http.ResponseWriter, r *http.Request) {

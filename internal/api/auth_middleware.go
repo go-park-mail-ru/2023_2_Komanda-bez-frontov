@@ -63,6 +63,8 @@ func AuthMiddleware(sessionRepository repository.SessionRepository, userReposito
 				FirstName: currentUser.FirstName,
 				LastName:  currentUser.LastName,
 				Email:     currentUser.Email,
+				Gender:    currentUser.Gender,
+				Birthday:  currentUser.Birthday,
 			}))
 			next.ServeHTTP(w, r)
 		})

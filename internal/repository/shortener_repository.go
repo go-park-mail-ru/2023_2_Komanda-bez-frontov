@@ -31,13 +31,11 @@ func NewDatabaseRepository(db database.ConnPool, builder squirrel.StatementBuild
 }
 
 func (r *databaseRepository) Insert(ctx context.Context, url *URLMapping) (string, error) {
-    // Генерация случайного короткого URL
-    shortURL, err := generateRandomString(8) // 8 - длина короткого URL
+    shortURL, err := generateRandomString(8)
     if err != nil {
         return "", err
     }
 
-    // Проверка на уникальность короткого URL
     for {
         exists, err := r.shortURLExists(ctx, shortURL)
         if err != nil {
@@ -46,14 +44,12 @@ func (r *databaseRepository) Insert(ctx context.Context, url *URLMapping) (strin
         if !exists {
             break
         }
-        // Если короткий URL уже существует, генерируем новый
         shortURL, err = generateRandomString(8)
         if err != nil {
             return "", err
         }
     }
 
-    // Вставка в базу данных
     query, args, err := r.builder.Insert(fmt.Sprintf("%s.url", r.db.GetSchema())).
         Columns("long_url", "short_url").
         Values(url.LongURL, shortURL).
@@ -99,15 +95,12 @@ func generateRandomString(length int) (string, error) {
         return "", fmt.Errorf("failed to generate random string: %v", err)
     }
 
-    // Используем base64 для кодирования случайных байт
     randomString := base64.URLEncoding.EncodeToString(bytes)
 
-    // Обрезаем до нужной длины
     return randomString[:length], nil
 }
 
 func (r *databaseRepository) shortURLExists(ctx context.Context, shortURL string) (bool, error) {
-    // Проверка наличия короткого URL в базе данных
     existsQuery := squirrel.Select("EXISTS(SELECT 1)").
         From(fmt.Sprintf("%s.url", r.db.GetSchema())).
         Where(squirrel.Eq{"short_url": shortURL})

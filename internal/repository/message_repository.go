@@ -108,6 +108,7 @@ func (r *messageDatabaseRepository) GetChatByIDs(ctx context.Context, id1, id2 i
 		From(fmt.Sprintf("%s.message as m", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON u.id = %d", r.db.GetSchema(), id2)).
 		Where(squirrel.Or{squirrel.And{squirrel.Eq{"sender_id": id1}, squirrel.Eq{"receiver_id": id2}}, squirrel.And{squirrel.Eq{"sender_id": id2}, squirrel.Eq{"receiver_id": id1}}}).
+		OrderBy("m.id").
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("message_repository get chat by IDs failed to build query: %v", err)
@@ -146,6 +147,7 @@ func (r *messageDatabaseRepository) GetChatListByUserID(ctx context.Context, use
 		From(fmt.Sprintf("%s.message as m", r.db.GetSchema())).
 		Join(fmt.Sprintf("%s.user as u ON u.id != %d AND (u.id = m.sender_id OR u.id = m.receiver_id)", r.db.GetSchema(), userID)).
 		Where(fmt.Sprintf("m.sender_id = %d OR m.receiver_id = %d", userID, userID)).
+		OrderBy("m.id").
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("message_repository get_all_chats by IDs failed to build query: %v", err)

@@ -246,9 +246,11 @@ func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WebsocketClients[currentUser.ID].Conn.Close()
-	delete(WebsocketClients, currentUser.ID)
-
+	if _, ok := WebsocketClients[currentUser.ID]; ok {
+		WebsocketClients[currentUser.ID].Conn.Close()
+		delete(WebsocketClients, currentUser.ID)
+	}
+	
 	cookie := &http.Cookie{
 		Name:     "session_id",
 		HttpOnly: true,

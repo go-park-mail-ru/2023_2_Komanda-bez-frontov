@@ -4,18 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 
 	"go-form-hub/internal/model"
 	"go-form-hub/internal/services/message"
 
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
-	"github.com/rs/zerolog/log"
 	"github.com/gorilla/websocket"
+	"github.com/rs/zerolog/log"
 )
 
 var upgrader = websocket.Upgrader{
@@ -24,17 +24,17 @@ var upgrader = websocket.Upgrader{
 }
 
 type websocketClient struct {
-	Conn 	*websocket.Conn
-	mu   	sync.Mutex
-    UserID  int64
+	Conn   *websocket.Conn
+	mu     sync.Mutex
+	UserID int64
 }
 
 var WebsocketClients = make(map[int64]*websocketClient)
 
-func (c *websocketClient) NotifyNewMessage(message string) {
+func (c *websocketClient) NotifyNewMessage(mess string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	err := c.Conn.WriteMessage(websocket.TextMessage, []byte(message))
+	err := c.Conn.WriteMessage(websocket.TextMessage, []byte(mess))
 	if err != nil {
 		log.Error().Msgf("websocket write error:  %s", err)
 		return
@@ -108,21 +108,21 @@ func (c *MessageAPIController) MessageSend(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var message model.MessageSave
-	if err = json.Unmarshal(requestJSON, &message); err != nil {
+	var messageSend model.MessageSave
+	if err = json.Unmarshal(requestJSON, &messageSend); err != nil {
 		log.Error().Msgf("message_api mess_save unmarshal error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
 
-	result, err := c.service.MessageSave(r.Context(), &message)
+	result, err := c.service.MessageSave(r.Context(), &messageSend)
 	if err != nil {
 		log.Error().Msgf("message_api mess_save error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
 		return
 	}
 
-	err = WebsocketClients[message.ReceiverID].Conn.WriteMessage(websocket.TextMessage, []byte("New Message Received!"))
+	err = WebsocketClients[messageSend.ReceiverID].Conn.WriteMessage(websocket.TextMessage, []byte("New Message Received!"))
 	if err != nil {
 		log.Error().Msgf("Websocket send message error: %s", err)
 		return
@@ -131,7 +131,7 @@ func (c *MessageAPIController) MessageSend(w http.ResponseWriter, r *http.Reques
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
-// Этот метод проверяет, есть ли в бд записи с reciever_id = currentUser и is_read = false
+// Этот метод проверяет, есть ли в бд записи с receiver_id = currentUser и is_read = false
 // Возвращает Json формата model.CheckUnreadMessages
 func (c *MessageAPIController) MessageCheckUnread(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -146,11 +146,11 @@ func (c *MessageAPIController) MessageCheckUnread(w http.ResponseWriter, r *http
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
 }
 
-// Этот метод возвращает список чатов с reciever_id = currentUser или sender_id = currentUser
+// Этот метод возвращает список чатов с receiver_id = currentUser или sender_id = currentUser
 // Возвращает Json формата model.ChatList
 func (c *MessageAPIController) GetChatList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	result, err := c.service.ChatList(ctx)
 	if err != nil {
 		log.Error().Msgf("message_api chat_list error: %v", err)
@@ -197,8 +197,8 @@ func (c *MessageAPIController) MessageStartWebsocket(w http.ResponseWriter, r *h
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 
 	upgrader.CheckOrigin = func(r *http.Request) bool {
-        return true
-    }
+		return true
+	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -207,11 +207,10 @@ func (c *MessageAPIController) MessageStartWebsocket(w http.ResponseWriter, r *h
 	}
 
 	client := &websocketClient{Conn: conn, UserID: currentUser.ID}
+	if _, ok := WebsocketClients[currentUser.ID]; ok {
+		WebsocketClients[currentUser.ID].Conn.Close()
+	}
 	WebsocketClients[currentUser.ID] = client
-	// defer func() {
-	// 	conn.Close()
-	// 	delete(WebsocketClients, currentUser.ID)
-	// }()
 
 	err = conn.WriteMessage(websocket.TextMessage, []byte("Connection is established!"))
 	if err != nil {

@@ -72,7 +72,6 @@ func (s *messageService) ChatGet(ctx context.Context, id int64) (*resp.Response,
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
-	// result.Sanitize(s.sanitizer)
 
 	if result == nil {
 		return resp.NewResponse(http.StatusNotFound, nil), nil
@@ -88,7 +87,6 @@ func (s *messageService) ChatList(ctx context.Context) (*resp.Response, error) {
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}
-	// result.Sanitize(s.sanitizer)
 
 	chatList := &model.ChatList{
 		Chats: result,

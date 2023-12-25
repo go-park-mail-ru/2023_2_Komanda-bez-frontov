@@ -341,7 +341,7 @@ func (s *formService) FormSearch(ctx context.Context, title string, userID uint,
 
 func (s *formService) FormPassageList(ctx context.Context) (*resp.Response, error) {
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
-	
+
 	forms, err := s.formRepository.FindPassagesAll(ctx, currentUser.ID)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err

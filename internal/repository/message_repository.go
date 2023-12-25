@@ -102,7 +102,7 @@ func (r *messageDatabaseRepository) CheckUnreadForUser(ctx context.Context, user
 	return &model.CheckUnreadMessages{Count: unreadMessages}, nil
 }
 
-func (r *messageDatabaseRepository) GetChatByIDs(ctx context.Context, id1 int64, id2 int64) (*model.Chat, error) {
+func (r *messageDatabaseRepository) GetChatByIDs(ctx context.Context, id1, id2 int64) (*model.Chat, error) {
 	query, args, err := r.builder.
 		Select(selectMessageFields...).
 		From(fmt.Sprintf("%s.message as m", r.db.GetSchema())).
@@ -175,7 +175,7 @@ func (r *messageDatabaseRepository) GetChatListByUserID(ctx context.Context, use
 	return chats, err
 }
 
-func (r *messageDatabaseRepository) ReadAllInChat(ctx context.Context, id1 int64, id2 int64) error {
+func (r *messageDatabaseRepository) ReadAllInChat(ctx context.Context, id1, id2 int64) error {
 	query, args, err := r.builder.
 		Update(fmt.Sprintf("%s.message as m", r.db.GetSchema())).
 		Set("is_read", true).
@@ -205,8 +205,8 @@ func (r *messageDatabaseRepository) ReadAllInChat(ctx context.Context, id1 int64
 }
 
 type fromRowMessageReturn struct {
-	user   	 *model.UserGet
-	message  *model.Message
+	user    *model.UserGet
+	message *model.Message
 }
 
 func (r *messageDatabaseRepository) fromRow(row pgx.Row) (*fromRowMessageReturn, error) {
@@ -268,11 +268,11 @@ func (r *messageDatabaseRepository) fromRows(rows pgx.Rows) ([]*model.Chat, erro
 		}
 
 		chatMap[info.user.ID].Messages = append(chatMap[info.user.ID].Messages, &model.Message{
-			ID:   info.message.ID,
+			ID:       info.message.ID,
 			SenderID: info.message.SenderID,
-			SendAt: info.message.SendAt,
-			IsRead: info.message.IsRead,
-			Text: info.message.Text,
+			SendAt:   info.message.SendAt,
+			IsRead:   info.message.IsRead,
+			Text:     info.message.Text,
 		})
 	}
 

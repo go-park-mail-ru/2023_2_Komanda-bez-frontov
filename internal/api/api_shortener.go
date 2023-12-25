@@ -105,7 +105,7 @@ func (c *ShortenerAPIController) RedirectHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	http.Redirect(w, r, "/api/v1" + longURL[21:], http.StatusFound)
+	http.Redirect(w, r, "/api/v1"+longURL[21:], http.StatusFound)
 }
 
 func (c *ShortenerAPIController) GetLongURL(w http.ResponseWriter, r *http.Request) {

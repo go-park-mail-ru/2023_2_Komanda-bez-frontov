@@ -67,19 +67,17 @@ func (r *databaseRepository) Insert(ctx context.Context, url *URLMapping) (strin
 	return shortURL, nil
 }
 
-
 func generateRandomString(length int) (string, error) {
-    bytes := make([]byte, length)
-    _, err := rand.Read(bytes)
-    if err != nil {
-        return "", fmt.Errorf("failed to generate random string: %v", err)
-    }
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random string: %v", err)
+	}
 
-    randomString := base64.URLEncoding.EncodeToString(bytes)
+	randomString := base64.URLEncoding.EncodeToString(bytes)
 
-    return randomString[:length], nil
+	return randomString[:length], nil
 }
-
 
 func (r *databaseRepository) RedirectHandler(w http.ResponseWriter, req *http.Request) {
 	shortURL := req.URL.Path[len("/123"):]

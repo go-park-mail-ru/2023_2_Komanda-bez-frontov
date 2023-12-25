@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sync"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -14,7 +15,31 @@ import (
 	"github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
+	"github.com/gorilla/websocket"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+type websocketClient struct {
+	Conn 	*websocket.Conn
+	mu   	sync.Mutex
+    UserID  int64
+}
+
+var WebsocketClients = make(map[int64]*websocketClient)
+
+func (c *websocketClient) NotifyNewMessage(message string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	err := c.Conn.WriteMessage(websocket.TextMessage, []byte(message))
+	if err != nil {
+		log.Error().Msgf("websocket write error:  %s", err)
+		return
+	}
+}
 
 type MessageAPIController struct {
 	service         message.Service
@@ -60,6 +85,13 @@ func (c *MessageAPIController) Routes() []Route {
 			Handler:      c.FindChatByID,
 			AuthRequired: true,
 		},
+		{
+			Name:         "StartWebsocket",
+			Method:       http.MethodGet,
+			Path:         "/message/subscribe",
+			Handler:      c.MessageStartWebsocket,
+			AuthRequired: true,
+		},
 	}
 }
 
@@ -87,6 +119,12 @@ func (c *MessageAPIController) MessageSend(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		log.Error().Msgf("message_api mess_save error: %v", err)
 		c.responseEncoder.HandleError(ctx, w, err, result)
+		return
+	}
+
+	err = WebsocketClients[message.ReceiverID].Conn.WriteMessage(websocket.TextMessage, []byte("New Message Received!"))
+	if err != nil {
+		log.Error().Msgf("Websocket send message error: %s", err)
 		return
 	}
 
@@ -151,4 +189,33 @@ func (c *MessageAPIController) FindChatByID(w http.ResponseWriter, r *http.Reque
 	}
 
 	c.responseEncoder.EncodeJSONResponse(ctx, result.Body, result.StatusCode, w)
+}
+
+// Этот метод начинает соединение Websocket для обновления новых сообщений
+func (c *MessageAPIController) MessageStartWebsocket(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
+
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+        return true
+    }
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Error().Msgf("Websocket start connection error: %s", err)
+		return
+	}
+
+	client := &websocketClient{Conn: conn, UserID: currentUser.ID}
+	WebsocketClients[currentUser.ID] = client
+	// defer func() {
+	// 	conn.Close()
+	// 	delete(WebsocketClients, currentUser.ID)
+	// }()
+
+	err = conn.WriteMessage(websocket.TextMessage, []byte("Connection is established!"))
+	if err != nil {
+		log.Error().Msgf("Websocket send message error: %s", err)
+		return
+	}
 }

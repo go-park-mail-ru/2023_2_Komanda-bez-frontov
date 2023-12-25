@@ -63,7 +63,7 @@ func (s *messageService) MessageCheck(ctx context.Context) (*resp.Response, erro
 func (s *messageService) ChatGet(ctx context.Context, id int64) (*resp.Response, error) {
 	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 
-	err = s.messageRepository.ReadAllInChat(ctx, currentUser.ID, id)
+	err := s.messageRepository.ReadAllInChat(ctx, currentUser.ID, id)
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
 	}

@@ -163,6 +163,10 @@ func main() {
 	sig := <-interrupt
 
 	log.Info().Msgf("Received system signal: %s, application will be shutdown", sig)
+	defer func() {
+		cr.Stop()
+		log.Info().Msgf("AutoArchive is stopped")
+	}()
 
 	if err := server.Shutdown(context.Background()); err != nil {
 		log.Error().Msgf("failed to gracefully shutdown http server: %e", err)

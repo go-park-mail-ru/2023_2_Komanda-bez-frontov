@@ -2,9 +2,8 @@ package api
 
 import (
 	"fmt"
-	"net/http"
-
 	resp "go-form-hub/internal/services/service_response"
+	"net/http"
 )
 
 const csrfCookieName = "csrf_token"

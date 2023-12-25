@@ -123,6 +123,8 @@ func (s *userUseCase) UserGet(ctx context.Context, id int64) (*resp.Response, er
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Avatar:    user.Avatar,
+		Birthday:  user.Birthday,
+		Gender:    user.Gender,
 	}
 
 	modelUser.Sanitize(s.sanitizer)
@@ -207,6 +209,8 @@ func (s *userUseCase) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		Password:  encNewPassword,
 		Email:     user.Email,
 		Avatar:    user.Avatar,
+		Birthday:  user.Birthday,
+		Gender:    user.Gender,
 	})
 	if err != nil {
 		return resp.NewResponse(http.StatusInternalServerError, nil), err
@@ -219,6 +223,8 @@ func (s *userUseCase) UserUpdate(ctx context.Context, user *model.UserUpdate) (*
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Avatar:    user.Avatar,
+		Birthday:  user.Birthday,
+		Gender:    user.Gender,
 	}
 	userResponse.Sanitize(s.sanitizer)
 

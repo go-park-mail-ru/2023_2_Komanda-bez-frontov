@@ -61,6 +61,10 @@ type AnswerRepository interface {
 	DeleteByQuestionID(ctx context.Context, questionID int64) error
 }
 
+type ShortenerRepository interface {
+	GetLongURL(ctx context.Context, shortURL string) (string, error)
+	Insert(ctx context.Context, url *URLMapping) (string, error)
+  
 type MessageRepository interface {
 	Insert(ctx context.Context, message *model.MessageSave) error
 	CheckUnreadForUser(ctx context.Context, userID int64) (*model.CheckUnreadMessages, error)

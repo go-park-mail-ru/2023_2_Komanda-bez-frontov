@@ -14,6 +14,7 @@ import (
 	"go-form-hub/internal/database"
 	"go-form-hub/internal/repository"
 	"go-form-hub/internal/services/form"
+	"go-form-hub/internal/services/shortener"
 	"go-form-hub/internal/services/message"
 	"go-form-hub/microservices/auth/session"
 	passage "go-form-hub/microservices/passage/passage_client"
@@ -112,6 +113,7 @@ func main() {
 	validate := validator.New()
 	tokenParser := api.NewHMACHashToken(cfg.Secret)
 
+	shortenerRepository := repository.NewShortenerRepository(db, builder)
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	formRepository := repository.NewFormDatabaseRepository(db, builder)
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)
@@ -136,6 +138,7 @@ func main() {
 	cr.Start()
 
 	formService := form.NewFormService(formRepository, questionRepository, answerRepository, validate)
+	shortenerService := shortener.NewShortenerService(shortenerRepository, validate)
 	messageService := message.NewMessageService(messageRepository, validate)
 
 	responseEncoder := api.NewResponseEncoder()
@@ -143,12 +146,14 @@ func main() {
 	formRouter := api.NewFormAPIController(formService, passageController, validate, responseEncoder)
 	authRouter := api.NewAuthAPIController(tokenParser, sessController, validate, cfg.CookieExpiration, responseEncoder)
 	userRouter := api.NewUserAPIController(userController, validate, responseEncoder)
+	shortenerRouter := api.NewShortenerAPIController(shortenerService, validate, responseEncoder)
 	messageRouter := api.NewMessageAPIController(messageService, validate, responseEncoder)
 
 	authMiddleware := api.AuthMiddleware(sessionRepository, userRepository, cfg.CookieExpiration, responseEncoder)
 	currentUserMiddleware := api.CurrentUserMiddleware(sessionRepository, userRepository, cfg.CookieExpiration)
 	csrfMiddleware := api.CSRFMiddleware(tokenParser, responseEncoder)
 
+	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter, shortenerRouter)
 	r := api.NewRouter(cfg, authMiddleware, currentUserMiddleware, csrfMiddleware, formRouter, authRouter, userRouter, messageRouter)
 
 	server, err := StartServer(cfg, r)

@@ -238,12 +238,16 @@ func (c *AuthAPIController) Signup(w http.ResponseWriter, r *http.Request) {
 
 func (c *AuthAPIController) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	currentUser := ctx.Value(model.ContextCurrentUser).(*model.UserGet)
 
 	_, err := c.authService.Delete(ctx, &session.Session{})
 	if err != nil {
 		c.responseEncoder.HandleError(ctx, w, err, nil)
 		return
 	}
+
+	WebsocketClients[currentUser.ID].Conn.Close()
+	delete(WebsocketClients, currentUser.ID)
 
 	cookie := &http.Cookie{
 		Name:     "session_id",

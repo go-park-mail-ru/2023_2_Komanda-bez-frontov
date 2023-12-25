@@ -10,7 +10,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-type ShortenerService interface {
+type Service interface {
 	ShortenURL(ctx context.Context, longURL string) (string, error)
 	GetLongURL(ctx context.Context, shortURL string) (string, error)
 	RedirectHandler(w http.ResponseWriter, req *http.Request)
@@ -19,12 +19,14 @@ type ShortenerService interface {
 type shortenerService struct {
 	repository repository.ShortenerRepository
 	sanitizer  *bluemonday.Policy
+	validate   *validator.Validate
 }
 
-func NewShortenerService(repository repository.ShortenerRepository, validate *validator.Validate) ShortenerService {
+func NewShortenerService(urlRepository repository.ShortenerRepository, validate *validator.Validate) Service {
 	sanitizer := bluemonday.UGCPolicy()
 	return &shortenerService{
-		repository: repository,
+		repository: urlRepository,
+		validate:   validate,
 		sanitizer:  sanitizer,
 	}
 }

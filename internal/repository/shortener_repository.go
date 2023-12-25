@@ -18,19 +18,19 @@ type URLMapping struct {
 	ShortURL string `db:"short_url"`
 }
 
-type databaseRepository struct {
+type URLRepository struct {
 	db      database.ConnPool
 	builder squirrel.StatementBuilderType
 }
 
-func NewDatabaseRepository(db database.ConnPool, builder squirrel.StatementBuilderType) *databaseRepository {
-	return &databaseRepository{
+func NewShortenerRepository(db database.ConnPool, builder squirrel.StatementBuilderType) *URLRepository {
+	return &URLRepository{
 		db:      db,
 		builder: builder,
 	}
 }
 
-func (r *databaseRepository) Insert(ctx context.Context, url *URLMapping) (string, error) {
+func (r *URLRepository) Insert(ctx context.Context, url *URLMapping) (string, error) {
 	shortURL, err := generateRandomString(8)
 	if err != nil {
 		return "", err
@@ -79,7 +79,7 @@ func generateRandomString(length int) (string, error) {
 	return randomString[:length], nil
 }
 
-func (r *databaseRepository) RedirectHandler(w http.ResponseWriter, req *http.Request) {
+func (r *URLRepository) RedirectHandler(w http.ResponseWriter, req *http.Request) {
 	shortURL := req.URL.Path[len("/123"):]
 	if shortURL == "" {
 		http.Error(w, "Short URL not provided", http.StatusBadRequest)
@@ -95,7 +95,7 @@ func (r *databaseRepository) RedirectHandler(w http.ResponseWriter, req *http.Re
 	http.Redirect(w, req, longURL[28:], http.StatusFound)
 }
 
-func (r *databaseRepository) GetLongURL(ctx context.Context, shortURL string) (string, error) {
+func (r *URLRepository) GetLongURL(ctx context.Context, shortURL string) (string, error) {
 	var longURL string
 	query, args, err := r.builder.Select("long_url").
 		From(fmt.Sprintf("%s.url", r.db.GetSchema())).

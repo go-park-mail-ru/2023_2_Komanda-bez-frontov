@@ -111,7 +111,7 @@ func main() {
 	validate := validator.New()
 	tokenParser := api.NewHMACHashToken(cfg.Secret)
 
-	shortenerRepository := repository.NewDatabaseRepository(db, builder)
+	shortenerRepository := repository.NewShortenerRepository(db, builder)
 	userRepository := repository.NewUserDatabaseRepository(db, builder)
 	formRepository := repository.NewFormDatabaseRepository(db, builder)
 	sessionRepository := repository.NewSessionDatabaseRepository(db, builder)

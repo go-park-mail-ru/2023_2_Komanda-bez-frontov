@@ -13,12 +13,12 @@ import (
 )
 
 type ShortenerAPIController struct {
-	shortenerService shortener.ShortenerService
+	shortenerService shortener.Service
 	validator        *validator.Validate
 	responseEncoder  ResponseEncoder
 }
 
-func NewShortenerAPIController(shortenerService shortener.ShortenerService, v *validator.Validate, responseEncoder ResponseEncoder) Router {
+func NewShortenerAPIController(shortenerService shortener.Service, v *validator.Validate, responseEncoder ResponseEncoder) Router {
 	return &ShortenerAPIController{
 		shortenerService: shortenerService,
 		validator:        v,

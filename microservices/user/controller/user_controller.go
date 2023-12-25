@@ -38,6 +38,11 @@ func (pm *ProfileController) UserGet(ctx context.Context, userID *profile.Curren
 		empty := defaultAvatar
 		userGet.Avatar = &empty
 	}
+	if userGet.Birthday == nil {
+		emptyString := "-1"
+		userGet.Birthday = &emptyString
+	}
+
 	userMsg := &profile.User{
 		Email:     userGet.Email,
 		FirstName: userGet.FirstName,
@@ -45,6 +50,8 @@ func (pm *ProfileController) UserGet(ctx context.Context, userID *profile.Curren
 		Username:  userGet.Username,
 		Id:        userGet.ID,
 		Avatar:    *userGet.Avatar,
+		Birthday:  *userGet.Birthday,
+		Gender:    userGet.Gender,
 	}
 	body, err := anypb.New(userMsg)
 	if err != nil {
@@ -94,6 +101,12 @@ func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.Use
 		NewPassword: userUpdate.Update.NewPassword,
 		Email:       userUpdate.Update.Email,
 		Avatar:      &userUpdate.Update.Avatar,
+		Gender:      userUpdate.Update.Gender,
+		Birthday:    &userUpdate.Update.Birthday,
+	}
+
+	if *userModelUpdate.Birthday == "-1" {
+		userModelUpdate.Birthday = nil
 	}
 
 	ctx = context.WithValue(ctx, model.ContextCurrentUser, &model.UserGet{
@@ -114,6 +127,12 @@ func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.Use
 		empty := defaultAvatar
 		userGet.Avatar = &empty
 	}
+
+	if userGet.Birthday == nil {
+		emptyString := "-1"
+		userGet.Birthday = &emptyString
+	}
+
 	userMsg := &profile.User{
 		Email:     userGet.Email,
 		FirstName: userGet.FirstName,
@@ -121,6 +140,8 @@ func (pm *ProfileController) Update(ctx context.Context, userUpdate *profile.Use
 		Username:  userGet.Username,
 		Id:        userGet.ID,
 		Avatar:    *userGet.Avatar,
+		Birthday:  *userGet.Birthday,
+		Gender:    userGet.Gender,
 	}
 	body, err := anypb.New(userMsg)
 	if err != nil {

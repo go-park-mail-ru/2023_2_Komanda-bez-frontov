@@ -27,6 +27,8 @@ message UserUpdate {
   string email = 5;
   string avatar = 6;
   string newPassword = 7;
+  string birthday = 8;
+  string gender = 9;
 }
 
 message User {
@@ -37,6 +39,8 @@ message User {
   string email = 5;
   string avatar = 6;
   int64 id = 7;
+  string birthday = 8;
+  string gender = 9;
 }
 
 message UserAvatar {

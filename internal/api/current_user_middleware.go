@@ -45,6 +45,8 @@ func CurrentUserMiddleware(sessionRepository repository.SessionRepository, userR
 				FirstName: currentUser.FirstName,
 				LastName:  currentUser.LastName,
 				Email:     currentUser.Email,
+				Gender:    currentUser.Gender,
+				Birthday:  currentUser.Birthday,
 			}))
 			next.ServeHTTP(w, r)
 		})
